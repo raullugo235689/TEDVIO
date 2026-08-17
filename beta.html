@@ -7,39 +7,45 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
   <title>TEDVIO</title>
   <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="./assets/tedvio_icono_app_512.png" />
-  <link rel="icon" type="image/png" href="./assets/tedvio_icono_app_192.png" />
-  <link rel="stylesheet" href="./styles.css?v=11" />
-  <link rel="stylesheet" href="./beta.css?v=11" />
-  <link rel="stylesheet" href="./beta-pro-max.css?v=11" />
+  <link rel="stylesheet" href="./styles.css?v=12" />
+  <link rel="stylesheet" href="./beta.css?v=12" />
+  <link rel="stylesheet" href="./beta-pro-max.css?v=12" />
   <style>
-    #tedvioOfficialLoginLogo{display:none;position:fixed;z-index:9999;left:50%;top:calc(50% - 255px);transform:translateX(-50%);width:min(360px,72vw);height:auto;object-fit:contain;pointer-events:none}
-    body:has(.b-login-card #authEmail) #tedvioOfficialLoginLogo{display:block!important}
-    @media(max-width:680px){#tedvioOfficialLoginLogo{top:calc(50% - 245px);width:min(330px,74vw)}}
-    @media(max-height:760px){#tedvioOfficialLoginLogo{top:calc(50% - 220px);width:min(290px,68vw)}}
+    #tedvioInlineBrand{display:none;position:fixed;z-index:99999;left:50%;top:calc(50% - 250px);transform:translateX(-50%);width:min(390px,78vw);pointer-events:none}
+    body:has(.b-login-card #authEmail) #tedvioInlineBrand{display:block!important}
+    #tedvioInlineBrand svg{display:block;width:100%;height:auto;overflow:visible}
+    @media(max-width:680px){#tedvioInlineBrand{top:calc(50% - 240px);width:min(350px,78vw)}}
   </style>
 </head>
 <body>
-  <img id="tedvioOfficialLoginLogo" src="/assets/tedvio_logo_horizontal_650.png?v=11" alt="TEDVIO — Interacción educativa en tiempo real" />
+  <div id="tedvioInlineBrand" aria-label="TEDVIO">
+    <svg viewBox="0 0 760 190" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="TEDVIO Interacción educativa en tiempo real">
+      <g transform="translate(12 7)">
+        <circle cx="78" cy="82" r="59" fill="none" stroke="#2865F5" stroke-width="12" stroke-dasharray="235 90" stroke-linecap="round" transform="rotate(-38 78 82)"/>
+        <circle cx="78" cy="82" r="40" fill="none" stroke="#45A2F7" stroke-width="9" stroke-dasharray="126 126" stroke-linecap="round" transform="rotate(205 78 82)"/>
+        <circle cx="29" cy="112" r="10" fill="#2458F5"/><circle cx="112" cy="30" r="10" fill="#45A2F7"/><circle cx="126" cy="126" r="12" fill="#347EF4"/>
+        <text x="57" y="112" font-family="Arial,Helvetica,sans-serif" font-size="78" font-weight="900" fill="#0A214D">T</text>
+      </g>
+      <text x="166" y="118" font-family="Arial,Helvetica,sans-serif" font-size="88" font-weight="900" letter-spacing="5" fill="#0A214D">TEDVIO</text>
+      <text x="170" y="157" font-family="Arial,Helvetica,sans-serif" font-size="18" font-weight="800" letter-spacing="4" fill="#205BFF">INTERACCIÓN EDUCATIVA EN TIEMPO REAL</text>
+    </svg>
+  </div>
   <div id="betaApp"></div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-  <script src="./config.js?v=11"></script>
-  <script src="./beta-runtime-hooks.js?v=11"></script>
-  <script type="module" src="./beta-auth-fix.js?v=11"></script>
-  <script type="module" src="./beta.js?v=11"></script>
-  <script type="module" src="./beta-login-clean.js?v=11"></script>
-  <script type="module" src="./beta-academics.js?v=11"></script>
-  <script type="module" src="./beta-scoring-ui.js?v=11"></script>
-  <script type="module" src="./beta-learning.js?v=11"></script>
-  <script type="module" src="./beta-analytics-plus.js?v=11"></script>
-  <script type="module" src="./beta-ux.js?v=11"></script>
-  <script type="module" src="./beta-stability.js?v=11"></script>
+  <script src="./config.js?v=12"></script>
+  <script src="./beta-runtime-hooks.js?v=12"></script>
+  <script type="module" src="./beta-auth-fix.js?v=12"></script>
+  <script type="module" src="./beta.js?v=12"></script>
+  <script type="module" src="./beta-academics.js?v=12"></script>
+  <script type="module" src="./beta-scoring-ui.js?v=12"></script>
+  <script type="module" src="./beta-learning.js?v=12"></script>
+  <script type="module" src="./beta-analytics-plus.js?v=12"></script>
+  <script type="module" src="./beta-ux.js?v=12"></script>
+  <script type="module" src="./beta-stability.js?v=12"></script>
 </body>
 </html>
