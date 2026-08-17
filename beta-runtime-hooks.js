@@ -15,17 +15,19 @@
     return id;
   };
 
-  let groupsLoaded=false;
+  let groupsModulePromise=null;
   const loadGroupsModule=()=>{
-    if(groupsLoaded||!document.querySelector('.b-top-actions')) return;
-    groupsLoaded=true;
-    import('./beta-groups-attendance.js?v=17').catch(err=>{
-      groupsLoaded=false;
+    if(groupsModulePromise) return groupsModulePromise;
+    groupsModulePromise=import('./beta-groups-attendance.js?v=18').catch(err=>{
       console.error('TEDVIO groups module failed to load',err);
+      groupsModulePromise=null;
     });
+    return groupsModulePromise;
   };
-  const obs=new MutationObserver(loadGroupsModule);
-  obs.observe(document.documentElement,{childList:true,subtree:true});
-  document.addEventListener('DOMContentLoaded',loadGroupsModule,{once:true});
-  setTimeout(loadGroupsModule,1200);
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',loadGroupsModule,{once:true});
+  }else{
+    loadGroupsModule();
+  }
 })();
