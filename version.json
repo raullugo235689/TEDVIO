@@ -1,0 +1,8 @@
+{
+  "app": "TEDVIO Pro Beta",
+  "version": "2026.08.17.2",
+  "channel": "pro-beta",
+  "audit": "stability-hardening",
+  "source": "main",
+  "generated_at": "2026-08-17"
+}
