@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const cfg=window.TEDVIO_CONFIG||{};
 const sb=createClient(cfg.SUPABASE_URL,cfg.SUPABASE_PUBLISHABLE_KEY);
-const redirectTo='https://tedvio.vercel.app/beta.html#teacher';
+const redirectTo=`${location.origin}/beta.html#teacher`;
 
 document.addEventListener('click',async e=>{
   const btn=e.target.closest?.('#authSignup');
