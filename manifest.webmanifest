@@ -1,0 +1,14 @@
+{
+  "name": "TEDVIO",
+  "short_name": "TEDVIO",
+  "description": "Interacción educativa en tiempo real",
+  "start_url": "/beta.html#teacher",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#071a3b",
+  "theme_color": "#071a3b",
+  "orientation": "any",
+  "icons": [
+    {"src":"/assets/tedvio_isotipo_1024.png","sizes":"1024x1024","type":"image/png","purpose":"any maskable"}
+  ]
+}
