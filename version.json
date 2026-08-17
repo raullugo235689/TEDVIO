@@ -1,8 +1,8 @@
 {
-  "app": "TEDVIO Pro Beta",
-  "version": "2026.08.17.3",
-  "channel": "pro-beta",
-  "audit": "official-brand-pwa",
+  "app": "TEDVIO",
+  "version": "2026.08.17.4",
+  "channel": "pro",
+  "audit": "login-branding-cleanup",
   "source": "main",
   "generated_at": "2026-08-17"
 }
