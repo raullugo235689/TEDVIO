@@ -15,34 +15,4 @@
     }
     return id;
   };
-
-  let brandPromise=null;
-  let groupsPromise=null;
-
-  const loadBrand=()=>{
-    if(brandPromise) return brandPromise;
-    brandPromise=import('./beta-brand-v2.js?v=21').catch(err=>{
-      console.error('TEDVIO brand module failed to load',err);
-      brandPromise=null;
-    });
-    return brandPromise;
-  };
-
-  const loadGroupsWhenReady=()=>{
-    if(groupsPromise||!document.querySelector('#betaApp .b-top-actions')) return;
-    groupsPromise=import('./beta-groups-attendance.js?v=21').catch(err=>{
-      console.error('TEDVIO groups module failed to load',err);
-      groupsPromise=null;
-    });
-  };
-
-  const start=()=>{
-    loadBrand();
-    loadGroupsWhenReady();
-    const root=document.getElementById('betaApp');
-    if(root) new MutationObserver(loadGroupsWhenReady).observe(root,{childList:true});
-  };
-
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start,{once:true});
-  else start();
 })();
