@@ -1,4 +1,5 @@
-const TARGET='./assets/tedvio_logo_horizontal_650.png';
+const LOGIN_LOGO='https://raw.githubusercontent.com/raullugo235689/TEDVIO/main/assets/tedvio_logo_horizontal_650.png?v=20260817-5';
+const LOGIN_LOGO_FALLBACK='https://raw.githubusercontent.com/raullugo235689/TEDVIO/main/assets/tedvio_logo_horizontal_650.webp?v=20260817-5';
 
 function cleanTeacherLogin(){
   if(location.hash.startsWith('#join')||location.hash.startsWith('#student')) return;
@@ -9,11 +10,15 @@ function cleanTeacherLogin(){
 
   const logo=card.querySelector('.b-login-logo');
   if(logo){
-    logo.src=TARGET;
+    logo.onerror=()=>{logo.onerror=null;logo.src=LOGIN_LOGO_FALLBACK;};
+    if(logo.src!==LOGIN_LOGO) logo.src=LOGIN_LOGO;
     logo.alt='TEDVIO';
-    logo.style.width='min(330px,78vw)';
+    logo.style.display='block';
+    logo.style.width='min(360px,82vw)';
+    logo.style.maxWidth='100%';
     logo.style.height='auto';
-    logo.style.margin='0 auto 28px';
+    logo.style.margin='0 auto 30px';
+    logo.style.objectFit='contain';
   }
 
   card.querySelectorAll('h2').forEach(el=>el.remove());
