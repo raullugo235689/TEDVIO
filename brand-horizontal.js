@@ -6,7 +6,7 @@ function applyHorizontalBrand(){
     const text=[...first.querySelectorAll?.('div')||[]].find(el=>el.textContent?.trim()==='TEDVIO');
     if(!iso || !text) return;
     first.dataset.tedvioHorizontal='1';
-    first.innerHTML='<img src="./assets/tedvio_logo_horizontal_2000.png" alt="TEDVIO" style="width:min(310px,78vw);height:auto;display:block;margin:0 auto;object-fit:contain">';
+    first.innerHTML='<img src="./assets/tedvio_logo_horizontal_650.webp" alt="TEDVIO" style="width:min(330px,82vw);height:auto;display:block;margin:0 auto;object-fit:contain">';
     first.style.margin='0 auto 20px';
   });
 }
