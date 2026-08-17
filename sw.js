@@ -1,5 +1,47 @@
-const CACHE='tedvio-pro-v3';
-const STATIC=['/beta.html','/beta.css','/beta-pro-max.css','/health.html','/version.json','/assets/tedvio_logo_horizontal_650.png','/assets/tedvio_isotipo_1024.png','/assets/tedvio_icono_app_192.png','/assets/tedvio_icono_app_512.png','/config.js'];
-self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(STATIC).catch(()=>{})));self.skipWaiting()});
-self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim()});
-self.addEventListener('fetch',e=>{const r=e.request,u=new URL(r.url);if(r.method!=='GET'||u.origin!==location.origin)return;const nav=r.mode==='navigate',dynamic=/\.(?:js|css|html|json|webmanifest)$/.test(u.pathname);if(nav||dynamic){e.respondWith(fetch(r).then(res=>{if(res.ok){const copy=res.clone();caches.open(CACHE).then(c=>c.put(r,copy))}return res}).catch(()=>caches.match(r).then(x=>x||caches.match('/beta.html'))));return}e.respondWith(caches.match(r).then(cached=>cached||fetch(r).then(res=>{if(res.ok)caches.open(CACHE).then(c=>c.put(r,res.clone()));return res}))) });
+const CACHE='tedvio-pro-v23-20260817';
+const STATIC=['/assets/tedvio_icono_app_192.png','/assets/tedvio_icono_app_512.png','/assets/tedvio_official_isotipo.svg','/assets/tedvio_official_horizontal.svg'];
+
+self.addEventListener('install',event=>{
+  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(STATIC).catch(()=>{})));
+  self.skipWaiting();
+});
+
+self.addEventListener('activate',event=>{
+  event.waitUntil((async()=>{
+    const keys=await caches.keys();
+    await Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)));
+    await self.clients.claim();
+    const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+    for(const client of clients){
+      try{await client.navigate(client.url)}catch(_e){}
+    }
+  })());
+});
+
+self.addEventListener('message',event=>{
+  if(event.data==='SKIP_WAITING') self.skipWaiting();
+  if(event.data==='CLEAR_TEDVIO_CACHES'){
+    event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))));
+  }
+});
+
+self.addEventListener('fetch',event=>{
+  const request=event.request;
+  if(request.method!=='GET') return;
+  const url=new URL(request.url);
+  if(url.origin!==location.origin) return;
+
+  const isShell=request.mode==='navigate'||/\.(?:html|js|css|json|webmanifest)$/.test(url.pathname);
+  if(isShell){
+    event.respondWith(fetch(new Request(request,{cache:'no-store'})).catch(()=>caches.match(request)));
+    return;
+  }
+
+  event.respondWith(caches.match(request).then(cached=>cached||fetch(request).then(response=>{
+    if(response.ok){
+      const copy=response.clone();
+      caches.open(CACHE).then(cache=>cache.put(request,copy)).catch(()=>{});
+    }
+    return response;
+  })));
+});
