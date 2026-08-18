@@ -1,4 +1,4 @@
-const CACHE='tedvio-pro-v23-20260817';
+const CACHE='tedvio-pro-v24-20260818';
 const STATIC=['/assets/tedvio_icono_app_192.png','/assets/tedvio_icono_app_512.png','/assets/tedvio_official_isotipo.svg','/assets/tedvio_official_horizontal.svg'];
 
 self.addEventListener('install',event=>{
@@ -11,10 +11,6 @@ self.addEventListener('activate',event=>{
     const keys=await caches.keys();
     await Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)));
     await self.clients.claim();
-    const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});
-    for(const client of clients){
-      try{await client.navigate(client.url)}catch(_e){}
-    }
   })());
 });
 

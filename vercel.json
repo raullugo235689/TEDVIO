@@ -1,7 +1,47 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "buildCommand": null,
+  "buildCommand": "",
   "installCommand": "",
-  "outputDirectory": "."
+  "outputDirectory": ".",
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "*": false
+    }
+  },
+  "headers": [
+    {
+      "source": "/beta.html",
+      "headers": [{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"}]
+    },
+    {
+      "source": "/beta-brand-v2.js",
+      "headers": [{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]
+    },
+    {
+      "source": "/beta-runtime-hooks.js",
+      "headers": [{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]
+    },
+    {
+      "source": "/beta.css",
+      "headers": [{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]
+    },
+    {
+      "source": "/beta-pro-max.css",
+      "headers": [{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]
+    },
+    {
+      "source": "/beta-groups-attendance.js",
+      "headers": [{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]
+    },
+    {
+      "source": "/sw.js",
+      "headers": [{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]
+    },
+    {
+      "source": "/version.json",
+      "headers": [{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]
+    }
+  ]
 }

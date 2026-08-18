@@ -1,8 +1,8 @@
 {
   "app": "TEDVIO",
-  "version": "2026.08.17.4",
+  "version": "2026.08.18.1",
   "channel": "pro",
-  "audit": "login-branding-cleanup",
+  "audit": "vercel-static-cache-hardening",
   "source": "main",
-  "generated_at": "2026-08-17"
+  "generated_at": "2026-08-18"
 }
