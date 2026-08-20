@@ -1,8 +1,8 @@
 {
   "app": "TEDVIO",
-  "version": "2026.08.18.1",
+  "version": "2026.08.20.43",
   "channel": "pro",
-  "audit": "vercel-static-cache-hardening",
+  "audit": "core-consolidation-groups-attendance",
   "source": "main",
-  "generated_at": "2026-08-18"
+  "generated_at": "2026-08-20"
 }
