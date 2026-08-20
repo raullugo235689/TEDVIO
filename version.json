@@ -1,8 +1,8 @@
 {
   "app": "TEDVIO",
-  "version": "2026.08.20.43",
+  "version": "2026.08.20.44",
   "channel": "pro",
-  "audit": "core-consolidation-groups-attendance",
+  "audit": "stable-fast-sidebar-navigation",
   "source": "main",
   "generated_at": "2026-08-20"
 }
