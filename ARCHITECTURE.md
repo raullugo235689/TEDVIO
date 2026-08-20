@@ -34,16 +34,18 @@ The following files remain in the repository for history but MUST NOT be loaded 
 
 `v2_groups.program_id`, `v2_groups.name` and `v2_groups.term` are canonical. Legacy display columns (`university`, `program`, `group_name`, `school_cycle`) are compatibility-only and should not be used as the source of truth in new code.
 
+Database triggers keep those compatibility columns synchronized when a group, program or university is renamed so legacy modules cannot silently drift from the canonical hierarchy.
+
 ## Attendance model
 
 `v2_groups -> v2_attendance_sessions -> v2_attendance_records`
 
-The active attendance session id must always come from `v2_attendance_sessions`. Never infer it from a student's most recent attendance record.
+The active attendance session id must always come from `v2_attendance_sessions`. Never infer it from a student's most recent attendance record. Attendance date, status buttons, observations, save and history now live in one module instead of five DOM patch layers.
 
 ## Refactor roadmap
 
 1. Split `beta.js` into auth, teacher dashboard, live sessions, student runtime and reports.
-2. Replace DOM patching with explicit state/render functions.
+2. Replace remaining DOM patching with explicit state/render functions.
 3. Remove deprecated files after regression coverage exists.
 4. Add automated smoke tests for live sessions, attendance and OMR.
 5. Add centralized error telemetry before commercial launch.
