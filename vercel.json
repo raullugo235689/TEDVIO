@@ -4,51 +4,20 @@
   "buildCommand": "",
   "installCommand": "",
   "outputDirectory": ".",
-  "git": {
-    "deploymentEnabled": {
-      "main": true,
-      "*": false
-    }
-  },
-  "rewrites": [
-    {"source":"/teacher","destination":"/teacher.html"}
-  ],
+  "git": {"deploymentEnabled":{"main":true,"*":false}},
+  "rewrites": [{"source":"/teacher","destination":"/teacher.html"}],
   "headers": [
-    {
-      "source": "/beta.html",
-      "headers": [{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"}]
-    },
-    {
-      "source": "/teacher.html",
-      "headers": [{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"}]
-    },
-    {
-      "source": "/teacher",
-      "headers": [{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"}]
-    },
-    {
-      "source": "/beta-brand-v2.js",
-      "headers": [{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]
-    },
-    {
-      "source": "/beta-runtime-hooks.js",
-      "headers": [{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]
-    },
-    {
-      "source": "/beta.css",
-      "headers": [{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]
-    },
-    {
-      "source": "/beta-pro-max.css",
-      "headers": [{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]
-    },
-    {
-      "source": "/sw.js",
-      "headers": [{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]
-    },
-    {
-      "source": "/version.json",
-      "headers": [{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]
-    }
+    {"source":"/beta.html","headers":[{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"}]},
+    {"source":"/teacher.html","headers":[{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"}]},
+    {"source":"/teacher","headers":[{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"}]},
+    {"source":"/asistencia.html","headers":[{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"}]},
+    {"source":"/attendance-checkin-v1.js","headers":[{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]},
+    {"source":"/beta-group-center-v2.js","headers":[{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]},
+    {"source":"/beta-brand-v2.js","headers":[{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]},
+    {"source":"/beta-runtime-hooks.js","headers":[{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]},
+    {"source":"/beta.css","headers":[{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]},
+    {"source":"/beta-pro-max.css","headers":[{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]},
+    {"source":"/sw.js","headers":[{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]},
+    {"source":"/version.json","headers":[{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]}
   ]
 }
