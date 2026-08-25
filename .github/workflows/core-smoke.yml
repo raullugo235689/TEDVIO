@@ -1,4 +1,4 @@
-name: TEDVIO Core Smoke
+name: TEDVIO Stable Candidate Audit
 
 on:
   push:
@@ -7,25 +7,18 @@ on:
     branches: [main]
 
 jobs:
-  smoke:
+  audit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Validate production wiring
+      - name: Run static regression audit
+        run: node tests/stable-candidate-audit.mjs
+      - name: Validate critical files exist
         run: |
-          node <<'NODE'
-          const fs=require('fs');
-          const html=fs.readFileSync('beta.html','utf8');
-          const groups=fs.readFileSync('beta-groups-core-v3.js','utf8');
-          const projection=fs.readFileSync('proyectar.html','utf8');
-          const must=(ok,msg)=>{if(!ok){console.error('FAIL:',msg);process.exitCode=1}else console.log('OK:',msg)};
-          must(html.includes('beta-groups-core-v3.js'),'canonical groups core is loaded');
-          for(const dead of ['beta-groups-attendance.js','beta-groups-cascade-v1.js','beta-attendance-date-v1.js','beta-attendance-fast-v1.js','beta-attendance-save-v1.js']) must(!html.includes(dead),`${dead} is not loaded`);
-          must(groups.includes('attendance_session_id:attSession.id'),'attendance saves with the active session id');
-          must(!groups.includes("select('attendance_session_id').eq('student_id'"),'attendance does not infer session from a student record');
-          must(groups.includes("v2_universities")&&groups.includes("v2_programs")&&groups.includes("v2_groups"),'groups use canonical academic hierarchy');
-          must(projection.includes('proyectar-v2.js'),'stable projection runtime is active');
-          must(html.includes('beta-paper-exams-v2.js'),'OMR v2 is active');
-          must(!html.includes('beta-paper-exams-v1.js'),'deprecated OMR v1 is not loaded');
-          if(process.exitCode)process.exit(process.exitCode);
-          NODE
+          test -f teacher.html
+          test -f beta.html
+          test -f asistencia.html
+          test -f proyectar.html
+          test -f beta-attendance-pro-v1.js
+          test -f beta-group-center-v2.js
+          test -f beta-paper-exams-v2.js
