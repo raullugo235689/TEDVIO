@@ -8,15 +8,19 @@ const groups=read('beta-groups-core-v3.js');
 const attendance=read('beta-attendance-pro-v1.js');
 const checkin=read('asistencia.html');
 const projection=read('proyectar-v2.js');
+const projectionHtml=read('proyectar.html');
 const studentLive=read('beta-student-live-v1.js');
 const stability=read('beta-stability.js');
 const config=read('config.js');
+const sw=read('sw.js');
+const manifest=JSON.parse(read('manifest.webmanifest'));
 const version=JSON.parse(read('version.json'));
 
 let failed=0;
 function must(ok,msg){if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}}
 
 for(const html of [teacher,beta]){
+  must(html.includes('v=53'),'stable shell is cache-busted to v53');
   must(html.includes('beta-groups-core-v3.js'),'canonical groups core is loaded');
   must(html.includes('beta-group-center-v2.js'),'Group Center v2 is loaded');
   must(html.includes('beta-attendance-pro-v1.js'),'Attendance Pro is loaded');
@@ -41,7 +45,7 @@ must(!checkin.includes('attendance-checkin-v1.js'),'student attendance page does
 
 must(projection.includes("v2_public_session_people"),'projection uses display-safe public people RPC');
 must(!projection.includes("from('v2_participants')"),'projection does not read participant rows directly');
-must(projection.includes('proyectar')||projection.includes('projection'),'projection runtime is present');
+must(projectionHtml.includes('proyectar-v2.js?v=53'),'projection shell loads audited v53 runtime');
 
 must(studentLive.includes('v2_public_question_results'),'student reveal uses aggregate public results');
 must(studentLive.includes('v2_student_answer_feedback'),'student explanation is fetched through reveal-gated RPC');
@@ -53,6 +57,10 @@ must(stability.includes('stopImmediatePropagation'),'legacy direct join handler 
 
 must(config.includes('SUPABASE_PUBLISHABLE_KEY'),'frontend contains only a publishable Supabase key');
 must(!/service_role|secret[_-]?key|SUPABASE_SERVICE/i.test(config),'frontend config contains no service-role/secret key');
+
+must(manifest.start_url==='/teacher','PWA starts on the stable teacher route');
+must(sw.includes("tedvio-stable-v53-20260825"),'service worker uses the stable-candidate cache namespace');
+must(sw.includes("cache:'no-store'"),'service worker uses network-first no-store for app shell files');
 
 must(version.channel==='stable-candidate','version is marked stable-candidate');
 must(String(version.version).endsWith('.53'),'stable candidate is v53');
