@@ -2,7 +2,7 @@
   "name": "TEDVIO",
   "short_name": "TEDVIO",
   "description": "Interacción educativa en tiempo real",
-  "start_url": "/beta.html#teacher",
+  "start_url": "/teacher",
   "scope": "/",
   "display": "standalone",
   "background_color": "#071a3b",
