@@ -1,8 +1,8 @@
 {
   "app": "TEDVIO",
-  "version": "2026.08.20.44",
+  "version": "2026.08.25.45",
   "channel": "pro",
-  "audit": "stable-fast-sidebar-navigation",
+  "audit": "sidebar-modal-layering-fix",
   "source": "main",
-  "generated_at": "2026-08-20"
+  "generated_at": "2026-08-25"
 }
