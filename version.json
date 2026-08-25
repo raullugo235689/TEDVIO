@@ -1,8 +1,8 @@
 {
   "app": "TEDVIO",
-  "version": "2026.08.25.52",
-  "channel": "pro",
-  "audit": "attendance-pro-lifecycle-reports-exports",
+  "version": "2026.08.25.53",
+  "channel": "stable-candidate",
+  "audit": "full-security-integrity-regression-audit",
   "source": "main",
   "generated_at": "2026-08-25"
 }
