@@ -8,20 +8,20 @@ const typeLabel={multiple_choice:'Opción múltiple',multiple_select:'Selección
 let code=new URLSearchParams(location.search).get('code')||'';
 let timer=null,busy=false,lastGood=null,currentScreen='',lastPeople=new Set(),lastPeopleKey='',lastRankKey='';
 
-function logo(){return '<img class="pj-logo" src="./assets/tedvio_official_horizontal.svg?v=38" alt="TEDVIO">'}
+function logo(){return '<img class="pj-logo" src="./assets/tedvio_official_horizontal.svg?v=53" alt="TEDVIO">'}
 function entry(){currentScreen='entry';root.innerHTML=`<div class="pj-entry"><div class="pj-card">${logo()}<h1>Pantalla de proyección</h1><p>Escribe el código de la sesión.</p><input id="pjCode" inputmode="numeric" maxlength="6" value="${esc(code)}"><button id="pjGo">Abrir proyección</button></div></div>`;document.querySelector('#pjGo').onclick=()=>{code=document.querySelector('#pjCode').value.trim();if(code.length!==6)return;history.replaceState(null,'',`?code=${code}`);start()}}
 
 async function fetchState(){
   const {data:meta,error:metaError}=await sb.rpc('v2_public_session_meta',{p_code:code});
   if(metaError)throw metaError;
   const s=meta?.[0];if(!s)return null;if(s.status==='closed')return{closed:true,s};
-  const [{data:counts},{data:srow}]=await Promise.all([
+  const [{data:counts},{data:srow},{data:people}]=await Promise.all([
     sb.rpc('v2_public_live_counts',{p_code:code}),
-    sb.from('v2_sessions').select('id,current_question_id,status,competitive,team_mode').eq('id',s.session_id).maybeSingle()
+    sb.from('v2_sessions').select('id,current_question_id,status,competitive,team_mode').eq('id',s.session_id).maybeSingle(),
+    sb.rpc('v2_public_session_people',{p_code:code})
   ]);
   if(!srow||srow.status==='closed')return{closed:true,s:{...s,...srow}};
   let q=null;if(srow.current_question_id)q=(await sb.from('v2_questions').select('*').eq('id',srow.current_question_id).maybeSingle()).data;
-  const {data:people}=await sb.from('v2_participants').select('display_name,team_name').eq('session_id',s.session_id).order('joined_at');
   let ranking=[];if(s.competitive)ranking=(await sb.rpc('v2_public_ranking',{p_code:code})).data||[];
   return{s:{...s,...srow},counts:counts?.[0]||{participant_count:0,answered_count:0},q,people:people||[],ranking};
 }
@@ -44,5 +44,5 @@ function renderLive(x){const q=x.q,showRank=q.status!=='live'&&x.s.competitive;c
 function updateLive(x){const q=x.q,t=document.querySelector('.pj-timer'),a=document.querySelector('#pjAnswerCount');if(t)t.textContent=q.status==='live'?remaining(q)+' s':'—';if(a)a.textContent=`${x.counts.answered_count||0}/${x.counts.participant_count||0}`;if(q.status!=='live'&&x.s.competitive){const key=JSON.stringify(x.ranking||[])+String(x.s.team_mode);if(key!==lastRankKey){lastRankKey=key;const d=document.querySelector('#pjSideDynamic');if(d)d.innerHTML=rankingHtml(x.ranking,x.s.team_mode)}}}
 
 async function paint(){if(busy)return;busy=true;try{const x=await fetchState();if(!x){if(currentScreen!=='missing'){currentScreen='missing';root.innerHTML='<div class="pj-entry"><div class="pj-card"><h1>Código no encontrado</h1><button id="pjRetry">Cambiar código</button></div></div>';document.querySelector('#pjRetry').onclick=()=>{code='';history.replaceState(null,'','./proyectar.html');entry()}}return}lastGood=x;if(x.closed)return closed(x);if(!x.q){const key=`waiting:${x.s.session_id}`;if(currentScreen!==key)renderWaiting(x);else updateWaiting(x)}else{const key=liveScreenKey(x);if(currentScreen!==key)renderLive(x);else updateLive(x)}}catch(e){console.error('TEDVIO projection',e);if(!lastGood&&currentScreen!=='reconnecting'){currentScreen='reconnecting';root.innerHTML=`<div class="pj-entry"><div class="pj-card">${logo()}<h1>Reconectando…</h1><p>La proyección intentará recuperar la sesión automáticamente.</p></div></div>`}}finally{busy=false}}
-function start(){clearInterval(timer);currentScreen='';paint();timer=setInterval(paint,750)}
+function start(){clearInterval(timer);currentScreen='';paint();timer=setInterval(paint,850)}
 window.addEventListener('online',paint);code.length===6?start():entry();
