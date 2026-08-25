@@ -1,8 +1,8 @@
 {
   "app": "TEDVIO",
-  "version": "2026.08.25.51",
+  "version": "2026.08.25.52",
   "channel": "pro",
-  "audit": "server-issued-qr-attendance",
+  "audit": "attendance-pro-lifecycle-reports-exports",
   "source": "main",
   "generated_at": "2026-08-25"
 }
