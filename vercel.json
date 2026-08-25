@@ -10,9 +10,20 @@
       "*": false
     }
   },
+  "rewrites": [
+    {"source":"/teacher","destination":"/teacher.html"}
+  ],
   "headers": [
     {
       "source": "/beta.html",
+      "headers": [{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"}]
+    },
+    {
+      "source": "/teacher.html",
+      "headers": [{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"}]
+    },
+    {
+      "source": "/teacher",
       "headers": [{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"}]
     },
     {
@@ -29,10 +40,6 @@
     },
     {
       "source": "/beta-pro-max.css",
-      "headers": [{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]
-    },
-    {
-      "source": "/beta-groups-attendance.js",
       "headers": [{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]
     },
     {
