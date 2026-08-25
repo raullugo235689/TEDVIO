@@ -1,0 +1,49 @@
+/* TEDVIO Groups Premium v1 */
+#gaOverlay{padding:clamp(18px,3vw,42px)!important;background:rgba(7,20,43,.56)!important;backdrop-filter:blur(16px) saturate(115%)!important}
+#gaOverlay>.b-modal.large{width:min(1180px,calc(100vw - 56px))!important;max-height:calc(100vh - 56px)!important;padding:0!important;overflow:auto!important;border:1px solid rgba(255,255,255,.82)!important;border-radius:28px!important;background:linear-gradient(180deg,#fbfcff 0%,#f5f8fc 100%)!important;box-shadow:0 36px 110px rgba(5,20,45,.30)!important}
+#gaOverlay>.b-modal.large.ga-premium-modal{scrollbar-width:thin;scrollbar-color:#c9d5e6 transparent}
+.ga-premium-head{position:sticky;top:0;z-index:5;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:18px!important;padding:25px 28px 22px!important;margin:0!important;background:rgba(255,255,255,.94)!important;border-bottom:1px solid #e6ebf3!important;backdrop-filter:blur(18px)!important}
+.ga-premium-titlewrap{display:flex;align-items:center;gap:15px;min-width:0}
+.ga-premium-icon{width:48px;height:48px;flex:0 0 48px;display:grid;place-items:center;border-radius:15px;background:linear-gradient(145deg,#0b2d65,#2774ff);color:white;font-size:21px;font-weight:900;box-shadow:0 10px 24px rgba(39,116,255,.24)}
+.ga-premium-kicker{display:block;margin-bottom:3px;color:#3970d6;font-size:9px;font-weight:900;letter-spacing:.15em;text-transform:uppercase}
+.ga-premium-head h2{margin:0!important;color:#0b1d3b!important;font-size:25px!important;letter-spacing:-.035em!important}
+.ga-premium-head .b-sub{margin:5px 0 0!important;color:#748198!important;font-size:12px!important}
+.ga-premium-head>.b-row{flex-wrap:nowrap!important}
+.ga-premium-head .ga-new-group{min-height:42px!important;padding:10px 15px!important;border-radius:12px!important;background:linear-gradient(135deg,#2468f5,#4f8fff)!important;box-shadow:0 9px 22px rgba(36,104,245,.22)!important}
+.ga-premium-head .ga-close{width:42px!important;min-width:42px!important;height:42px!important;padding:0!important;border-radius:12px!important;font-size:18px!important}
+.ga-premium-body{padding:25px 28px 30px}
+.ga-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin:0 0 20px}
+.ga-metric{position:relative;overflow:hidden;padding:16px 17px;border:1px solid #e2e9f3;border-radius:17px;background:#fff;box-shadow:0 8px 24px rgba(16,38,76,.045)}
+.ga-metric:after{content:"";position:absolute;right:-22px;top:-29px;width:74px;height:74px;border-radius:50%;background:rgba(57,119,255,.055)}
+.ga-metric-icon{display:grid;place-items:center;width:30px;height:30px;margin-bottom:11px;border-radius:9px;background:#eef4ff;color:#2765d6;font-size:14px;font-weight:900}
+.ga-metric span{display:block;color:#7c889b;font-size:10px;font-weight:750;margin-bottom:3px}
+.ga-metric b{display:block;color:#0b2148;font-size:24px;line-height:1;font-weight:900;letter-spacing:-.04em}
+.ga-section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:3px 0 10px}
+.ga-section-head h3{margin:0;color:#10213e;font-size:14px;letter-spacing:-.015em}
+.ga-section-head p{margin:3px 0 0;color:#8490a2;font-size:10px}
+#gaOverlay .ga-cascade.ga-premium-filters{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:11px!important;margin:0 0 14px!important;padding:15px!important;border:1px solid #e1e8f2!important;border-radius:18px!important;background:#fff!important;box-shadow:0 8px 25px rgba(16,38,76,.035)!important}
+#gaOverlay .ga-premium-filters>div{min-width:0}
+#gaOverlay .ga-premium-filters label{display:flex!important;align-items:center;gap:6px;margin:0 0 7px!important;color:#506078!important;font-size:9px!important;font-weight:850!important;letter-spacing:.04em!important;text-transform:uppercase}
+#gaOverlay .ga-premium-filters select{width:100%!important;height:45px!important;min-height:45px!important;padding:0 38px 0 12px!important;border:1px solid #dbe4f0!important;border-radius:12px!important;background:#f9fbfe!important;color:#142642!important;font-size:12px!important;font-weight:720!important;box-shadow:none!important;transition:border-color .15s ease,box-shadow .15s ease,background .15s ease!important}
+#gaOverlay .ga-premium-filters select:focus{border-color:#82abfb!important;background:#fff!important;box-shadow:0 0 0 4px rgba(45,108,255,.08)!important;outline:none!important}
+#gaOverlay .ga-premium-filters select:disabled{opacity:.55!important;background:#f3f5f8!important}
+#gaSelectedGroup.ga-premium-selected{position:relative;margin-top:12px!important;padding:20px!important;border:1px solid #dce6f4!important;border-radius:20px!important;background:linear-gradient(135deg,#ffffff 0%,#f7faff 55%,#eef5ff 100%)!important;box-shadow:0 12px 32px rgba(20,48,92,.055)!important;overflow:hidden}
+#gaSelectedGroup.ga-premium-selected:after{content:"";position:absolute;right:-70px;top:-92px;width:205px;height:205px;border-radius:50%;background:radial-gradient(circle,rgba(60,126,255,.14),rgba(60,126,255,0) 68%);pointer-events:none}
+.ga-group-top{position:relative;z-index:1;display:flex;align-items:center;gap:14px;min-width:0}
+.ga-group-mark{display:grid;place-items:center;width:48px;height:48px;flex:0 0 48px;border-radius:15px;background:linear-gradient(145deg,#e8f0ff,#d7e6ff);color:#1d59c7;font-weight:900;font-size:17px;border:1px solid #cfe0ff}
+.ga-group-copy{min-width:0;flex:1}
+#gaSelectedGroup .b-chip{margin:0 0 7px!important;padding:4px 8px!important;font-size:8px!important;letter-spacing:.04em!important;text-transform:uppercase!important}
+#gaSelectedGroup h3{margin:0 0 5px!important;color:#0b1c38!important;font-size:22px!important;letter-spacing:-.035em!important}
+#gaSelectedGroup .b-sub{color:#6f7f96!important;font-size:11px!important;line-height:1.45!important}
+.ga-group-info{position:relative;z-index:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:16px 0 0}
+.ga-group-info>div{padding:10px 11px;border:1px solid #e2e9f3;border-radius:12px;background:rgba(255,255,255,.82)}
+.ga-group-info span{display:block;color:#8a96a8;font-size:8px;font-weight:850;letter-spacing:.05em;text-transform:uppercase;margin-bottom:3px}
+.ga-group-info b{display:block;color:#233653;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#gaSelectedGroup>.b-row,.ga-group-actions{position:relative;z-index:2;margin-top:15px!important;display:flex!important;gap:8px!important}
+#gaSelectedGroup .b-btn.primary{min-height:41px!important;padding:9px 15px!important;border-radius:12px!important}
+.ga-attendance-shortcut{background:#ecf8f0!important;border:1px solid #c7ecd4!important;color:#16643b!important}
+.ga-empty-premium{padding:34px 22px!important;text-align:center!important;border:1px dashed #cfdbea!important;border-radius:20px!important;background:linear-gradient(180deg,#fff,#f8fbff)!important}
+.ga-empty-premium .ga-empty-icon{display:grid;place-items:center;width:54px;height:54px;margin:0 auto 12px;border-radius:17px;background:#edf4ff;color:#2869d8;font-size:21px}
+.ga-empty-premium h3{margin:0 0 6px!important}.ga-empty-premium p{max-width:520px;margin:0 auto 15px!important}
+@media(max-width:900px){#gaOverlay{padding:16px!important}#gaOverlay>.b-modal.large{width:calc(100vw - 32px)!important;max-height:calc(100vh - 32px)!important}.ga-premium-body{padding:20px}.ga-premium-head{padding:20px}.ga-metrics{grid-template-columns:1fr 1fr}.ga-group-info{grid-template-columns:1fr 1fr 1fr}}
+@media(max-width:680px){#gaOverlay{padding:8px!important;align-items:stretch!important}#gaOverlay>.b-modal.large{width:100%!important;max-height:none!important;height:calc(100dvh - 16px)!important;border-radius:20px!important}.ga-premium-head{padding:16px;align-items:flex-start!important}.ga-premium-icon{width:40px;height:40px;flex-basis:40px;border-radius:12px}.ga-premium-head h2{font-size:20px!important}.ga-premium-head .b-sub{display:none}.ga-premium-head .ga-new-group{font-size:0!important;width:42px!important;padding:0!important}.ga-premium-head .ga-new-group:after{content:"+";font-size:21px}.ga-premium-body{padding:16px}.ga-metrics{grid-template-columns:1fr 1fr;gap:8px}.ga-metric{padding:12px}.ga-metric-icon{margin-bottom:7px}.ga-metric b{font-size:20px}#gaOverlay .ga-cascade.ga-premium-filters{grid-template-columns:1fr!important;padding:12px!important;gap:9px!important}.ga-group-info{grid-template-columns:1fr!important}.ga-group-mark{width:42px;height:42px;flex-basis:42px}.ga-group-top{align-items:flex-start}#gaSelectedGroup h3{font-size:20px!important}}
