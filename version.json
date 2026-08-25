@@ -1,8 +1,8 @@
 {
   "app": "TEDVIO",
-  "version": "2026.08.25.53",
+  "version": "2026.08.25.54",
   "channel": "stable-candidate",
-  "audit": "full-security-integrity-regression-audit",
+  "audit": "premium-polish-design-system",
   "source": "main",
   "generated_at": "2026-08-25"
 }
