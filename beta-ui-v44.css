@@ -1,1 +1,9 @@
-/* v44 navigation responsiveness */.tv42-sidebar button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none}.tv42-sidebar button.tv44-press{transform:scale(.985)}.tv42-nav button,.tv42-new,.tv42-footer button{will-change:transform}.tv42-sidebar{contain:layout paint style}@media(max-width:820px){.tv42-nav{-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}.tv42-nav button{scroll-snap-align:center}}
+/* v45 navigation responsiveness + modal layering fix */
+.tv42-sidebar button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none}.tv42-sidebar button.tv44-press{transform:scale(.985)}.tv42-nav button,.tv42-new,.tv42-footer button{will-change:transform}.tv42-sidebar{contain:layout paint style;z-index:130}
+/* Any working window must sit above the fixed navigation rail. */
+.b-overlay,.pm-overlay{z-index:1000!important}.b-modal,.pm-modal{position:relative;z-index:1001}.b-overlay .b-modal.large{width:min(1160px,calc(100vw - 36px))!important}
+/* Give large management windows maximum usable space without the sidebar covering them. */
+#gaOverlay,#peOverlay,#tvAdminOverlay{padding:20px!important}
+#gaOverlay .b-modal.large,#peOverlay .b-modal.large,#tvAdminOverlay .b-modal.large{max-width:1160px!important;max-height:92vh!important}
+@media(max-width:820px){.tv42-nav{-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}.tv42-nav button{scroll-snap-align:center}.b-overlay,.pm-overlay{padding:10px!important}.b-overlay .b-modal.large,.pm-modal{width:100%!important;max-width:none!important;max-height:calc(100dvh - 20px)!important;border-radius:18px!important}#gaOverlay,#peOverlay,#tvAdminOverlay{padding:10px!important}}
+@media(max-width:520px){.b-overlay,.pm-overlay{padding:6px!important}.b-overlay .b-modal.large,.pm-modal{max-height:calc(100dvh - 12px)!important;border-radius:15px!important}}
