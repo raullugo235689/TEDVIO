@@ -1,8 +1,8 @@
 {
   "app": "TEDVIO",
-  "version": "2026.08.25.47",
+  "version": "2026.08.25.49",
   "channel": "pro",
-  "audit": "group-center-360",
+  "audit": "gradebook-profiles-risk-qr-attendance",
   "source": "main",
   "generated_at": "2026-08-25"
 }
