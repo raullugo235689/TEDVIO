@@ -1,8 +1,8 @@
 {
   "app": "TEDVIO",
-  "version": "2026.08.25.54",
-  "channel": "stable-candidate",
-  "audit": "premium-polish-design-system",
+  "version": "2026.08.25.55",
+  "channel": "pilot-ready",
+  "audit": "pilot-ready-dashboard-telemetry-mobile-hardening",
   "source": "main",
   "generated_at": "2026-08-25"
 }
