@@ -1,4 +1,4 @@
-const CACHE='tedvio-pilot-v55-20260825';
+const CACHE='tedvio-pilot-v56-20260825';
 const STATIC=['/assets/tedvio_icono_app_192.png','/assets/tedvio_icono_app_512.png','/assets/tedvio_official_isotipo.svg','/assets/tedvio_official_horizontal.svg'];
 
 self.addEventListener('install',event=>{
