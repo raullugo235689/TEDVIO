@@ -11,6 +11,8 @@ const projection=read('proyectar-v2.js');
 const projectionHtml=read('proyectar.html');
 const controlHtml=read('control.html');
 const premium=read('tedvio-premium-v54.css');
+const pilot=read('beta-pilot-ready-v1.js');
+const pilotCss=read('beta-pilot-ready-v1.css');
 const projectionPremium=read('projection-premium-v54.css');
 const attendancePremium=read('attendance-premium-v54.css');
 const controlPremium=read('control-premium-v54.css');
@@ -25,8 +27,10 @@ let failed=0;
 function must(ok,msg){if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}}
 
 for(const html of [teacher,beta]){
-  must(html.includes('v=54'),'stable shell is cache-busted to v54');
-  must(html.includes('tedvio-premium-v54.css'),'v54 premium design system is loaded last');
+  must(html.includes('v=55'),'pilot shell is cache-busted to v55');
+  must(html.includes('tedvio-premium-v54.css?v=55'),'premium design system remains active in v55');
+  must(html.includes('beta-pilot-ready-v1.css?v=55'),'Pilot Ready visual layer is loaded');
+  must(html.includes('beta-pilot-ready-v1.js?v=55'),'Pilot Ready runtime is loaded');
   must(html.includes('beta-groups-core-v3.js'),'canonical groups core is loaded');
   must(html.includes('beta-group-center-v2.js'),'Group Center v2 is loaded');
   must(html.includes('beta-attendance-pro-v1.js'),'Attendance Pro is loaded');
@@ -46,15 +50,15 @@ must(attendance.includes("v2_issue_attendance_qr"),'Attendance Pro uses server-i
 must(attendance.includes("tvAttExportExcel")&&attendance.includes("tvAttExportPdf"),'Attendance Pro exports Excel and PDF');
 must(attendance.includes("['present','Asistió'],['late','Retardo'],['absent','Falta'],['justified','Justificado']"),'Attendance Pro supports all four correction states');
 
-must(checkin.includes('attendance-checkin-v2.js?v=54'),'student attendance page uses v54 check-in runtime');
-must(checkin.includes('attendance-premium-v54.css?v=54'),'student attendance page loads premium polish');
+must(checkin.includes('attendance-checkin-v2.js?v=55'),'student attendance page uses v55 check-in runtime');
+must(checkin.includes('attendance-premium-v54.css?v=55'),'student attendance page keeps premium polish');
 must(!checkin.includes('attendance-checkin-v1.js'),'student attendance page does not load legacy check-in runtime');
 
 must(projection.includes("v2_public_session_people"),'projection uses display-safe public people RPC');
 must(!projection.includes("from('v2_participants')"),'projection does not read participant rows directly');
-must(projectionHtml.includes('proyectar-v2.js?v=54'),'projection shell loads audited v54 runtime');
-must(projectionHtml.includes('projection-premium-v54.css?v=54'),'projection premium layer is active');
-must(controlHtml.includes('control-premium-v54.css?v=54'),'mobile control premium layer is active');
+must(projectionHtml.includes('proyectar-v2.js?v=55'),'projection shell loads v55 runtime');
+must(projectionHtml.includes('projection-premium-v54.css?v=55'),'projection premium layer remains active');
+must(controlHtml.includes('control-premium-v54.css?v=55'),'mobile control premium layer remains active');
 
 must(studentLive.includes('v2_public_question_results'),'student reveal uses aggregate public results');
 must(studentLive.includes('v2_student_answer_feedback'),'student explanation is fetched through reveal-gated RPC');
@@ -67,17 +71,22 @@ must(stability.includes('stopImmediatePropagation'),'legacy direct join handler 
 must(config.includes('SUPABASE_PUBLISHABLE_KEY'),'frontend contains only a publishable Supabase key');
 must(!/service_role|secret[_-]?key|SUPABASE_SERVICE/i.test(config),'frontend config contains no service-role/secret key');
 
-must(premium.includes('Teacher login')&&premium.includes('.b-student')&&premium.includes('#tvAttPro')&&premium.includes('#peOverlay')&&premium.includes('#tvAdminOverlay'),'premium design system covers teacher interior, student, attendance, OMR and admin without targeting teacher login');
+must(premium.includes('Teacher login')&&premium.includes('.b-student')&&premium.includes('#tvAttPro')&&premium.includes('#peOverlay')&&premium.includes('#tvAdminOverlay'),'premium design system covers core product surfaces without targeting teacher login');
+must(pilot.includes("v2_teacher_today_dashboard"),'Pilot Ready dashboard uses server aggregate RPC');
+must(pilot.includes("tedvio_client_events"),'Pilot Ready telemetry writes authenticated client events');
+must(pilot.includes('network_offline')&&pilot.includes('unhandled_rejection'),'Pilot Ready monitors connectivity and runtime errors');
+must(pilot.includes('tvPilotAttendance')&&pilot.includes('tvPilotOpenGroup'),'Today dashboard exposes direct classroom actions');
+must(pilotCss.includes('.tv55-today')&&pilotCss.includes('@media(pointer:coarse)'),'Pilot Ready CSS covers dashboard and touch devices');
 must(projectionPremium.includes('.pj-question')&&projectionPremium.includes('.pj-ranking'),'projection premium covers question and ranking surfaces');
 must(attendancePremium.includes('.done-icon')&&attendancePremium.includes('.card'),'attendance premium covers registration and success states');
 must(controlPremium.includes('.ct-card')&&controlPremium.includes('.ct-btn'),'mobile control premium covers cards and controls');
 
 must(manifest.start_url==='/teacher','PWA starts on the stable teacher route');
-must(sw.includes("tedvio-stable-v54-20260825"),'service worker uses the v54 cache namespace');
+must(sw.includes("tedvio-pilot-v55-20260825"),'service worker uses the v55 pilot cache namespace');
 must(sw.includes("cache:'no-store'"),'service worker uses network-first no-store for app shell files');
 
-must(version.channel==='stable-candidate','version remains stable-candidate');
-must(String(version.version).endsWith('.54'),'premium stable candidate is v54');
+must(version.channel==='pilot-ready','version is marked pilot-ready');
+must(String(version.version).endsWith('.55'),'Pilot Ready version is v55');
 
 if(failed){console.error(`\n${failed} audit check(s) failed.`);process.exit(1)}
-console.log('\nTEDVIO v54 premium stable-candidate static audit passed.');
+console.log('\nTEDVIO v55 Pilot Ready static audit passed.');
