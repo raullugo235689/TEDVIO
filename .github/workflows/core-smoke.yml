@@ -33,8 +33,12 @@ jobs:
         run: node --check beta-session-stability-v1.js
       - name: Check v65 Question Studio syntax
         run: node --check question-studio-v65.js
+      - name: Check v66 Assignments teacher syntax
+        run: node --check assignments-v66.js
+      - name: Check v66 Assignment student syntax
+        run: node --check assignment-v66.js
       - name: Run static regression audit
-        run: node tests/stable-candidate-audit-v65.mjs
+        run: node tests/stable-candidate-audit-v66.mjs
       - name: Run v57 dashboard regression audit
         run: node tests/v57-dashboard-regression.mjs
       - name: Run v58 Live Classroom regression audit
@@ -53,6 +57,8 @@ jobs:
         run: node tests/v64-reliability-performance-regression.mjs
       - name: Run v65 Question Studio regression audit
         run: node tests/v65-question-studio-regression.mjs
+      - name: Run v66 Assignments regression audit
+        run: node tests/v66-assignments-regression.mjs
       - name: Validate critical files exist
         run: |
           test -f teacher.html
@@ -60,6 +66,7 @@ jobs:
           test -f asistencia.html
           test -f proyectar.html
           test -f control.html
+          test -f assignment.html
           test -f beta-attendance-pro-v1.js
           test -f beta-group-center-v2.js
           test -f beta-paper-exams-v2.js
@@ -84,7 +91,11 @@ jobs:
           test -f runtime-core-v64.js
           test -f question-studio-v65.js
           test -f question-studio-v65.css
-          test -f tests/stable-candidate-audit-v65.mjs
+          test -f assignments-v66.js
+          test -f assignments-v66.css
+          test -f assignment-v66.js
+          test -f assignment-v66.css
+          test -f tests/stable-candidate-audit-v66.mjs
           test -f tests/v57-dashboard-regression.mjs
           test -f tests/v58-live-classroom-regression.mjs
           test -f tests/v59-mobile-classroom-regression.mjs
@@ -94,3 +105,4 @@ jobs:
           test -f tests/v63-entitlements-regression.mjs
           test -f tests/v64-reliability-performance-regression.mjs
           test -f tests/v65-question-studio-regression.mjs
+          test -f tests/v66-assignments-regression.mjs
