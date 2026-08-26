@@ -19,6 +19,8 @@ jobs:
         run: node --check control-v59.js
       - name: Check v60 Student Experience syntax
         run: node --check student-v60.js
+      - name: Check v61 Academic Analytics syntax
+        run: node --check academic-analytics-v61.js
       - name: Run static regression audit
         run: node tests/stable-candidate-audit.mjs
       - name: Run v57 dashboard regression audit
@@ -29,6 +31,8 @@ jobs:
         run: node tests/v59-mobile-classroom-regression.mjs
       - name: Run v60 Student Experience regression audit
         run: node tests/v60-student-experience-regression.mjs
+      - name: Run v61 Academic Analytics regression audit
+        run: node tests/v61-academic-analytics-regression.mjs
       - name: Validate critical files exist
         run: |
           test -f teacher.html
@@ -50,7 +54,10 @@ jobs:
           test -f control-v59.css
           test -f student-v60.js
           test -f student-v60.css
+          test -f academic-analytics-v61.js
+          test -f academic-analytics-v61.css
           test -f tests/v57-dashboard-regression.mjs
           test -f tests/v58-live-classroom-regression.mjs
           test -f tests/v59-mobile-classroom-regression.mjs
           test -f tests/v60-student-experience-regression.mjs
+          test -f tests/v61-academic-analytics-regression.mjs
