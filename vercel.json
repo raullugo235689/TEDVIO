@@ -30,6 +30,8 @@
     {"source":"/entitlements-v63.css","headers":[{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]},
     {"source":"/runtime-core-v64.js","headers":[{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]},
     {"source":"/beta-session-stability-v1.js","headers":[{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]},
+    {"source":"/question-studio-v65.js","headers":[{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]},
+    {"source":"/question-studio-v65.css","headers":[{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]},
     {"source":"/asistencia.html","headers":[{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"}]},
     {"source":"/attendance-checkin-v2.js","headers":[{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]},
     {"source":"/attendance-premium-v54.css","headers":[{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]},
