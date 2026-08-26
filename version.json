@@ -1,8 +1,8 @@
 {
   "app": "TEDVIO",
-  "version": "2026.08.25.61",
+  "version": "2026.08.25.62",
   "channel": "pilot-ready",
-  "audit": "academic-analytics-pro-isolated-group-analytics",
+  "audit": "admin-institutional-control-secure-auth-management",
   "source": "main",
   "generated_at": "2026-08-25"
 }
