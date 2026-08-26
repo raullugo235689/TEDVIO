@@ -16,6 +16,8 @@ const pilotCss=read('beta-pilot-ready-v1.css');
 const executive56=read('beta-executive-v56.css');
 const smart57=read('beta-pilot-ready-v57.js');
 const smartCss57=read('beta-smart-dashboard-v57.css');
+const live58=read('live-classroom-v58.js');
+const liveCss58=read('live-classroom-v58.css');
 const projectionPremium=read('projection-premium-v54.css');
 const attendancePremium=read('attendance-premium-v54.css');
 const controlPremium=read('control-premium-v54.css');
@@ -29,8 +31,10 @@ const version=JSON.parse(read('version.json'));
 let failed=0;
 function must(ok,msg){if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}}
 
-must(teacher.includes('beta-pilot-ready-v57.js?v=57'),'teacher uses isolated v57 smart dashboard runtime');
-must(teacher.includes('beta-smart-dashboard-v57.css?v=57'),'teacher loads v57 smart visual override last');
+must(teacher.includes('beta-pilot-ready-v57.js?v=57'),'teacher keeps isolated v57 smart dashboard runtime');
+must(teacher.includes('beta-smart-dashboard-v57.css?v=57'),'teacher keeps v57 smart dashboard visual layer');
+must(teacher.includes('live-classroom-v58.js?v=58'),'teacher loads isolated v58 Live Classroom runtime');
+must(teacher.includes('live-classroom-v58.css?v=58'),'teacher loads v58 Live Classroom visual layer last');
 must(teacher.includes('beta-executive-v56.css?v=56'),'teacher keeps audited v56 executive visual base');
 must(teacher.includes('beta-pilot-ready-v1.css?v=56'),'teacher keeps audited Pilot Ready base CSS');
 must(!teacher.includes('beta-pilot-ready-v1.js?v=56'),'teacher does not run v56 and v57 dashboard controllers together');
@@ -80,16 +84,25 @@ must(!/service_role|secret[_-]?key|SUPABASE_SERVICE/i.test(config),'frontend con
 must(premium.includes('Teacher login')&&premium.includes('.b-student')&&premium.includes('#tvAttPro')&&premium.includes('#peOverlay')&&premium.includes('#tvAdminOverlay'),'premium design system still covers core product surfaces');
 
 must(pilot56.includes("v2_teacher_today_dashboard")&&pilot56.includes('tedvio_client_events'),'v56 rollback runtime remains preserved');
-must(smart57.includes("const VERSION='2026.08.25.57'"),'v57 runtime reports correct telemetry version');
+must(smart57.includes("const VERSION='2026.08.25.57'"),'v57 dashboard runtime remains preserved');
 must(smart57.includes("v2_teacher_today_dashboard"),'v57 dashboard still uses server aggregate RPC');
-must(smart57.includes('tedvio_client_events')&&smart57.includes('network_offline')&&smart57.includes('unhandled_rejection'),'v57 keeps telemetry, connectivity and error monitoring');
-must(smart57.includes('Sin lista hoy')&&smart57.includes('lista histórica'),'v57 distinguishes today status from historical attendance');
-must(smart57.includes('Última asistencia'),'v57 labels historical attendance explicitly');
-must(smart57.includes('tvPilotOpenGrades')&&smart57.includes('tvPilotOpenExamForGroup'),'v57 preparation steps route to grades and OMR');
-must(smart57.includes('Todo listo para tu jornada')&&smart57.includes('Sin alumnos'),'v57 exposes ready state and clear empty-group state');
+must(smart57.includes('Sin lista hoy')&&smart57.includes('lista histórica')&&smart57.includes('Última asistencia'),'v57 keeps smart attendance semantics');
+must(smart57.includes('tvPilotOpenGrades')&&smart57.includes('tvPilotOpenExamForGroup'),'v57 preparation steps still route to grades and OMR');
+must(smart57.includes('Todo listo para tu jornada')&&smart57.includes('Sin alumnos'),'v57 keeps ready and empty-group states');
 const p1=smart57.indexOf('populated.find(isAttendanceLive)'),p2=smart57.indexOf('populated.find(g=>!hasTodayList(g))'),p3=smart57.indexOf('populated.find(needsEvaluation)');
-must(p1>=0&&p2>p1&&p3>p2,'v57 smart action priority is live attendance → no list today → pending evaluation');
-must(smartCss57.includes('.tv57-hero')&&smartCss57.includes('repeat(3,minmax(0,1fr))')&&smartCss57.includes('.tv57-checks>button')&&smartCss57.includes('.tv57-ready'),'v57 CSS covers compact hero, 3-column groups, clickable preparation and ready state');
+must(p1>=0&&p2>p1&&p3>p2,'v57 smart action priority remains live attendance → no list today → pending evaluation');
+must(smartCss57.includes('.tv57-hero')&&smartCss57.includes('repeat(3,minmax(0,1fr))')&&smartCss57.includes('.tv57-ready'),'v57 visual polish remains available');
+
+must(live58.includes("const VERSION='2026.08.25.58'"),'v58 Live Classroom reports correct telemetry version');
+must(live58.includes("from('v2_sessions').select")&&live58.includes("from('v2_participants').select")&&live58.includes("from('v2_questions').select")&&live58.includes("from('v2_responses').select"),'v58 reads canonical live-session state');
+must(!live58.includes("from('v2_responses').insert")&&!live58.includes("from('v2_responses').update")&&!live58.includes("from('v2_responses').delete"),'v58 never writes student responses');
+must(!live58.includes("from('v2_participants').insert")&&!live58.includes("from('v2_participants').update")&&!live58.includes("from('v2_participants').delete"),'v58 never mutates participant records');
+must(live58.includes('betaLaunchQuestion')&&live58.includes('betaCloseQuestion')&&live58.includes('betaRevealQuestion')&&live58.includes('betaEndSession'),'v58 delegates state transitions to audited session core');
+must(live58.includes('proyectar.html?code=')&&live58.includes('tv58CopyCode'),'v58 lobby exposes projection and code workflow');
+must(live58.includes('Respondió')&&live58.includes('Pendientes')&&live58.includes('Ocultar ranking'),'v58 exposes live response completion and ranking control');
+must(liveCss58.includes('#tvLive58Root')&&liveCss58.includes('.tv58-lobby')&&liveCss58.includes('.tv58-stage')&&liveCss58.includes('.tv58-toolbar'),'v58 CSS covers lobby, live stage and controls');
+must(liveCss58.includes('@media(max-width:900px)')&&liveCss58.includes('@media(max-width:620px)'),'v58 includes iPad/mobile layouts');
+
 must(pilotCss.includes('.tv55-today')&&pilotCss.includes('@media(pointer:coarse)'),'Pilot base CSS still covers dashboard and touch devices');
 must(executive56.includes('.tv56-hero')&&executive56.includes('.tv56-next')&&executive56.includes('.tv56-group-line')&&executive56.includes('.tv56-prep'),'v56 executive CSS remains available as rollback/base layer');
 must(projectionPremium.includes('.pj-question')&&projectionPremium.includes('.pj-ranking'),'projection premium covers question and ranking surfaces');
@@ -97,10 +110,10 @@ must(attendancePremium.includes('.done-icon')&&attendancePremium.includes('.card
 must(controlPremium.includes('.ct-card')&&controlPremium.includes('.ct-btn'),'mobile control premium covers cards and controls');
 
 must(manifest.start_url==='/teacher','PWA starts on teacher route');
-must(sw.includes("tedvio-pilot-v57-20260825"),'service worker uses v57 cache namespace');
+must(sw.includes("tedvio-pilot-v58-20260825"),'service worker uses v58 cache namespace');
 must(sw.includes("cache:'no-store'"),'service worker uses network-first no-store for shell files');
 must(version.channel==='pilot-ready','version remains pilot-ready');
-must(String(version.version).endsWith('.57'),'Smart Dashboard Pilot Ready version is v57');
+must(String(version.version).endsWith('.58'),'Live Classroom Pilot Ready version is v58');
 
 if(failed){console.error(`\n${failed} audit check(s) failed.`);process.exit(1)}
-console.log('\nTEDVIO v57 Smart Dashboard Pilot Ready static audit passed.');
+console.log('\nTEDVIO v58 Live Classroom Pro Pilot Ready static audit passed.');
