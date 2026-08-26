@@ -16,6 +16,8 @@
     {"source":"/proyectar-v2.js","headers":[{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]},
     {"source":"/projection-premium-v54.css","headers":[{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]},
     {"source":"/control.html","headers":[{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"}]},
+    {"source":"/control-v59.js","headers":[{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]},
+    {"source":"/control-v59.css","headers":[{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]},
     {"source":"/control-premium-v54.css","headers":[{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]},
     {"source":"/asistencia.html","headers":[{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"}]},
     {"source":"/attendance-checkin-v2.js","headers":[{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]},
