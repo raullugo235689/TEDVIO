@@ -15,18 +15,23 @@ jobs:
         run: node --check beta-pilot-ready-v57.js
       - name: Check v58 Live Classroom syntax
         run: node --check live-classroom-v58.js
+      - name: Check v59 Mobile Classroom syntax
+        run: node --check control-v59.js
       - name: Run static regression audit
         run: node tests/stable-candidate-audit.mjs
       - name: Run v57 dashboard regression audit
         run: node tests/v57-dashboard-regression.mjs
       - name: Run v58 Live Classroom regression audit
         run: node tests/v58-live-classroom-regression.mjs
+      - name: Run v59 Mobile Classroom regression audit
+        run: node tests/v59-mobile-classroom-regression.mjs
       - name: Validate critical files exist
         run: |
           test -f teacher.html
           test -f beta.html
           test -f asistencia.html
           test -f proyectar.html
+          test -f control.html
           test -f beta-attendance-pro-v1.js
           test -f beta-group-center-v2.js
           test -f beta-paper-exams-v2.js
@@ -37,5 +42,8 @@ jobs:
           test -f beta-smart-dashboard-v57.css
           test -f live-classroom-v58.js
           test -f live-classroom-v58.css
+          test -f control-v59.js
+          test -f control-v59.css
           test -f tests/v57-dashboard-regression.mjs
           test -f tests/v58-live-classroom-regression.mjs
+          test -f tests/v59-mobile-classroom-regression.mjs
