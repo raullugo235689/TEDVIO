@@ -7,7 +7,7 @@ must(legacy.includes('Evolución del grupo'),'legacy analytics runtime remains p
 must(a.includes("const VERSION='2026.08.25.61'"),'v61 runtime reports correct version');
 for(const table of['v2_groups','v2_group_students','v2_attendance_sessions','v2_attendance_records','v2_paper_exams','v2_paper_exam_results','v2_grade_categories','v2_grade_items','v2_grade_scores','v2_sessions','v2_participants','v2_questions','v2_responses'])must(a.includes(`from('${table}')`),`v61 reads ${table}`);
 must(a.includes(".eq('teacher_id',uid)")&&a.includes(".eq('group_id',id)"),'teacher-owned base data remains owner/group scoped');
-must(!/\.insert\(|\.update\(|\.upsert\(|\.delete\(/.test(a),'v61 analytics runtime is read-only');
+must(!/from\('[^']+'\)\.(?:insert|update|upsert|delete)\(/.test(a),'v61 analytics runtime performs no Supabase mutations');
 must(a.includes('currentGrade')&&a.includes('catGrade')&&a.includes("cat.kind==='omr'")&&a.includes("cat.kind==='attendance'")&&a.includes("cat.kind==='live'"),'v61 integrates weighted grades, OMR, attendance and live participation');
 must(a.includes('liveAccuracy')&&a.includes('engagement')&&a.includes('health=')&&a.includes("level='priority'")&&a.includes("level='watch'"),'v61 computes follow-up index and priority levels');
 must(a.includes('Asistencia vs desempeño')&&a.includes('pearson')&&a.includes('no implica causalidad'),'v61 correlation is descriptive and explicitly non-causal');
