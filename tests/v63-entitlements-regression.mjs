@@ -20,6 +20,7 @@ must(e.includes("new CustomEvent('tedvio:entitlements'"),'v63 broadcasts entitle
 must(!/service_role|SUPABASE_SECRET|sb_secret_/i.test(e+teacher+beta),'v63 frontend contains no privileged Supabase key material');
 must(css.includes('.tv63-plan-btn')&&css.includes('.tv63-meter')&&css.includes('.tv63-features')&&css.includes('@media(max-width:620px)'),'v63 CSS covers plan badge, usage, features and mobile layout');
 must(vercel.includes('/entitlements-v63.js')&&vercel.includes('/entitlements-v63.css'),'v63 assets use no-store headers');
-must(sw.includes('tedvio-pilot-v63-20260826'),'service worker uses v63 cache namespace');
-must(version.channel==='pilot-ready'&&String(version.version).endsWith('.63'),'version metadata is Pilot Ready v63');
+must(/tedvio-pilot-v\d+-2026082\d/.test(sw),'service worker keeps a versioned Pilot cache namespace');
+const globalVersion=Number(String(version.version||'').split('.').pop()||0);
+must(version.channel==='pilot-ready'&&globalVersion>=63,'global Pilot Ready version remains v63 or newer');
 if(failed){console.error(`\n${failed} v63 regression check(s) failed.`);process.exit(1)}console.log('\nTEDVIO v63 Plans & Entitlements Enforcement regression audit passed.');
