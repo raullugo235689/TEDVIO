@@ -22,7 +22,7 @@ must(studentJs.includes('Respuesta guardada.')&&studentJs.includes('Entregar act
 must(studentJs.includes("addEventListener('online'")&&studentJs.includes("addEventListener('offline'")&&studentJs.includes('visibilitychange'),'student handles connectivity and resume');
 must(teacherJs.includes("feedback_mode")&&teacherJs.includes('max_attempts')&&teacherJs.includes('time_limit_minutes')&&teacherJs.includes('random_question_count')&&teacherJs.includes('shuffle_questions')&&teacherJs.includes('shuffle_options')&&teacherJs.includes('allow_late'),'teacher exposes assignment rules');
 must(teacherJs.includes('Las reglas ya están congeladas')&&teacherJs.includes('Ya existen intentos'),'teacher communicates server-side assignment freeze');
-must(teacherJs.includes('tv66StudioAssign')&&teacherJs.includes('.qs65-pick:checked')&&studio.includes('.qs65-bulk'),'v66 integrates with v65 selected-question workflow without replacing Question Studio');
+must(teacherJs.includes("document.querySelector('.qs65-bulk')")&&teacherJs.includes('.qs65-pick:checked')&&studio.includes('function bulkBar()')&&studio.includes('qs65-bulk'),'v66 integrates with v65 selected-question workflow without replacing Question Studio');
 must(teacherJs.includes("window.TEDVIO_ENTITLEMENTS?.features?.exports===false")&&teacherJs.includes('window.tv63OpenPlan'),'advanced assignment export respects v63 entitlements');
 must(teacherJs.includes('assignment.html?code=')&&teacherJs.includes('Abrir como alumno'),'teacher can share and preview student assignment link');
 must(teacherCss.includes('.tv66-card')&&teacherCss.includes('.tv66-form-grid')&&teacherCss.includes('.tv66-results-table')&&teacherCss.includes('@media(max-width:680px)'),'teacher v66 CSS covers dashboard, editor, reports and mobile');
