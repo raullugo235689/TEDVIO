@@ -12,6 +12,7 @@ must(e.includes("patch('betaNewSession'")&&e.includes("patch('gaNewGroup'"),'v63
 must(e.includes("'peOpenHome','peNewExam','ga360OpenExams','tvPilotOpenExamForGroup'") ,'v63 gates OMR entry points');
 must(e.includes("k==='analytics'&&!feature('analytics_pro')"),'v63 gates Academic Analytics Pro');
 must(e.includes("'ga61Excel','ga61Pdf','peExportResults'") ,'v63 gates advanced exports');
+must(e.includes('Object.assign(w,fn)'),'v63 preserves markers from previously wrapped runtimes');
 must(e.includes('Los límites se validan también en el servidor.'),'v63 UI explains server-side enforcement');
 must(e.includes('max_students_per_group')&&e.includes('max_live_sessions_month')&&e.includes('max_storage_mb'),'v63 plan center exposes enforced limits');
 must(e.includes('window.TEDVIO_ENTITLEMENTS=data'),'v63 exposes read-only entitlement context to other modules');
