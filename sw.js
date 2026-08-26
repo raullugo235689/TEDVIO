@@ -1,4 +1,4 @@
-const CACHE='tedvio-pilot-v57-20260825';
+const CACHE='tedvio-pilot-v58-20260825';
 const STATIC=['/assets/tedvio_icono_app_192.png','/assets/tedvio_icono_app_512.png','/assets/tedvio_official_isotipo.svg','/assets/tedvio_official_horizontal.svg'];
 
 self.addEventListener('install',event=>{
@@ -17,7 +17,7 @@ self.addEventListener('activate',event=>{
 self.addEventListener('message',event=>{
   if(event.data==='SKIP_WAITING') self.skipWaiting();
   if(event.data==='CLEAR_TEDVIO_CACHES'){
-    event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))));
+    event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key))));
   }
 });
 
