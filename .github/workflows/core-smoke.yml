@@ -15,6 +15,8 @@ jobs:
         run: node --check beta-pilot-ready-v57.js
       - name: Run static regression audit
         run: node tests/stable-candidate-audit.mjs
+      - name: Run v57 dashboard regression audit
+        run: node tests/v57-dashboard-regression.mjs
       - name: Validate critical files exist
         run: |
           test -f teacher.html
@@ -29,3 +31,4 @@ jobs:
           test -f beta-executive-v56.css
           test -f beta-pilot-ready-v57.js
           test -f beta-smart-dashboard-v57.css
+          test -f tests/v57-dashboard-regression.mjs
