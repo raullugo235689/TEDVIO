@@ -1,8 +1,8 @@
 {
   "app": "TEDVIO",
-  "version": "2026.08.26.66",
+  "version": "2026.08.26.67",
   "channel": "pilot-ready",
-  "audit": "assignments-asynchronous-secure-attempt-engine",
+  "audit": "security-commercial-readiness-private-rpc-rate-limit-support",
   "source": "main",
   "generated_at": "2026-08-26"
 }
