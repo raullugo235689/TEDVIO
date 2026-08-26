@@ -1,8 +1,8 @@
 {
   "app": "TEDVIO",
-  "version": "2026.08.25.59",
+  "version": "2026.08.25.60",
   "channel": "pilot-ready",
-  "audit": "mobile-classroom-pro-isolated-control-runtime",
+  "audit": "student-experience-pro-isolated-student-runtime",
   "source": "main",
   "generated_at": "2026-08-25"
 }
