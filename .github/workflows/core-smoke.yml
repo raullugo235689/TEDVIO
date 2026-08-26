@@ -25,8 +25,10 @@ jobs:
         run: node --check admin-v62.js
       - name: Check v62 Account Guard syntax
         run: node --check account-guard-v62.js
+      - name: Check v63 Plans Entitlements syntax
+        run: node --check entitlements-v63.js
       - name: Run static regression audit
-        run: node tests/stable-candidate-audit-v62.mjs
+        run: node tests/stable-candidate-audit-v63.mjs
       - name: Run v57 dashboard regression audit
         run: node tests/v57-dashboard-regression.mjs
       - name: Run v58 Live Classroom regression audit
@@ -39,6 +41,8 @@ jobs:
         run: node tests/v61-academic-analytics-regression.mjs
       - name: Run v62 Admin Institutional regression audit
         run: node tests/v62-admin-institutional-regression.mjs
+      - name: Run v63 Plans Entitlements regression audit
+        run: node tests/v63-entitlements-regression.mjs
       - name: Validate critical files exist
         run: |
           test -f teacher.html
@@ -65,10 +69,13 @@ jobs:
           test -f admin-v62.js
           test -f admin-v62.css
           test -f account-guard-v62.js
-          test -f tests/stable-candidate-audit-v62.mjs
+          test -f entitlements-v63.js
+          test -f entitlements-v63.css
+          test -f tests/stable-candidate-audit-v63.mjs
           test -f tests/v57-dashboard-regression.mjs
           test -f tests/v58-live-classroom-regression.mjs
           test -f tests/v59-mobile-classroom-regression.mjs
           test -f tests/v60-student-experience-regression.mjs
           test -f tests/v61-academic-analytics-regression.mjs
           test -f tests/v62-admin-institutional-regression.mjs
+          test -f tests/v63-entitlements-regression.mjs

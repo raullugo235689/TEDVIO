@@ -26,6 +26,7 @@ must(guard.includes("setInterval(()=>check(false),45000)")&&guard.includes("visi
 must(css.includes('.tv62-admin')&&css.includes('.tv62-table')&&css.includes('.tv62-inst-grid')&&css.includes('.tv62-plan-grid')&&css.includes('.tv62-audit'),'v62 CSS covers admin shell, users, institutions, plans and audit');
 must(css.includes('@media(max-width:760px)')&&css.includes('@media(max-width:480px)'),'v62 includes tablet and phone admin layouts');
 must(vercel.includes('/admin-v62.js')&&vercel.includes('/admin-v62.css')&&vercel.includes('/account-guard-v62.js'),'v62 assets use explicit no-store headers');
-must(sw.includes('tedvio-pilot-v62-20260825'),'service worker uses v62 cache namespace');
-must(version.channel==='pilot-ready'&&String(version.version).endsWith('.62'),'version metadata is Pilot Ready v62');
+must(/tedvio-pilot-v\d+-2026082\d/.test(sw),'service worker keeps a versioned Pilot cache namespace');
+const globalVersion=Number(String(version.version||'').split('.').pop()||0);
+must(version.channel==='pilot-ready'&&globalVersion>=62,'global Pilot Ready version remains v62 or newer');
 if(failed){console.error(`\n${failed} v62 regression check(s) failed.`);process.exit(1)}console.log('\nTEDVIO v62 Admin & Institutional Control regression audit passed.');
