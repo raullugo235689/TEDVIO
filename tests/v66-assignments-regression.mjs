@@ -1,0 +1,35 @@
+import fs from'node:fs';
+const read=p=>fs.readFileSync(p,'utf8');
+const teacher=read('teacher.html'),beta=read('beta.html'),studentHtml=read('assignment.html'),teacherJs=read('assignments-v66.js'),studentJs=read('assignment-v66.js'),teacherCss=read('assignments-v66.css'),studentCss=read('assignment-v66.css'),studio=read('question-studio-v65.js'),core=read('runtime-core-v64.js'),vercel=read('vercel.json'),sw=read('sw.js'),version=JSON.parse(read('version.json'));
+let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
+for(const html of[teacher,beta]){
+ must(html.includes('assignments-v66.css?v=66')&&html.includes('assignments-v66.js?v=66'),'teacher-capable shell loads Assignments v66');
+ must(html.indexOf('question-studio-v65.js?v=65')<html.indexOf('assignments-v66.js?v=66'),'v66 loads after Question Studio for selected-question integration');
+ must(html.includes('runtime-core-v64.js?v=64'),'v64 Reliability core remains active');
+}
+must(studentHtml.includes('assignment-v66.css?v=66')&&studentHtml.includes('assignment-v66.js?v=66'),'standalone student assignment shell loads v66 only');
+must(!studentHtml.includes('beta.js')&&!studentHtml.includes('assignments-v66.js'),'student assignment page does not load teacher workspace engines');
+must(teacherJs.includes("const VERSION='2026.08.26.66'")&&studentJs.includes("const VERSION='2026.08.26.66'"),'teacher and student runtimes report v66');
+for(const table of['v2_assignments','v2_assignment_items','v2_assignment_attempts'])must(teacherJs.includes(`from('${table}')`),`teacher v66 reads ${table}`);
+must(teacherJs.includes("from('v2_assignment_responses').select")||teacherJs.includes("from('v2_assignment_responses')"),'teacher can inspect assignment responses');
+must(!/from\('v2_assignment_attempts'\)\.(?:insert|update|upsert|delete)/.test(teacherJs)&&!/from\('v2_assignment_responses'\)\.(?:insert|update|upsert|delete)/.test(teacherJs),'teacher frontend never writes attempts or responses directly');
+must(!studentJs.includes("from('v2_assignments')")&&!studentJs.includes("from('v2_assignment_items')")&&!studentJs.includes("from('v2_assignment_attempts')")&&!studentJs.includes("from('v2_assignment_responses')"),'student frontend has no direct assignment-table access');
+for(const rpc of['v2_public_assignment_meta','v2_assignment_start_attempt','v2_assignment_attempt_state','v2_assignment_submit_answer','v2_assignment_submit_attempt','v2_assignment_feedback'])must(studentJs.includes(`rpc('${rpc}'`),`student uses ${rpc}`);
+must(studentJs.includes('localStorage.setItem(key(S.code),S.token)')&&studentJs.includes('access')===false,'student persists opaque attempt token without exposing database identifiers as auth');
+for(const t of['multiple_choice','multiple_select','true_false','open_text','numeric','poll','scale_5','ordering','hotspot'])must(studentJs.includes(t),`student v66 supports ${t}`);
+must(studentJs.includes('bindHotspot')&&studentJs.includes('bindOrdering'),'student supports interactive hotspot and ordering');
+must(studentJs.includes('Respuesta guardada.')&&studentJs.includes('Entregar actividad'),'student supports autosave and explicit final submission');
+must(studentJs.includes("addEventListener('online'")&&studentJs.includes("addEventListener('offline'")&&studentJs.includes('visibilitychange'),'student handles connectivity and resume');
+must(teacherJs.includes("feedback_mode")&&teacherJs.includes('max_attempts')&&teacherJs.includes('time_limit_minutes')&&teacherJs.includes('random_question_count')&&teacherJs.includes('shuffle_questions')&&teacherJs.includes('shuffle_options')&&teacherJs.includes('allow_late'),'teacher exposes assignment rules');
+must(teacherJs.includes('Las reglas ya están congeladas')&&teacherJs.includes('Ya existen intentos'),'teacher communicates server-side assignment freeze');
+must(teacherJs.includes("document.querySelector('.qs65-bulk')")&&teacherJs.includes('.qs65-pick:checked')&&studio.includes('function bulkBar()')&&studio.includes('qs65-bulk'),'v66 integrates with v65 selected-question workflow without replacing Question Studio');
+must(teacherJs.includes("window.TEDVIO_ENTITLEMENTS?.features?.exports===false")&&teacherJs.includes('window.tv63OpenPlan'),'advanced assignment export respects v63 entitlements');
+must(teacherJs.includes('assignment.html?code=')&&teacherJs.includes('Abrir como alumno'),'teacher can share and preview student assignment link');
+must(teacherCss.includes('.tv66-card')&&teacherCss.includes('.tv66-form-grid')&&teacherCss.includes('.tv66-results-table')&&teacherCss.includes('@media(max-width:680px)'),'teacher v66 CSS covers dashboard, editor, reports and mobile');
+must(studentCss.includes('.as66-question')&&studentCss.includes('.as66-hotspot-img')&&studentCss.includes('.as66-feedback-list')&&studentCss.includes('@media(max-width:760px)'),'student v66 CSS covers question lifecycle, hotspot, feedback and mobile');
+must(!/service_role|SUPABASE_SECRET|sb_secret_/i.test(teacherJs+studentJs+teacher+beta+studentHtml),'v66 frontend contains no privileged Supabase key material');
+must(vercel.includes('/assignments-v66.js')&&vercel.includes('/assignments-v66.css')&&vercel.includes('/assignment.html')&&vercel.includes('/assignment-v66.js')&&vercel.includes('/assignment-v66.css'),'v66 assets use explicit no-store headers');
+must(sw.includes('tedvio-pilot-v66-20260826'),'service worker uses v66 cache namespace');
+must(version.channel==='pilot-ready'&&String(version.version).endsWith('.66')&&version.audit==='assignments-asynchronous-secure-attempt-engine','version metadata is Pilot Ready v66 Assignments');
+must(core.includes("const VERSION='2026.08.26.64'"),'v64 core stays unchanged under v66');
+if(failed){console.error(`\n${failed} v66 regression check(s) failed.`);process.exit(1)}console.log('\nTEDVIO v66 Assignments regression audit passed.');

@@ -25,6 +25,7 @@ must(!/service_role|SUPABASE_SECRET|sb_secret_/i.test(studio+teacher+beta),'v65 
 must(css.includes('#qs65Root')&&css.includes('.qs65-cards')&&css.includes('.qs65-editor')&&css.includes('.qs65-live-preview')&&css.includes('.qs65-quality'),'v65 CSS covers studio, editor, preview and quality states');
 must(css.includes('@media(max-width:850px)')&&css.includes('@media(max-width:620px)')&&css.includes('@media(pointer:coarse)'),'v65 includes tablet, phone and touch layouts');
 must(vercel.includes('/question-studio-v65.js')&&vercel.includes('/question-studio-v65.css'),'v65 assets use explicit no-store headers');
-must(sw.includes('tedvio-pilot-v65-20260826'),'service worker uses v65 cache namespace');
-must(version.channel==='pilot-ready'&&String(version.version).endsWith('.65')&&version.audit==='question-studio-pro-metadata-quality-workflow','version metadata is Pilot Ready v65 Question Studio Pro');
+must(/tedvio-pilot-v\d+-20260826/.test(sw),'service worker keeps a versioned Pilot cache namespace');
+const globalVersion=Number(String(version.version||'').split('.').pop()||0);
+must(version.channel==='pilot-ready'&&globalVersion>=65,'global Pilot Ready version remains v65 or newer');
 if(failed){console.error(`\n${failed} v65 regression check(s) failed.`);process.exit(1)}console.log('\nTEDVIO v65 Question Studio Pro regression audit passed.');
