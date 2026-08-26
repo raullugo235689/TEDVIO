@@ -13,10 +13,14 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check v57 smart dashboard syntax
         run: node --check beta-pilot-ready-v57.js
+      - name: Check v58 Live Classroom syntax
+        run: node --check live-classroom-v58.js
       - name: Run static regression audit
         run: node tests/stable-candidate-audit.mjs
       - name: Run v57 dashboard regression audit
         run: node tests/v57-dashboard-regression.mjs
+      - name: Run v58 Live Classroom regression audit
+        run: node tests/v58-live-classroom-regression.mjs
       - name: Validate critical files exist
         run: |
           test -f teacher.html
@@ -31,4 +35,7 @@ jobs:
           test -f beta-executive-v56.css
           test -f beta-pilot-ready-v57.js
           test -f beta-smart-dashboard-v57.css
+          test -f live-classroom-v58.js
+          test -f live-classroom-v58.css
           test -f tests/v57-dashboard-regression.mjs
+          test -f tests/v58-live-classroom-regression.mjs
