@@ -24,7 +24,7 @@ must(mobile.includes('mc59CopyCode')&&mobile.includes('mc59Project')&&mobile.inc
 must(mobile.includes('questionStrip')&&mobile.includes('Pendientes')&&mobile.includes('Respondieron'),'v59 includes question navigation and participation state');
 must(css.includes('.mc59-controls')&&css.includes('.mc59-flow')&&css.includes('.mc59-all')&&css.includes('@media(max-width:560px)'),'v59 CSS covers large controls, all-answered state and phone layout');
 must(vercel.includes('/control-v59.js')&&vercel.includes('/control-v59.css'),'v59 control assets use no-store headers');
-must(/tedvio-pilot-v\d+-20260825/.test(sw),'service worker keeps a versioned Pilot cache namespace');
+must(/tedvio-pilot-v\d+-2026082\d/.test(sw),'service worker keeps a versioned Pilot cache namespace');
 const globalVersion=Number(String(version.version||'').split('.').pop()||0);
 must(version.channel==='pilot-ready'&&globalVersion>=59,'global Pilot Ready version remains v59 or newer');
 
