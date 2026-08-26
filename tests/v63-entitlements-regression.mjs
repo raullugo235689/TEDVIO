@@ -1,0 +1,23 @@
+import fs from'node:fs';
+const read=p=>fs.readFileSync(p,'utf8');
+const teacher=read('teacher.html'),beta=read('beta.html'),e=read('entitlements-v63.js'),css=read('entitlements-v63.css'),vercel=read('vercel.json'),sw=read('sw.js'),version=JSON.parse(read('version.json'));
+let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
+for(const html of[teacher,beta]){
+  must(html.includes('entitlements-v63.js?v=63')&&html.includes('entitlements-v63.css?v=63'),'teacher-capable shell loads v63 entitlement runtime and styles');
+  must(html.indexOf('beta-paper-exams-v2.js?v=56')<html.indexOf('entitlements-v63.js?v=63'),'v63 loads after OMR so it can gate the existing runtime');
+}
+must(e.includes("const VERSION='2026.08.26.63'"),'v63 runtime reports correct version');
+must(e.includes("db.rpc('tedvio_current_entitlements'") ,'v63 reads server-authorized entitlements snapshot');
+must(e.includes("patch('betaNewSession'")&&e.includes("patch('gaNewGroup'"),'v63 preflights monthly session and group limits');
+must(e.includes("'peOpenHome','peNewExam','ga360OpenExams','tvPilotOpenExamForGroup'") ,'v63 gates OMR entry points');
+must(e.includes("k==='analytics'&&!feature('analytics_pro')"),'v63 gates Academic Analytics Pro');
+must(e.includes("'ga61Excel','ga61Pdf','peExportResults'") ,'v63 gates advanced exports');
+must(e.includes('Los límites se validan también en el servidor.'),'v63 UI explains server-side enforcement');
+must(e.includes('max_students_per_group')&&e.includes('max_live_sessions_month')&&e.includes('max_storage_mb'),'v63 plan center exposes enforced limits');
+must(e.includes('window.TEDVIO_ENTITLEMENTS=data'),'v63 exposes read-only entitlement context to other modules');
+must(!/service_role|SUPABASE_SECRET|sb_secret_/i.test(e+teacher+beta),'v63 frontend contains no privileged Supabase key material');
+must(css.includes('.tv63-plan-btn')&&css.includes('.tv63-meter')&&css.includes('.tv63-features')&&css.includes('@media(max-width:620px)'),'v63 CSS covers plan badge, usage, features and mobile layout');
+must(vercel.includes('/entitlements-v63.js')&&vercel.includes('/entitlements-v63.css'),'v63 assets use no-store headers');
+must(sw.includes('tedvio-pilot-v63-20260826'),'service worker uses v63 cache namespace');
+must(version.channel==='pilot-ready'&&String(version.version).endsWith('.63'),'version metadata is Pilot Ready v63');
+if(failed){console.error(`\n${failed} v63 regression check(s) failed.`);process.exit(1)}console.log('\nTEDVIO v63 Plans & Entitlements Enforcement regression audit passed.');
