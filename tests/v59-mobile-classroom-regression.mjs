@@ -24,8 +24,9 @@ must(mobile.includes('mc59CopyCode')&&mobile.includes('mc59Project')&&mobile.inc
 must(mobile.includes('questionStrip')&&mobile.includes('Pendientes')&&mobile.includes('Respondieron'),'v59 includes question navigation and participation state');
 must(css.includes('.mc59-controls')&&css.includes('.mc59-flow')&&css.includes('.mc59-all')&&css.includes('@media(max-width:560px)'),'v59 CSS covers large controls, all-answered state and phone layout');
 must(vercel.includes('/control-v59.js')&&vercel.includes('/control-v59.css'),'v59 control assets use no-store headers');
-must(sw.includes('tedvio-pilot-v59-20260825'),'service worker uses v59 cache namespace');
-must(version.channel==='pilot-ready'&&String(version.version).endsWith('.59'),'version metadata is Pilot Ready v59');
+must(/tedvio-pilot-v\d+-20260825/.test(sw),'service worker keeps a versioned Pilot cache namespace');
+const globalVersion=Number(String(version.version||'').split('.').pop()||0);
+must(version.channel==='pilot-ready'&&globalVersion>=59,'global Pilot Ready version remains v59 or newer');
 
 if(failed){console.error(`\n${failed} v59 regression check(s) failed.`);process.exit(1)}
 console.log('\nTEDVIO v59 Mobile Classroom Pro regression audit passed.');
