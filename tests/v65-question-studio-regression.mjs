@@ -1,0 +1,30 @@
+import fs from'node:fs';
+const read=p=>fs.readFileSync(p,'utf8');
+const teacher=read('teacher.html'),beta=read('beta.html'),studio=read('question-studio-v65.js'),css=read('question-studio-v65.css'),vercel=read('vercel.json'),sw=read('sw.js'),version=JSON.parse(read('version.json')),legacy=read('beta.js');
+let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
+for(const html of[teacher,beta]){
+  must(html.includes('question-studio-v65.js?v=65')&&html.includes('question-studio-v65.css?v=65'),'teacher-capable shell loads Question Studio Pro runtime and styles');
+  must(html.indexOf('beta.js?v=56')<html.indexOf('question-studio-v65.js?v=65'),'Question Studio loads after canonical bank/session engine');
+  must(html.includes('runtime-core-v64.js?v=64'),'v64 reliability core remains active under v65');
+}
+must(studio.includes("const VERSION='2026.08.26.65'"),'Question Studio reports v65');
+must(studio.includes("from('v2_question_bank').select('*').eq('teacher_id',u.id)") ,'Question Studio reads only the authenticated teacher bank');
+must(studio.includes("db.rpc('v2_teacher_question_bank_metrics')"),'Question Studio reads server-side quality metrics');
+for(const key of['folder','tags','bloom','favorite','archived'])must(studio.includes(key),`Question Studio supports ${key} metadata`);
+for(const type of['multiple_choice','multiple_select','true_false','open_text','numeric','poll','scale_5','ordering','hotspot'])must(studio.includes(type),`Question Studio supports ${type}`);
+must(studio.includes("radius:Number(document.querySelector('#q65Radius')")&&studio.includes('q65HotCanvas'),'Hotspot editor stores x/y with radius tolerance from visual editor');
+must(studio.includes('Buen reactivo')&&studio.includes('Revisar urgente')&&studio.includes("Number(m.total_responses||0)<8")&&studio.includes("Number(d)<.2"),'quality layer classifies evidence and discrimination thresholds');
+must(studio.includes('times_used')&&studio.includes('accuracy_pct')&&studio.includes('discrimination'),'Question Studio exposes use, accuracy and discrimination evidence');
+must(studio.includes('XLSX.writeFile')&&studio.includes('TEDVIO_Plantilla_Question_Studio_v65.xlsx'),'Question Studio exports banks and provides an Excel template');
+must(studio.includes('mammoth.browser.min.js')&&studio.includes('extractRawText')&&studio.includes('parseDocx'),'DOCX import is loaded on demand and parsed as structured questions');
+must(studio.includes("window.betaQuestionForm=id=>window.qs65Edit(id)")&&studio.includes("window.betaQuickLaunchPicker"),'v65 replaces only bank editing while delegating live use to the existing session engine');
+must(studio.includes(".update(payload).eq('id',q.id).eq('teacher_id',S.user.id)")&&studio.includes("teacher_id:S.user.id"),'Question Studio writes remain teacher scoped');
+must(!/from\('v2_(?:responses|participants|sessions|questions)'\)\.(?:insert|update|upsert|delete)/.test(studio),'Question Studio does not mutate live-session/student tables directly');
+must(legacy.includes("from('v2_question_bank')")&&legacy.includes('betaQuickLaunchPicker')&&legacy.includes('questionRowFromBank'),'legacy bank/session engine remains preserved for rollback and session launch');
+must(!/service_role|SUPABASE_SECRET|sb_secret_/i.test(studio+teacher+beta),'v65 frontend contains no privileged Supabase key material');
+must(css.includes('#qs65Root')&&css.includes('.qs65-cards')&&css.includes('.qs65-editor')&&css.includes('.qs65-live-preview')&&css.includes('.qs65-quality'),'v65 CSS covers studio, editor, preview and quality states');
+must(css.includes('@media(max-width:850px)')&&css.includes('@media(max-width:620px)')&&css.includes('@media(pointer:coarse)'),'v65 includes tablet, phone and touch layouts');
+must(vercel.includes('/question-studio-v65.js')&&vercel.includes('/question-studio-v65.css'),'v65 assets use explicit no-store headers');
+must(sw.includes('tedvio-pilot-v65-20260826'),'service worker uses v65 cache namespace');
+must(version.channel==='pilot-ready'&&String(version.version).endsWith('.65')&&version.audit==='question-studio-pro-metadata-quality-workflow','version metadata is Pilot Ready v65 Question Studio Pro');
+if(failed){console.error(`\n${failed} v65 regression check(s) failed.`);process.exit(1)}console.log('\nTEDVIO v65 Question Studio Pro regression audit passed.');

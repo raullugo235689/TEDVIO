@@ -25,6 +25,7 @@ must(guardAt>=0&&patchAt>guardAt,'v64-aware stability bridge bypasses the global
 must(stability.includes("dataset.tvInnerHtmlPatch='retired-v64'")&&stability.includes('installStableQR()'),'v64 retires global DOM monkeypatch while preserving QR stabilization');
 must(stability.includes("if(this.id==='sessionMain'&&patchWaiting(this,value))return"),'legacy DOM stabilization remains preserved for rollback without v64');
 must(vercel.includes('/runtime-core-v64.js')&&vercel.includes('/beta-session-stability-v1.js'),'v64 critical runtime assets use explicit no-store headers');
-must(sw.includes('tedvio-pilot-v64-20260826'),'service worker uses v64 cache namespace');
-must(version.channel==='pilot-ready'&&String(version.version).endsWith('.64')&&version.audit==='realtime-first-reliability-performance-core','version metadata is Pilot Ready v64 Reliability & Performance');
+must(/tedvio-pilot-v\d+-2026082\d/.test(sw),'service worker keeps a versioned Pilot cache namespace');
+const globalVersion=Number(String(version.version||'').split('.').pop()||0);
+must(version.channel==='pilot-ready'&&globalVersion>=64,'global Pilot Ready version remains v64 or newer');
 if(failed){console.error(`\n${failed} v64 regression check(s) failed.`);process.exit(1)}console.log('\nTEDVIO v64 Reliability & Performance regression audit passed.');
