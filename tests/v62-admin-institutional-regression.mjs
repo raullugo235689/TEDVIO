@@ -1,0 +1,31 @@
+import fs from'node:fs';
+const read=p=>fs.readFileSync(p,'utf8');
+const teacher=read('teacher.html'),beta=read('beta.html'),admin=read('admin-v62.js'),css=read('admin-v62.css'),guard=read('account-guard-v62.js'),legacy=read('beta-admin-v1.js'),vercel=read('vercel.json'),sw=read('sw.js'),version=JSON.parse(read('version.json'));
+let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
+for(const html of[teacher,beta]){
+  must(html.includes('admin-v62.css?v=62')&&html.includes('admin-v62.js?v=62'),'teacher-capable shell loads Admin Institutional Control v62');
+  must(html.includes('account-guard-v62.js?v=62'),'teacher-capable shell loads v62 account guard');
+  must(!html.includes('beta-admin-v1.js?v=56'),'legacy admin runtime is rollback-only and not loaded');
+  must(html.indexOf('beta-stability.js?v=56')<html.indexOf('account-guard-v62.js?v=62'),'account guard loads after stable auth/join runtime');
+}
+must(legacy.includes('Módulo de usuarios preparado para la siguiente fase.'),'legacy admin runtime remains preserved for rollback');
+must(admin.includes("const VERSION='2026.08.25.62'"),'v62 admin runtime reports correct version');
+must(admin.includes("db.rpc('tedvio_my_admin_role'")&&admin.includes("db.rpc('tedvio_admin_v62_snapshot'"),'v62 uses server-authorized admin role and snapshot RPCs');
+must(admin.includes("db.functions.invoke('tedvio-admin-v62'") ,'privileged admin actions are delegated to the authenticated Edge Function');
+for(const action of['invite_user','update_user','create_institution','update_institution','set_membership','update_plan'])must(admin.includes(`'${action}'`),`v62 frontend exposes ${action} workflow through Edge Function`);
+must(!/service_role|SUPABASE_SECRET|sb_secret_/i.test(admin+guard+teacher+beta),'frontend contains no service-role or secret API key material');
+must(!/\.auth\.admin\./.test(admin+guard),'browser runtimes never call Supabase Auth admin APIs directly');
+must(!/from\('tedvio_user_profiles'\)\.(?:insert|update|upsert|delete)\(/.test(admin),'admin UI does not mutate user profiles directly');
+must(!/from\('tedvio_institution_memberships'\)\.(?:insert|update|upsert|delete)\(/.test(admin),'admin UI does not mutate memberships directly');
+must(admin.includes('Usuarios y profesores')&&admin.includes('Instituciones')&&admin.includes('Planes y límites')&&admin.includes('Auditoría administrativa'),'v62 exposes users, institutions, plans and audit workspaces');
+must(admin.includes('Invitar profesor')&&admin.includes('Suspender')&&admin.includes('Reactivar'),'v62 provides invitation and real account lifecycle controls');
+must(admin.includes('membership-add')&&admin.includes('membership-off')&&admin.includes('membership-role'),'v62 provides multi-institution membership management');
+must(admin.includes('max_groups')&&admin.includes('max_students_per_group')&&admin.includes('max_live_sessions_month')&&admin.includes('max_storage_mb'),'v62 exposes centralized plan limits');
+must(guard.includes("from('tedvio_user_profiles').select('status,plan,role')")&&guard.includes("data.status==='suspended'")&&guard.includes("db.auth.signOut({scope:'local'})"),'account guard detects suspended profiles and signs out open sessions');
+must(guard.includes("setInterval(()=>check(false),45000)")&&guard.includes("visibilitychange")&&guard.includes("window.addEventListener('online'"),'account guard rechecks periodically and on mobile resume/reconnect');
+must(css.includes('.tv62-admin')&&css.includes('.tv62-table')&&css.includes('.tv62-inst-grid')&&css.includes('.tv62-plan-grid')&&css.includes('.tv62-audit'),'v62 CSS covers admin shell, users, institutions, plans and audit');
+must(css.includes('@media(max-width:760px)')&&css.includes('@media(max-width:480px)'),'v62 includes tablet and phone admin layouts');
+must(vercel.includes('/admin-v62.js')&&vercel.includes('/admin-v62.css')&&vercel.includes('/account-guard-v62.js'),'v62 assets use explicit no-store headers');
+must(sw.includes('tedvio-pilot-v62-20260825'),'service worker uses v62 cache namespace');
+must(version.channel==='pilot-ready'&&String(version.version).endsWith('.62'),'version metadata is Pilot Ready v62');
+if(failed){console.error(`\n${failed} v62 regression check(s) failed.`);process.exit(1)}console.log('\nTEDVIO v62 Admin & Institutional Control regression audit passed.');
