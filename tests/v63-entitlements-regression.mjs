@@ -15,6 +15,7 @@ must(e.includes("'ga61Excel','ga61Pdf','peExportResults'") ,'v63 gates advanced 
 must(e.includes('Los límites se validan también en el servidor.'),'v63 UI explains server-side enforcement');
 must(e.includes('max_students_per_group')&&e.includes('max_live_sessions_month')&&e.includes('max_storage_mb'),'v63 plan center exposes enforced limits');
 must(e.includes('window.TEDVIO_ENTITLEMENTS=data'),'v63 exposes read-only entitlement context to other modules');
+must(e.includes("new CustomEvent('tedvio:entitlements'"),'v63 broadcasts entitlement refreshes to future modules');
 must(!/service_role|SUPABASE_SECRET|sb_secret_/i.test(e+teacher+beta),'v63 frontend contains no privileged Supabase key material');
 must(css.includes('.tv63-plan-btn')&&css.includes('.tv63-meter')&&css.includes('.tv63-features')&&css.includes('@media(max-width:620px)'),'v63 CSS covers plan badge, usage, features and mobile layout');
 must(vercel.includes('/entitlements-v63.js')&&vercel.includes('/entitlements-v63.css'),'v63 assets use no-store headers');
