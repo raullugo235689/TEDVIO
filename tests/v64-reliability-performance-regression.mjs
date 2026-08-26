@@ -1,0 +1,30 @@
+import fs from'node:fs';
+const read=p=>fs.readFileSync(p,'utf8');
+const teacher=read('teacher.html'),beta=read('beta.html'),control=read('control.html'),projection=read('proyectar.html'),core=read('runtime-core-v64.js'),stability=read('beta-session-stability-v1.js'),vercel=read('vercel.json'),sw=read('sw.js'),version=JSON.parse(read('version.json'));
+let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
+for(const html of[teacher,beta]){
+  must(html.includes('runtime-core-v64.js?v=64'),'teacher-capable shell loads v64 runtime core');
+  must(html.indexOf('config.js?v=56')<html.indexOf('runtime-core-v64.js?v=64')&&html.indexOf('runtime-core-v64.js?v=64')<html.indexOf('beta-runtime-hooks.js?v=56'),'v64 core starts after config and before legacy timer hooks');
+  must(html.includes('beta-session-stability-v1.js?v=64'),'teacher-capable shell loads v64-aware stability bridge');
+}
+must(control.includes('runtime-core-v64.js?v=64')&&control.indexOf('runtime-core-v64.js?v=64')<control.indexOf('control-v59.js?v=59'),'mobile control loads v64 before v59 runtime');
+must(projection.includes('runtime-core-v64.js?v=64')&&projection.indexOf('runtime-core-v64.js?v=64')<projection.indexOf('proyectar-v2.js?v=55'),'projection loads v64 before projection runtime');
+must(core.includes("const VERSION='2026.08.26.64'"),'v64 runtime reports correct version');
+must(core.includes('d===850||d===1100')&&core.includes('return 12000')&&core.includes('d===1200')&&core.includes('return 15000'),'v64 converts aggressive polling into 12-15 second fallback polling');
+must(core.includes('return d')&&core.includes("longTasks:0") ,'v64 preserves unrelated timer delays and observes long tasks');
+must(core.includes("db.channel(`tedvio:session:${id}`")&&core.includes(".on('broadcast',{event:'state_changed'}"),'v64 subscribes to session-scoped Realtime Broadcast wake signals');
+must(core.includes("window.__TEDVIO_STUDENT60__?.refresh")&&core.includes("window.__TEDVIO_LIVE58__?.refresh"),'v64 directly wakes audited student and live teacher runtimes');
+must(core.includes("window.dispatchEvent(new Event('online'))"),'v64 wakes control/projection through their audited reconnect path');
+must(core.includes("db.rpc('v2_public_session_meta'")&&core.includes("localStorage.getItem('tedvio_v2_student')")&&core.includes(".eq('teacher_id',session.user.id).eq('code',code)"),'v64 discovers student, public control/projection and teacher sessions without broad table exposure');
+must(core.includes("addEventListener('unhandledrejection'")&&core.includes("addEventListener('error'")&&core.includes("from('tedvio_client_events').insert"),'v64 centralizes runtime error telemetry');
+must(core.includes("new CustomEvent('tedvio:v64:state'")&&core.includes("new CustomEvent('tedvio:v64:realtime'"),'v64 exposes explicit state/realtime events to future modules');
+must(core.includes('db.removeChannel(channel)')&&core.includes("addEventListener('beforeunload'"),'v64 cleans up Realtime channels');
+must(!/service_role|SUPABASE_SECRET|sb_secret_/i.test(core+teacher+beta+control+projection),'v64 frontend contains no privileged Supabase key material');
+const guardAt=stability.indexOf('if(window.__TEDVIO_RUNTIME64__?.enabled)'),patchAt=stability.indexOf("Object.defineProperty(Element.prototype,'innerHTML'");
+must(guardAt>=0&&patchAt>guardAt,'v64-aware stability bridge bypasses the global innerHTML patch before legacy fallback code');
+must(stability.includes("dataset.tvInnerHtmlPatch='retired-v64'")&&stability.includes('installStableQR()'),'v64 retires global DOM monkeypatch while preserving QR stabilization');
+must(stability.includes("if(this.id==='sessionMain'&&patchWaiting(this,value))return"),'legacy DOM stabilization remains preserved for rollback without v64');
+must(vercel.includes('/runtime-core-v64.js')&&vercel.includes('/beta-session-stability-v1.js'),'v64 critical runtime assets use explicit no-store headers');
+must(sw.includes('tedvio-pilot-v64-20260826'),'service worker uses v64 cache namespace');
+must(version.channel==='pilot-ready'&&String(version.version).endsWith('.64')&&version.audit==='realtime-first-reliability-performance-core','version metadata is Pilot Ready v64 Reliability & Performance');
+if(failed){console.error(`\n${failed} v64 regression check(s) failed.`);process.exit(1)}console.log('\nTEDVIO v64 Reliability & Performance regression audit passed.');
