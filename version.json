@@ -1,8 +1,8 @@
 {
   "app": "TEDVIO",
-  "version": "2026.08.26.63",
+  "version": "2026.08.26.64",
   "channel": "pilot-ready",
-  "audit": "plans-entitlements-server-enforcement",
+  "audit": "realtime-first-reliability-performance-core",
   "source": "main",
   "generated_at": "2026-08-26"
 }
