@@ -18,6 +18,7 @@ must(a.includes('ga61Student')&&a.includes('ga360Student'),'v61 links priority r
 must(a.includes('window.gaOpenGroup')&&a.includes('window.ga360Tab')&&a.includes('Analítica Pro'),'v61 hooks Group Center without replacing it');
 must(css.includes('#ga61Root')&&css.includes('.ga61-kpis')&&css.includes('.ga61-next')&&css.includes('.ga61-table')&&css.includes('@media(max-width:620px)'),'v61 CSS covers analytics dashboard and responsive layout');
 must(vercel.includes('/academic-analytics-v61.js')&&vercel.includes('/academic-analytics-v61.css'),'v61 assets use no-store headers');
-must(sw.includes('tedvio-pilot-v61-20260825'),'service worker uses v61 cache namespace');
-must(version.channel==='pilot-ready'&&String(version.version).endsWith('.61'),'version metadata is Pilot Ready v61');
+must(/tedvio-pilot-v\d+-20260825/.test(sw),'service worker keeps a versioned Pilot cache namespace');
+const globalVersion=Number(String(version.version||'').split('.').pop()||0);
+must(version.channel==='pilot-ready'&&globalVersion>=61,'global Pilot Ready version remains v61 or newer');
 if(failed){console.error(`\n${failed} v61 regression check(s) failed.`);process.exit(1)}console.log('\nTEDVIO v61 Academic Analytics Pro regression audit passed.');
