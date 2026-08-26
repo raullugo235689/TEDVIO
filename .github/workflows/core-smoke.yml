@@ -37,8 +37,14 @@ jobs:
         run: node --check assignments-v66.js
       - name: Check v66 Assignment student syntax
         run: node --check assignment-v66.js
+      - name: Check v67 Student Security syntax
+        run: node --check student-security-v67.js
+      - name: Check v67 Commercial Security syntax
+        run: node --check security-commercial-v67.js
+      - name: Check v67 Status page syntax
+        run: node --check status-v67.js
       - name: Run static regression audit
-        run: node tests/stable-candidate-audit-v66.mjs
+        run: node tests/stable-candidate-audit-v67.mjs
       - name: Run v57 dashboard regression audit
         run: node tests/v57-dashboard-regression.mjs
       - name: Run v58 Live Classroom regression audit
@@ -59,6 +65,8 @@ jobs:
         run: node tests/v65-question-studio-regression.mjs
       - name: Run v66 Assignments regression audit
         run: node tests/v66-assignments-regression.mjs
+      - name: Run v67 Security Commercial regression audit
+        run: node tests/v67-security-commercial-regression.mjs
       - name: Validate critical files exist
         run: |
           test -f teacher.html
@@ -67,6 +75,7 @@ jobs:
           test -f proyectar.html
           test -f control.html
           test -f assignment.html
+          test -f status.html
           test -f beta-attendance-pro-v1.js
           test -f beta-group-center-v2.js
           test -f beta-paper-exams-v2.js
@@ -81,6 +90,7 @@ jobs:
           test -f control-v59.css
           test -f student-v60.js
           test -f student-v60.css
+          test -f student-security-v67.js
           test -f academic-analytics-v61.js
           test -f academic-analytics-v61.css
           test -f admin-v62.js
@@ -95,7 +105,11 @@ jobs:
           test -f assignments-v66.css
           test -f assignment-v66.js
           test -f assignment-v66.css
-          test -f tests/stable-candidate-audit-v66.mjs
+          test -f security-commercial-v67.js
+          test -f security-commercial-v67.css
+          test -f status-v67.js
+          test -f status-v67.css
+          test -f tests/stable-candidate-audit-v67.mjs
           test -f tests/v57-dashboard-regression.mjs
           test -f tests/v58-live-classroom-regression.mjs
           test -f tests/v59-mobile-classroom-regression.mjs
@@ -106,3 +120,4 @@ jobs:
           test -f tests/v64-reliability-performance-regression.mjs
           test -f tests/v65-question-studio-regression.mjs
           test -f tests/v66-assignments-regression.mjs
+          test -f tests/v67-security-commercial-regression.mjs
