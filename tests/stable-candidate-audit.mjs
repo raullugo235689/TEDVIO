@@ -12,6 +12,8 @@ const projectionHtml=read('proyectar.html');
 const controlHtml=read('control.html');
 const control59=read('control-v59.js');
 const controlCss59=read('control-v59.css');
+const student60=read('student-v60.js');
+const studentCss60=read('student-v60.css');
 const premium=read('tedvio-premium-v54.css');
 const pilot56=read('beta-pilot-ready-v1.js');
 const pilotCss=read('beta-pilot-ready-v1.css');
@@ -37,11 +39,13 @@ must(teacher.includes('beta-pilot-ready-v57.js?v=57'),'teacher keeps isolated v5
 must(teacher.includes('beta-smart-dashboard-v57.css?v=57'),'teacher keeps v57 smart dashboard visual layer');
 must(teacher.includes('live-classroom-v58.js?v=58'),'teacher loads isolated v58 Live Classroom runtime');
 must(teacher.includes('live-classroom-v58.css?v=58'),'teacher loads v58 Live Classroom visual layer');
+must(teacher.includes('student-v60.js?v=60')&&teacher.includes('student-v60.css?v=60'),'teacher shell includes v60 student fallback layer');
 must(teacher.includes('beta-executive-v56.css?v=56'),'teacher keeps audited v56 executive visual base');
 must(teacher.includes('beta-pilot-ready-v1.css?v=56'),'teacher keeps audited Pilot Ready base CSS');
 must(!teacher.includes('beta-pilot-ready-v1.js?v=56'),'teacher does not run v56 and v57 dashboard controllers together');
 must(beta.includes('beta-pilot-ready-v1.js?v=56'),'beta fallback remains on stable v56 runtime');
 must(beta.includes('beta-executive-v56.css?v=56'),'beta fallback remains on stable v56 visual layer');
+must(beta.includes('student-v60.js?v=60')&&beta.includes('student-v60.css?v=60'),'QR/student entry shell loads v60 Student Experience Pro');
 
 for(const html of [teacher,beta]){
   must(html.includes('tedvio-premium-v54.css?v=56'),'premium design system remains active');
@@ -49,7 +53,7 @@ for(const html of [teacher,beta]){
   must(html.includes('beta-group-center-v2.js'),'Group Center v2 is loaded');
   must(html.includes('beta-attendance-pro-v1.js'),'Attendance Pro is loaded');
   must(html.includes('beta-stability.js'),'secure join guard is loaded');
-  must(html.includes('beta-student-live-v1.js'),'student reveal runtime is loaded');
+  must(html.includes('beta-student-live-v1.js'),'legacy student reveal layer remains available for rollback');
   must(html.includes('beta-paper-exams-v2.js'),'OMR v2 is loaded');
   for(const dead of ['beta-groups-attendance.js','beta-groups-cascade-v1.js','beta-attendance-date-v1.js','beta-attendance-fast-v1.js','beta-attendance-save-v1.js','beta-paper-exams-v1.js','beta-qr-attendance-v3.js','beta-group-center-v1.js']) must(!html.includes(dead),`${dead} is not loaded`);
 }
@@ -85,12 +89,25 @@ must(control59.includes("if(state.question?.status==='live')await closeCurrent()
 must(control59.includes('Todos respondieron')&&control59.includes('navigator.vibrate?.')&&control59.includes('Reconectando'),'v59 provides all-answered and connectivity feedback');
 must(controlCss59.includes('.mc59-controls')&&controlCss59.includes('.mc59-flow')&&controlCss59.includes('@media(max-width:560px)'),'v59 CSS covers large mobile controls and phone layout');
 
-must(studentLive.includes('v2_public_question_results'),'student reveal uses aggregate public results');
-must(studentLive.includes('v2_student_answer_feedback'),'student explanation uses reveal-gated RPC');
-must(studentLive.includes('setInterval(tick,800)'),'student result polling remains throttled to 800 ms');
+must(studentLive.includes('v2_public_question_results'),'legacy student reveal uses aggregate public results');
+must(studentLive.includes('v2_student_answer_feedback'),'legacy student explanation uses reveal-gated RPC');
+must(studentLive.includes('setInterval(tick,800)'),'legacy student result polling remains throttled to 800 ms');
 must(!studentLive.includes('setInterval(tick,180)'),'obsolete 180 ms polling remains absent');
 must(stability.includes("v2_join_session_v3"),'join guard uses canonical secure join RPC');
 must(stability.includes('stopImmediatePropagation'),'legacy direct join handler remains intercepted');
+
+must(student60.includes("const VERSION='2026.08.25.60'"),'v60 Student Experience reports correct version');
+must(student60.includes('window.__TEDVIO_STUDENT_INTERVAL__')&&student60.includes('nativeClear(id)'),'v60 takes ownership by cancelling legacy student render polling');
+must(student60.includes("select('id,position,prompt,question_type,options,media_url,media_type,timer_seconds,status,launched_at,closed_at')"),'v60 reads display-safe question fields before reveal');
+must(!student60.includes("from('v2_questions').select('*')"),'v60 does not request full question rows before reveal');
+must(student60.includes("if(S.question?.status==='revealed')await fetchReveal")&&student60.includes("select('correct_answer')"),'v60 only loads correct-answer data through reveal flow');
+must(student60.includes("sb.rpc('v2_submit_response'")&&student60.includes('v2_public_question_results')&&student60.includes('v2_student_answer_feedback'),'v60 uses canonical submit and reveal RPCs');
+must(!student60.includes("from('v2_sessions').update")&&!student60.includes("from('v2_questions').update")&&!student60.includes("from('v2_participants').delete"),'v60 cannot alter teacher/session/participant state');
+must(student60.includes('Tu respuesta quedó guardada. Espera a que el profesor muestre el resultado.'),'v60 hides correctness until professor reveal');
+must(student60.includes('hotspot')&&student60.includes('ordering')&&student60.includes('multiple_select'),'v60 supports advanced interactive question types');
+must(student60.includes('Sesión finalizada')&&student60.includes('Reconectando'),'v60 covers final and reconnect states');
+must(studentCss60.includes('.tv60-question')&&studentCss60.includes('.tv60-state.submitted')&&studentCss60.includes('.tv60-result')&&studentCss60.includes('.tv60-finish'),'v60 CSS covers full student lifecycle');
+must(studentCss60.includes('@media(max-width:520px)')&&studentCss60.includes('@media(pointer:coarse)'),'v60 includes phone and touch layouts');
 
 must(config.includes('SUPABASE_PUBLISHABLE_KEY'),'frontend contains only a publishable Supabase key');
 must(!/service_role|secret[_-]?key|SUPABASE_SERVICE/i.test(config),'frontend config contains no service-role/secret key');
@@ -123,10 +140,10 @@ must(attendancePremium.includes('.done-icon')&&attendancePremium.includes('.card
 must(controlPremium.includes('.ct-card')&&controlPremium.includes('.ct-btn'),'legacy mobile control premium base remains available for rollback');
 
 must(manifest.start_url==='/teacher','PWA starts on teacher route');
-must(sw.includes("tedvio-pilot-v59-20260825"),'service worker uses v59 cache namespace');
+must(sw.includes("tedvio-pilot-v60-20260825"),'service worker uses v60 cache namespace');
 must(sw.includes("cache:'no-store'"),'service worker uses network-first no-store for shell files');
 must(version.channel==='pilot-ready','version remains pilot-ready');
-must(String(version.version).endsWith('.59'),'Mobile Classroom Pilot Ready version is v59');
+must(String(version.version).endsWith('.60'),'Student Experience Pilot Ready version is v60');
 
 if(failed){console.error(`\n${failed} audit check(s) failed.`);process.exit(1)}
-console.log('\nTEDVIO v59 Mobile Classroom Pro Pilot Ready static audit passed.');
+console.log('\nTEDVIO v60 Student Experience Pro Pilot Ready static audit passed.');
