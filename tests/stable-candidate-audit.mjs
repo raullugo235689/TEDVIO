@@ -10,6 +10,8 @@ const checkin=read('asistencia.html');
 const projection=read('proyectar-v2.js');
 const projectionHtml=read('proyectar.html');
 const controlHtml=read('control.html');
+const control59=read('control-v59.js');
+const controlCss59=read('control-v59.css');
 const premium=read('tedvio-premium-v54.css');
 const pilot56=read('beta-pilot-ready-v1.js');
 const pilotCss=read('beta-pilot-ready-v1.css');
@@ -34,7 +36,7 @@ function must(ok,msg){if(ok)console.log('OK  ',msg);else{console.error('FAIL',ms
 must(teacher.includes('beta-pilot-ready-v57.js?v=57'),'teacher keeps isolated v57 smart dashboard runtime');
 must(teacher.includes('beta-smart-dashboard-v57.css?v=57'),'teacher keeps v57 smart dashboard visual layer');
 must(teacher.includes('live-classroom-v58.js?v=58'),'teacher loads isolated v58 Live Classroom runtime');
-must(teacher.includes('live-classroom-v58.css?v=58'),'teacher loads v58 Live Classroom visual layer last');
+must(teacher.includes('live-classroom-v58.css?v=58'),'teacher loads v58 Live Classroom visual layer');
 must(teacher.includes('beta-executive-v56.css?v=56'),'teacher keeps audited v56 executive visual base');
 must(teacher.includes('beta-pilot-ready-v1.css?v=56'),'teacher keeps audited Pilot Ready base CSS');
 must(!teacher.includes('beta-pilot-ready-v1.js?v=56'),'teacher does not run v56 and v57 dashboard controllers together');
@@ -70,7 +72,18 @@ must(projection.includes("v2_public_session_people"),'projection uses display-sa
 must(!projection.includes("from('v2_participants')"),'projection does not read participant rows directly');
 must(projectionHtml.includes('proyectar-v2.js?v=55'),'projection shell remains on audited v55 runtime');
 must(projectionHtml.includes('projection-premium-v54.css?v=55'),'projection premium layer remains active');
-must(controlHtml.includes('control-premium-v54.css?v=55'),'mobile control premium layer remains active');
+
+must(controlHtml.includes('control-v59.js?v=59')&&controlHtml.includes('control-v59.css?v=59'),'mobile control shell uses v59 runtime and styles');
+must(controlHtml.includes('control-premium-v54.css?v=55'),'mobile control keeps premium base layer');
+must(!controlHtml.includes('control.js?v=55')&&!controlHtml.includes('control-moderation.js'),'legacy control runtimes are not loaded alongside v59');
+must(control59.includes("const VERSION='2026.08.25.59'"),'v59 Mobile Classroom reports correct version');
+must(control59.includes("from('v2_sessions').select")&&control59.includes("from('v2_participants').select")&&control59.includes("from('v2_questions').select")&&control59.includes("from('v2_responses').select"),'v59 reads canonical live-session state');
+must(!control59.includes("from('v2_responses').insert")&&!control59.includes("from('v2_responses').update")&&!control59.includes("from('v2_responses').delete"),'v59 never writes student responses');
+must(!control59.includes("from('v2_participants').insert")&&!control59.includes("from('v2_participants').update")&&!control59.includes("from('v2_participants').delete"),'v59 never mutates participants');
+must(control59.includes(".eq('teacher_id',state.user.id)")&&control59.includes(".eq('session_id',state.session.id)"),'v59 writes remain teacher/session scoped');
+must(control59.includes("if(state.question?.status==='live')await closeCurrent();await launch(id)"),'v59 Next closes active question before launching next');
+must(control59.includes('Todos respondieron')&&control59.includes('navigator.vibrate?.')&&control59.includes('Reconectando'),'v59 provides all-answered and connectivity feedback');
+must(controlCss59.includes('.mc59-controls')&&controlCss59.includes('.mc59-flow')&&controlCss59.includes('@media(max-width:560px)'),'v59 CSS covers large mobile controls and phone layout');
 
 must(studentLive.includes('v2_public_question_results'),'student reveal uses aggregate public results');
 must(studentLive.includes('v2_student_answer_feedback'),'student explanation uses reveal-gated RPC');
@@ -107,13 +120,13 @@ must(pilotCss.includes('.tv55-today')&&pilotCss.includes('@media(pointer:coarse)
 must(executive56.includes('.tv56-hero')&&executive56.includes('.tv56-next')&&executive56.includes('.tv56-group-line')&&executive56.includes('.tv56-prep'),'v56 executive CSS remains available as rollback/base layer');
 must(projectionPremium.includes('.pj-question')&&projectionPremium.includes('.pj-ranking'),'projection premium covers question and ranking surfaces');
 must(attendancePremium.includes('.done-icon')&&attendancePremium.includes('.card'),'attendance premium covers registration and success states');
-must(controlPremium.includes('.ct-card')&&controlPremium.includes('.ct-btn'),'mobile control premium covers cards and controls');
+must(controlPremium.includes('.ct-card')&&controlPremium.includes('.ct-btn'),'legacy mobile control premium base remains available for rollback');
 
 must(manifest.start_url==='/teacher','PWA starts on teacher route');
-must(sw.includes("tedvio-pilot-v58-20260825"),'service worker uses v58 cache namespace');
+must(sw.includes("tedvio-pilot-v59-20260825"),'service worker uses v59 cache namespace');
 must(sw.includes("cache:'no-store'"),'service worker uses network-first no-store for shell files');
 must(version.channel==='pilot-ready','version remains pilot-ready');
-must(String(version.version).endsWith('.58'),'Live Classroom Pilot Ready version is v58');
+must(String(version.version).endsWith('.59'),'Mobile Classroom Pilot Ready version is v59');
 
 if(failed){console.error(`\n${failed} audit check(s) failed.`);process.exit(1)}
-console.log('\nTEDVIO v58 Live Classroom Pro Pilot Ready static audit passed.');
+console.log('\nTEDVIO v59 Mobile Classroom Pro Pilot Ready static audit passed.');
