@@ -1,8 +1,8 @@
 {
   "app": "TEDVIO",
-  "version": "2026.08.25.56",
+  "version": "2026.08.25.57",
   "channel": "pilot-ready",
-  "audit": "executive-dashboard-polish-smart-group-actions-recovery",
+  "audit": "smart-dashboard-polish-isolated-runtime",
   "source": "main",
   "generated_at": "2026-08-25"
 }
