@@ -38,9 +38,36 @@
     livePro:[['./live-classroom-v58.js?v=58','module']]
   };
 
+  function installGroupFeatureHooks(){
+    if(typeof window.ga360Tab==='function'&&!window.ga360Tab.__tedvioDemand685){
+      const old=window.ga360Tab;
+      const wrapped=function(k,...args){
+        if(k==='analytics'&&!features.has('analytics')){ensure('analytics').then(()=>window.ga360Tab?.('analytics'));return;}
+        return old.call(this,k,...args);
+      };
+      wrapped.__tedvioDemand685=true;window.ga360Tab=wrapped;
+    }
+    if(typeof window.ga360OpenExams==='function'&&!window.ga360OpenExams.__tedvioDemand685){
+      const old=window.ga360OpenExams;
+      const wrapped=async(...args)=>{await ensure('omr');const real=window.ga360OpenExams;if(real&&real!==wrapped&&real!==old)return real(...args);return old.apply(this,args)};
+      wrapped.__tedvioDemand685=true;window.ga360OpenExams=wrapped;
+    }
+  }
+
   async function ensure(name){
     if(features.has(name))return features.get(name);
-    const p=(async()=>{document.documentElement.dataset.tedvioLoadingFeature=name;try{if(['analytics','omr'].includes(name))await ensure('groups');await loadList(registry[name]||[],38);window.dispatchEvent(new CustomEvent('tedvio:feature-ready',{detail:{name,version:VERSION}}));return true}finally{if(document.documentElement.dataset.tedvioLoadingFeature===name)delete document.documentElement.dataset.tedvioLoadingFeature;scheduleNav()}})();
+    const p=(async()=>{
+      document.documentElement.dataset.tedvioLoadingFeature=name;
+      try{
+        if(['analytics','omr'].includes(name))await ensure('groups');
+        await loadList(registry[name]||[],38);
+        if(name==='groups')installGroupFeatureHooks();
+        window.dispatchEvent(new CustomEvent('tedvio:feature-ready',{detail:{name,version:VERSION}}));
+        return true;
+      }finally{
+        if(document.documentElement.dataset.tedvioLoadingFeature===name)delete document.documentElement.dataset.tedvioLoadingFeature;scheduleNav();
+      }
+    })();
     features.set(name,p);return p;
   }
 
@@ -96,7 +123,7 @@
     ],30);
     installBankHook();installLazyShims();installLazyNav();
     const navObserver=new MutationObserver(scheduleNav);navObserver.observe(root,{childList:true});
-    window.addEventListener('tedvio:entitlements',scheduleNav);window.addEventListener('hashchange',()=>{scheduleNav();installBankHook()});
+    window.addEventListener('tedvio:entitlements',scheduleNav);window.addEventListener('hashchange',()=>{scheduleNav();installBankHook();installGroupFeatureHooks()});
     setTimeout(scheduleNav,900);
     document.documentElement.dataset.tedvioBoot='ready';document.documentElement.dataset.tedvioBootStage='core-ready';performance.mark?.('tedvio-teacher-demand-ready');
     try{performance.measure?.('tedvio-teacher-demand','tedvio-teacher-demand-start','tedvio-teacher-demand-ready')}catch{}
