@@ -4,10 +4,11 @@ const teacher=read('teacher.html'),beta=read('beta.html'),core=read('teacher-cor
 let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
 const scripts=[...teacher.matchAll(/<script[^>]+src="([^"]+)"/g)].map(x=>x[1]);
 const styles=[...teacher.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/g)].map(x=>x[1]);
-must(scripts.length===4,`teacher first paint has exactly four scripts (${scripts.length})`);
-must(scripts.some(x=>x.includes('config.js'))&&scripts.some(x=>x.includes('runtime-core-v64.js'))&&scripts.some(x=>x.includes('teacher-core-v68-6.js'))&&scripts.some(x=>x.includes('teacher-progressive-boot-v68.js')),'first paint is config + reliability + teacher core + demand loader');
+must(scripts.length===5,`teacher first paint has four functional scripts plus tiny theme controller (${scripts.length})`);
+must(scripts.some(x=>x.includes('config.js'))&&scripts.some(x=>x.includes('runtime-core-v64.js'))&&scripts.some(x=>x.includes('teacher-core-v68-6.js'))&&scripts.some(x=>x.includes('teacher-progressive-boot-v68.js'))&&scripts.some(x=>x.includes('teacher-theme-v68-7.js')),'first paint is config + reliability + teacher core + demand loader + theme controller');
 for(const legacy of ['beta.js','auth-handoff-v68-3.js','beta-auth-fix.js','beta-runtime-hooks.js','beta-session-stability-v1.js','beta-student-runtime-pre.js','student-v60.js','student-security-v67.js'])must(!teacher.includes(legacy),`split teacher omits ${legacy}`);
-must(styles.length<=7,`teacher first paint CSS is lean (${styles.length} stylesheets)`);
+must(styles.length<=8,`teacher first paint CSS stays lean with premium theme layer (${styles.length} stylesheets)`);
+must(teacher.includes('teacher-theme-v68-7.css?v=687'),'dual premium theme CSS is the only new first-paint visual layer');
 for(const heavy of ['live-classroom-v58.css','student-v60.css','academic-analytics-v61.css','admin-v62.css','entitlements-v63.css','question-studio-v65.css','assignments-v66.css','security-commercial-v67.css','onboarding-v68.css','beta-attendance-pro-v1.css'])must(!teacher.includes(heavy),`heavy/feature CSS ${heavy} is not first paint`);
 must(core.includes("const VERSION='2026.08.27.68.6'")&&session.includes("const VERSION='2026.08.27.68.6'"),'teacher/session split runtimes report v68.6');
 must(core.includes("from('tedvio_user_profiles').select('status,plan,role')")&&core.includes("db.rpc('tedvio_current_entitlements')")&&core.includes("db.rpc('v2_teacher_today_dashboard')"),'teacher startup uses profile + entitlement + aggregate dashboard only');
@@ -27,5 +28,5 @@ must(beta.includes('beta.js?v=56')&&beta.includes('student-v60.js?v=60')&&beta.i
 for(const asset of ['/teacher-core-v68-6.js','/teacher-core-v68-6.css','/teacher-session-core-v68-6.js','/teacher-progressive-boot-v68.js'])must(vercel.includes(asset),`Vercel no-store includes ${asset}`);
 must(sw.includes('tedvio-pilot-v68-20260826-686'),'v68.6 forces a fresh service worker cache namespace');
 must(!/service_role|SUPABASE_SECRET|sb_secret_/i.test(core+session+loader+teacher),'split teacher exposes no privileged key material');
-if(failed){console.error(`\n${failed} v68.6 Teacher Core Split check(s) failed.`);process.exit(1)}
-console.log('\nTEDVIO v68.6 Teacher Core Split regression audit passed.');
+if(failed){console.error(`\n${failed} v68.6+ Teacher Core Split check(s) failed.`);process.exit(1)}
+console.log('\nTEDVIO v68.6+ Teacher Core Split regression audit passed.');
