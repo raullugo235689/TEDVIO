@@ -1,0 +1,56 @@
+const VERSION='2026.08.27.68.7';
+const KEY='tedvio.teacher.theme';
+const root=document.querySelector('#betaApp');
+const metaTheme=document.querySelector('meta[name="theme-color"]');
+
+function normalize(value){return value==='dark'?'dark':'light'}
+function readTheme(){try{return normalize(localStorage.getItem(KEY))}catch{return'light'}}
+function syncButtons(theme){
+  document.querySelectorAll('[data-tv687-theme]').forEach(button=>{
+    const active=button.dataset.tv687Theme===theme;
+    button.classList.toggle('active',active);
+    button.setAttribute('aria-pressed',active?'true':'false');
+  });
+}
+function applyTheme(value,{persist=true}={}){
+  const theme=normalize(value);
+  document.documentElement.dataset.tedvioTheme=theme;
+  document.documentElement.style.colorScheme=theme==='dark'?'dark':'light';
+  if(metaTheme)metaTheme.setAttribute('content',theme==='dark'?'#03112b':'#071a3b');
+  if(persist){try{localStorage.setItem(KEY,theme)}catch{}}
+  syncButtons(theme);
+  window.dispatchEvent(new CustomEvent('tedvio:theme',{detail:{theme,version:VERSION}}));
+  return theme;
+}
+function control(){
+  const wrap=document.createElement('div');
+  wrap.id='tv687ThemeControl';
+  wrap.className='tv687-theme-control';
+  wrap.setAttribute('role','group');
+  wrap.setAttribute('aria-label','Aspecto de TEDVIO');
+  wrap.innerHTML='<button type="button" class="tv687-theme-btn" data-tv687-theme="dark" aria-label="Usar aspecto oscuro">☾ <span>Oscuro</span></button><button type="button" class="tv687-theme-btn" data-tv687-theme="light" aria-label="Usar aspecto blanco">☀ <span>Blanco</span></button>';
+  wrap.addEventListener('click',event=>{
+    const button=event.target.closest('[data-tv687-theme]');
+    if(!button)return;
+    applyTheme(button.dataset.tv687Theme);
+  });
+  return wrap;
+}
+function install(){
+  const bars=document.querySelectorAll('.tv686-top .b-top-actions,.tv686-session-shell .b-top-actions');
+  bars.forEach(bar=>{
+    if(bar.querySelector('#tv687ThemeControl'))return;
+    const node=control();
+    const primary=bar.querySelector('.b-btn.primary');
+    if(primary)bar.insertBefore(node,primary);else bar.appendChild(node);
+  });
+  syncButtons(document.documentElement.dataset.tedvioTheme||readTheme());
+}
+
+applyTheme(readTheme(),{persist:false});
+window.addEventListener('tedvio:teacher-shell',()=>requestAnimationFrame(install));
+window.addEventListener('tedvio:teacher-ready',()=>requestAnimationFrame(install));
+if(root){new MutationObserver(()=>requestAnimationFrame(install)).observe(root,{childList:true,subtree:false})}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
+window.tv687Theme=applyTheme;
+window.__TEDVIO_THEME687__={version:VERSION,get theme(){return document.documentElement.dataset.tedvioTheme||'light'},set:applyTheme};
