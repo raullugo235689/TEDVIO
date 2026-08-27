@@ -1,10 +1,10 @@
 import fs from'node:fs';
 const read=p=>fs.readFileSync(p,'utf8');
-const teacher=read('teacher.html'),beta=read('beta.html'),studentHtml=read('assignment.html'),teacherJs=read('assignments-v66.js'),studentJs=read('assignment-v66.js'),teacherCss=read('assignments-v66.css'),studentCss=read('assignment-v66.css'),studio=read('question-studio-v65.js'),core=read('runtime-core-v64.js'),vercel=read('vercel.json'),sw=read('sw.js'),version=JSON.parse(read('version.json'));
+const teacher=read('teacher.html'),beta=read('beta.html'),deferred=fs.existsSync('teacher-progressive-boot-v68.js')?read('teacher-progressive-boot-v68.js'):'',teacherRuntime=teacher+deferred,studentHtml=read('assignment.html'),teacherJs=read('assignments-v66.js'),studentJs=read('assignment-v66.js'),teacherCss=read('assignments-v66.css'),studentCss=read('assignment-v66.css'),studio=read('question-studio-v65.js'),core=read('runtime-core-v64.js'),vercel=read('vercel.json'),sw=read('sw.js'),version=JSON.parse(read('version.json'));
 let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
-for(const html of[teacher,beta]){
- must(html.includes('assignments-v66.css?v=66')&&html.includes('assignments-v66.js?v=66'),'teacher-capable shell loads Assignments v66');
- must(html.indexOf('question-studio-v65.js?v=65')<html.indexOf('assignments-v66.js?v=66'),'v66 loads after Question Studio for selected-question integration');
+for(const [name,html,runtime] of[['teacher',teacher,teacherRuntime],['beta',beta,beta]]){
+ must(runtime.includes('assignments-v66.js?v=66')&&html.includes('assignments-v66.css?v=66'),`${name} shell preserves Assignments v66`);
+ must(runtime.indexOf('question-studio-v65.js?v=65')<runtime.indexOf('assignments-v66.js?v=66'),`${name} v66 loads after Question Studio for selected-question integration`);
  must(html.includes('runtime-core-v64.js?v=64'),'v64 Reliability core remains active');
 }
 must(studentHtml.includes('assignment-v66.css?v=66')&&studentHtml.includes('assignment-v66.js?v=66'),'standalone student assignment shell loads v66 only');
@@ -27,7 +27,7 @@ must(teacherJs.includes("window.TEDVIO_ENTITLEMENTS?.features?.exports===false")
 must(teacherJs.includes('assignment.html?code=')&&teacherJs.includes('Abrir como alumno'),'teacher can share and preview student assignment link');
 must(teacherCss.includes('.tv66-card')&&teacherCss.includes('.tv66-form-grid')&&teacherCss.includes('.tv66-results-table')&&teacherCss.includes('@media(max-width:680px)'),'teacher v66 CSS covers dashboard, editor, reports and mobile');
 must(studentCss.includes('.as66-question')&&studentCss.includes('.as66-hotspot-img')&&studentCss.includes('.as66-feedback-list')&&studentCss.includes('@media(max-width:760px)'),'student v66 CSS covers question lifecycle, hotspot, feedback and mobile');
-must(!/service_role|SUPABASE_SECRET|sb_secret_/i.test(teacherJs+studentJs+teacher+beta+studentHtml),'v66 frontend contains no privileged Supabase key material');
+must(!/service_role|SUPABASE_SECRET|sb_secret_/i.test(teacherJs+studentJs+teacher+deferred+beta+studentHtml),'v66 frontend contains no privileged Supabase key material');
 must(vercel.includes('/assignments-v66.js')&&vercel.includes('/assignments-v66.css')&&vercel.includes('/assignment.html')&&vercel.includes('/assignment-v66.js')&&vercel.includes('/assignment-v66.css'),'v66 assets use explicit no-store headers');
 must(/tedvio-pilot-v\d+-20260826/.test(sw),'service worker keeps a versioned Pilot cache namespace');
 const minor=Number(String(version.version).split('.').pop());must(version.channel==='pilot-ready'&&minor>=66,'global Pilot Ready version remains v66 or newer');
