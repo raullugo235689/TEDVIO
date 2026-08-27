@@ -5,7 +5,8 @@ let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.er
 must(teacher.includes('admin-v62.css?v=62')&&teacherRuntime.includes('admin-v62.js?v=62'),'teacher shell preserves Admin Institutional Control v62');
 must(teacherRuntime.includes('account-guard-v62.js?v=62'),'teacher shell preserves v62 account guard');
 must(!teacher.includes('beta-admin-v1.js?v=56')&&!deferred.includes('beta-admin-v1.js?v=56'),'legacy admin runtime is rollback-only and not loaded on teacher');
-must(teacher.indexOf('auth-handoff-v68-3.js?v=683')<teacher.indexOf('teacher-progressive-boot-v68.js?v=684')&&deferred.indexOf('account-guard-v62.js?v=62')>=0,'teacher account guard initializes only after canonical auth handoff/core');
+const perfAt=teacher.search(/teacher-progressive-boot-v68\.js\?v=68[45]/);
+must(teacher.indexOf('auth-handoff-v68-3.js?v=683')>=0&&perfAt>teacher.indexOf('auth-handoff-v68-3.js?v=683')&&deferred.indexOf('account-guard-v62.js?v=62')>=0,'teacher account guard initializes only after canonical auth handoff/core');
 must(beta.includes('admin-v62.css?v=62')&&beta.includes('admin-v62.js?v=62'),'beta teacher-capable shell preserves Admin Institutional Control v62');
 must(beta.includes('account-guard-v62.js?v=62'),'beta teacher-capable shell preserves v62 account guard');
 must(!beta.includes('beta-admin-v1.js?v=56'),'legacy admin runtime is rollback-only and not loaded on beta');
