@@ -7,7 +7,7 @@ const STUDENT_KEY='tedvio_v2_student';
 let wrapped=false,hot={x:null,y:null,radius:8},studentBridgeHandle=null,bridgeQuestionId=null,bridgeBusy=false;
 
 async function me(){return (await sb.auth.getUser()).data?.user||null}
-function overlay(html){document.querySelector('#proMaxOverlay')?.remove();document.body.insertAdjacentHTML('beforeend',`<div id="proMaxOverlay" class="pm-overlay"><div class="pm-modal">${html}</div></div>`);document.querySelector('#pmClose')?.onclick=()=>document.querySelector('#proMaxOverlay')?.remove()}
+function overlay(html){document.querySelector('#proMaxOverlay')?.remove();document.body.insertAdjacentHTML('beforeend',`<div id="proMaxOverlay" class="pm-overlay"><div class="pm-modal">${html}</div></div>`);const closeBtn=document.querySelector('#pmClose');if(closeBtn)closeBtn.onclick=()=>document.querySelector('#proMaxOverlay')?.remove()}
 function topButton(){const top=document.querySelector('.b-top-actions');if(!top||document.querySelector('#pmGenerator'))return;const b=document.createElement('button');b.id='pmGenerator';b.className='b-btn dark';b.textContent='🧠 Generador';b.onclick=openGenerator;top.prepend(b)}
 
 function wrapQuestionForm(){
