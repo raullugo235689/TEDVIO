@@ -12,7 +12,9 @@ for(const file of [...new Set(scripts)]){
   const lines=src.split(/\r?\n/);
   let bad=false;
 
-  const lhsOptional=/\?\.[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*|\[[^\]\n]+\])*\s*(?:=|\+=|-=|\*=|\/=|%=|\*\*=|&&=|\|\|=|\?\?=|\+\+|--)/g;
+  // Optional chaining may be read/called, but it can never be an assignment target.
+  // The negative lookahead avoids treating === / == comparisons as assignments.
+  const lhsOptional=/\?\.[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*|\[[^\]\n]+\])*\s*(?:=(?!=)|\+=(?!=)|-=(?!=)|\*=(?!=)|\/=(?!=)|%=(?!=)|\*\*=(?!=)|&&=(?!=)|\|\|=(?!=)|\?\?=(?!=)|\+\+|--)/g;
   lines.forEach((line,i)=>{
     const m=line.match(lhsOptional);
     if(m){bad=true;fail(file,`optional chaining used as assignment target at line ${i+1}`,m[0])}
