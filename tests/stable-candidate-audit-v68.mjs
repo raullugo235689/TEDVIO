@@ -1,13 +1,32 @@
 import fs from'node:fs';
-const source=fs.readFileSync('tests/stable-candidate-audit.mjs','utf8')
- .replace("const teacher=read('teacher.html');","const teacher=read('teacher.html')+(fs.existsSync('teacher-progressive-boot-v68.js')?read('teacher-progressive-boot-v68.js'):'');")
- .replace("must(teacher.includes('student-v60.js?v=60')&&teacher.includes('student-v60.css?v=60'),'teacher shell includes v60 student fallback layer');","must(teacher.includes('teacher-progressive-boot-v68.js?v=68')?(!read('teacher.html').includes('student-v60.js?v=60')&&beta.includes('student-v60.js?v=60')):(teacher.includes('student-v60.js?v=60')&&teacher.includes('student-v60.css?v=60')),'teacher keeps student capability on beta while performance /teacher omits student-only runtime');")
- .replace("must(html.includes('beta-stability.js'),'secure join guard is loaded');","must(html===teacher&&teacher.includes('teacher-progressive-boot-v68.js?v=68')?(!read('teacher.html').includes('beta-stability.js')&&beta.includes('beta-stability.js')):html.includes('beta-stability.js'),'secure join remains on student-capable beta while demand teacher omits the legacy 900ms stability loop');")
- .replace("must(html.includes('beta-student-live-v1.js'),'legacy student reveal layer remains available for rollback');","must(html===teacher&&teacher.includes('teacher-progressive-boot-v68.js?v=68')?beta.includes('beta-student-live-v1.js'):html.includes('beta-student-live-v1.js'),'legacy student reveal remains available on student-capable beta while performance /teacher stays lean');")
- .replace("tedvio-pilot-v60-20260825","tedvio-pilot-v68-20260826")
- .replace("String(version.version).endsWith('.60')","String(version.version).endsWith('.68')")
- .replace('Student Experience Pilot Ready version is v60','Onboarding & Product Activation Pilot Ready version is v68')
- .replace('TEDVIO v60 Student Experience Pro Pilot Ready static audit passed.','TEDVIO v68 compatibility static audit passed.');
-const tmp='tests/.stable-candidate-audit-v68.generated.mjs';
-fs.writeFileSync(tmp,source);
-try{await import('./.stable-candidate-audit-v68.generated.mjs?'+Date.now())}finally{try{fs.unlinkSync(tmp)}catch{}}
+const read=p=>fs.readFileSync(p,'utf8');
+const teacher=read('teacher.html'),beta=read('beta.html'),root=read('index.html'),tcore=read('teacher-core-v68-6.js'),session=read('teacher-session-core-v68-6.js'),loader=read('teacher-progressive-boot-v68.js'),groups=read('beta-groups-core-v3.js'),attendance=read('beta-attendance-pro-v1.js'),checkin=read('asistencia.html'),projection=read('proyectar-v2.js'),projectionHtml=read('proyectar.html'),control=read('control.html'),control59=read('control-v59.js'),student=read('student-v60.js'),config=read('config.js'),sw=read('sw.js'),manifest=JSON.parse(read('manifest.webmanifest')),version=JSON.parse(read('version.json'));
+let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
+
+must(teacher.includes('teacher-core-v68-6.js?v=686')&&teacher.includes('teacher-progressive-boot-v68.js?v=686'),'teacher uses v68.6 split core and demand loader');
+must(!teacher.includes('beta.js?v=56')&&!teacher.includes('student-v60.js')&&!teacher.includes('beta-stability.js'),'teacher excludes monolith/student/stability runtimes');
+must(beta.includes('beta.js?v=56')&&beta.includes('student-v60.js?v=60')&&beta.includes('student-security-v67.js?v=67'),'beta route preserves full student/rollback engine');
+must(teacher.includes('tedvio-premium-v54.css?v=56')&&teacher.includes('beta-executive-v56.css?v=56')&&teacher.includes('teacher-core-v68-6.css?v=686'),'teacher preserves premium base plus split-core visual layer');
+must(loader.includes('beta-groups-core-v3.js?v=56')&&loader.includes('beta-group-center-v2.js?v=56')&&loader.includes('beta-attendance-pro-v1.js?v=56'),'canonical group/attendance stack is lazy-preserved');
+must(loader.includes('question-studio-v65.js?v=65')&&loader.includes('assignments-v66.js?v=66')&&loader.includes('beta-paper-exams-v2.js?v=56'),'bank/tasks/OMR remain lazy-preserved');
+must(root.includes("location.replace('/teacher')")&&!root.includes('app.js'),'legacy root remains quarantined and routes to teacher');
+must(groups.includes('attendance_session_id:attSession.id'),'manual attendance uses active attendance session id');
+must(!groups.includes("select('attendance_session_id').eq('student_id'"),'attendance never infers session from student row');
+must(groups.includes('v2_universities')&&groups.includes('v2_programs')&&groups.includes('v2_groups'),'groups use canonical academic hierarchy');
+must(attendance.includes('v2_attendance_pro_open')&&attendance.includes('v2_attendance_pro_action')&&attendance.includes('v2_issue_attendance_qr'),'Attendance Pro uses server lifecycle and QR RPCs');
+must(attendance.includes('tvAttExportExcel')&&attendance.includes('tvAttExportPdf'),'Attendance Pro keeps exports');
+must(checkin.includes('attendance-checkin-v2.js?v=55')&&!checkin.includes('attendance-checkin-v1.js'),'student attendance remains audited v55 route');
+must(projection.includes('v2_public_session_people')&&!projection.includes("from('v2_participants')"),'projection uses privacy-safe public people RPC');
+must(projectionHtml.includes('proyectar-v2.js?v=55'),'projection shell remains audited');
+must(control.includes('control-v59.js?v=59')&&control.includes('runtime-core-v64.js?v=64'),'mobile control keeps v59 on v64 core');
+must(control59.includes("if(state.question?.status==='live')await closeCurrent();await launch(id)"),'mobile Next closes current before launching next');
+must(student.includes("rpc('v2_submit_response'")&&!/from\('v2_responses'\)\.(?:insert|update|delete)/.test(student),'student responses remain canonical RPC-only');
+must(tcore.includes("db.rpc('v2_teacher_today_dashboard')")&&!tcore.includes("from('v2_question_bank')")&&!tcore.includes("from('v2_sessions')"),'teacher first dashboard is aggregate and avoids broad preloads');
+must(session.includes("addEventListener('tedvio:v64:state'")&&session.includes('15000'),'split live session uses Realtime plus bounded fallback');
+must(!/service_role|SUPABASE_SECRET|sb_secret_/i.test(config+teacher+tcore+session+loader+beta),'frontend contains no service-role/secret key');
+must(/SUPABASE_(?:PUBLISHABLE|ANON)_KEY/.test(config)&&!/SUPABASE_SERVICE_ROLE/.test(config),'frontend config uses publishable/anon key only');
+must(manifest.start_url==='/teacher'||manifest.start_url==='/teacher.html','PWA starts on teacher route');
+must(sw.includes("cache:'no-store'")&&sw.includes('tedvio-pilot-v68-20260826-686'),'PWA shell is network-first/no-store with v68.6 cache namespace');
+must(version.channel==='pilot-ready'&&String(version.version).endsWith('.68'),'global metadata remains Pilot Ready v68 family');
+if(failed){console.error(`\n${failed} v68 stable audit check(s) failed.`);process.exit(1)}
+console.log('\nTEDVIO v68.6 split-core stable candidate audit passed.');
