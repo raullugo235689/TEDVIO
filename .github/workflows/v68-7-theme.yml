@@ -1,0 +1,22 @@
+name: TEDVIO v68.7 Theme Audit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  theme-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check v68.7 theme syntax
+        run: node --check teacher-theme-v68-7.js
+      - name: Run v68.7 theme regression audit
+        run: node tests/v68-7-dual-theme-premium-regression.mjs
+      - name: Confirm theme assets
+        run: |
+          test -f teacher-theme-v68-7.js
+          test -f teacher-theme-v68-7.css
+          test -f tests/v68-7-dual-theme-premium-regression.mjs
