@@ -33,8 +33,9 @@
     help:[['./security-commercial-v67.js?v=67','module']],
     onboarding:[['./onboarding-v68.js?v=68','module']],
     admin:[['./admin-v62.js?v=62','module']],
-    analytics:[XLSX,...PDF,[ './academic-analytics-v61.js?v=61','module']],
-    omr:[XLSX,['https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js','classic'],...PDF,['./paper-omr-v1.js?v=56','classic'],['./beta-paper-exams-v2.js?v=56','module']]
+    analytics:[XLSX,...PDF,['./academic-analytics-v61.js?v=61','module']],
+    omr:[XLSX,['https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js','classic'],...PDF,['./paper-omr-v1.js?v=56','classic'],['./beta-paper-exams-v2.js?v=56','module']],
+    livePro:[['./live-classroom-v58.js?v=58','module']]
   };
 
   async function ensure(name){
