@@ -1,8 +1,12 @@
 import fs from'node:fs';
 const read=p=>fs.readFileSync(p,'utf8');
-const teacher=read('teacher.html'),beta=read('beta.html'),a=read('academic-analytics-v61.js'),css=read('academic-analytics-v61.css'),vercel=read('vercel.json'),sw=read('sw.js'),version=JSON.parse(read('version.json')),legacy=read('beta-analytics-plus.js');
+const teacher=read('teacher.html'),beta=read('beta.html'),deferred=fs.existsSync('teacher-progressive-boot-v68.js')?read('teacher-progressive-boot-v68.js'):'',teacherRuntime=teacher+deferred,a=read('academic-analytics-v61.js'),css=read('academic-analytics-v61.css'),vercel=read('vercel.json'),sw=read('sw.js'),version=JSON.parse(read('version.json')),legacy=read('beta-analytics-plus.js');
 let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
-for(const html of[teacher,beta]){must(html.includes('academic-analytics-v61.js?v=61')&&html.includes('academic-analytics-v61.css?v=61'),'teacher-capable shell loads Academic Analytics Pro');must(!html.includes('beta-analytics-plus.js?v=56'),'legacy analytics-plus is rollback-only and not loaded');must(html.indexOf('beta-group-center-v2.js?v=56')<html.indexOf('academic-analytics-v61.js?v=61'),'v61 loads after Group Center v2')}
+for(const [name,html,runtime] of[['teacher',teacher,teacherRuntime],['beta',beta,beta]]){
+  must(runtime.includes('academic-analytics-v61.js?v=61')&&html.includes('academic-analytics-v61.css?v=61'),`${name} shell preserves Academic Analytics Pro`);
+  must(!html.includes('beta-analytics-plus.js?v=56')&&!runtime.includes('beta-analytics-plus.js?v=56'),'legacy analytics-plus is rollback-only and not loaded');
+  must(runtime.indexOf('beta-group-center-v2.js?v=56')<runtime.indexOf('academic-analytics-v61.js?v=61'),`${name} loads v61 after Group Center v2`);
+}
 must(legacy.includes('Evolución del grupo'),'legacy analytics runtime remains preserved for rollback');
 must(a.includes("const VERSION='2026.08.25.61'"),'v61 runtime reports correct version');
 for(const table of['v2_groups','v2_group_students','v2_attendance_sessions','v2_attendance_records','v2_paper_exams','v2_paper_exam_results','v2_grade_categories','v2_grade_items','v2_grade_scores','v2_sessions','v2_participants','v2_questions','v2_responses'])must(a.includes(`from('${table}')`),`v61 reads ${table}`);
