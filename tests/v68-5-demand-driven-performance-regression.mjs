@@ -1,11 +1,12 @@
 import fs from'node:fs';
 const read=p=>fs.readFileSync(p,'utf8');
-const teacher=read('teacher.html'),beta=read('beta.html'),boot=read('teacher-progressive-boot-v68.js'),teacherCore=read('teacher-core-v68-6.js'),live=read('live-classroom-v58.js'),learning=read('beta-learning.js'),stability=read('beta-stability.js');
+const teacher=read('teacher.html'),beta=read('beta.html'),boot=read('teacher-progressive-boot-v68.js'),teacherCore=read('teacher-core-v68-6.js'),theme=read('teacher-theme-v68-7.js'),live=read('live-classroom-v58.js'),learning=read('beta-learning.js'),stability=read('beta-stability.js');
 let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
 const direct=[...teacher.matchAll(/<script[^>]+src="([^"]+)"/g)].map(m=>m[1]);
-must(boot.includes("const VERSION='2026.08.27.686'"),'demand loader advances to v68.6');
+must(boot.includes("const VERSION='2026.08.27.686'"),'demand loader remains v68.6');
 must(teacher.includes('teacher-progressive-boot-v68.js?v=686'),'teacher cache-busts v68.6 demand loader');
-must(direct.length===4,`teacher direct script budget drops to four (${direct.length})`);
+must(direct.length===5&&direct.filter(x=>x.includes('teacher-theme-v68-7.js')).length===1,`teacher keeps four functional scripts plus one isolated theme controller (${direct.length})`);
+must(!theme.includes('setInterval(')&&!theme.includes('setTimeout(')&&!/createClient|supabase|\.rpc\(|\.from\(/i.test(theme),'theme controller adds no polling or backend work');
 must(boot.includes("dataset.tedvioPerformance='teacher-core-split'")&&boot.includes("mode:'teacher-core'"),'teacher runs split-core demand mode');
 must(boot.includes('async function ensure(name)')&&boot.includes('const registry='),'optional features remain explicit demand registry');
 for(const feature of ['groups','bank','tasks','help','onboarding','admin','analytics','omr','livePro'])must(new RegExp(`\\b${feature}:`).test(boot),`lazy registry preserves ${feature}`);
@@ -24,4 +25,4 @@ must(boot.includes("livePro:{styles:['./live-classroom-v58.css?v=58'")&&!teacher
 must(learning.includes('},700)')&&stability.includes('},900);'),'legacy 700/900ms loops remain auditable in rollback files');
 must(!boot.includes('beta-learning.js')&&!boot.includes('beta-stability.js'),'legacy high-frequency loops remain excluded from normal teacher path');
 if(failed){console.error(`\n${failed} v68.5+ performance check(s) failed.`);process.exit(1)}
-console.log('\nTEDVIO v68.5 demand principles are superseded and strengthened by v68.6 split core.');
+console.log('\nTEDVIO v68.5 demand principles remain strengthened under v68.7 Dual Theme Premium.');
