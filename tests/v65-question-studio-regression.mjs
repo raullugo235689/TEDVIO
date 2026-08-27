@@ -1,10 +1,10 @@
 import fs from'node:fs';
 const read=p=>fs.readFileSync(p,'utf8');
-const teacher=read('teacher.html'),beta=read('beta.html'),studio=read('question-studio-v65.js'),css=read('question-studio-v65.css'),vercel=read('vercel.json'),sw=read('sw.js'),version=JSON.parse(read('version.json')),legacy=read('beta.js');
+const teacher=read('teacher.html'),beta=read('beta.html'),deferred=fs.existsSync('teacher-progressive-boot-v68.js')?read('teacher-progressive-boot-v68.js'):'',teacherRuntime=teacher+deferred,studio=read('question-studio-v65.js'),css=read('question-studio-v65.css'),vercel=read('vercel.json'),sw=read('sw.js'),version=JSON.parse(read('version.json')),legacy=read('beta.js');
 let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
-for(const html of[teacher,beta]){
-  must(html.includes('question-studio-v65.js?v=65')&&html.includes('question-studio-v65.css?v=65'),'teacher-capable shell loads Question Studio Pro runtime and styles');
-  must(html.indexOf('beta.js?v=56')<html.indexOf('question-studio-v65.js?v=65'),'Question Studio loads after canonical bank/session engine');
+for(const [name,html,runtime] of[['teacher',teacher,teacherRuntime],['beta',beta,beta]]){
+  must(runtime.includes('question-studio-v65.js?v=65')&&html.includes('question-studio-v65.css?v=65'),`${name} shell preserves Question Studio Pro runtime and styles`);
+  must(runtime.indexOf('beta.js?v=56')<runtime.indexOf('question-studio-v65.js?v=65'),`${name} Question Studio loads after canonical bank/session engine`);
   must(html.includes('runtime-core-v64.js?v=64'),'v64 reliability core remains active under v65');
 }
 must(studio.includes("const VERSION='2026.08.26.65'"),'Question Studio reports v65');
@@ -21,7 +21,7 @@ must(studio.includes("window.betaQuestionForm=id=>window.qs65Edit(id)")&&studio.
 must(studio.includes(".update(payload).eq('id',q.id).eq('teacher_id',S.user.id)")&&studio.includes("teacher_id:S.user.id"),'Question Studio writes remain teacher scoped');
 must(!/from\('v2_(?:responses|participants|sessions|questions)'\)\.(?:insert|update|upsert|delete)/.test(studio),'Question Studio does not mutate live-session/student tables directly');
 must(legacy.includes("from('v2_question_bank')")&&legacy.includes('betaQuickLaunchPicker')&&legacy.includes('questionRowFromBank'),'legacy bank/session engine remains preserved for rollback and session launch');
-must(!/service_role|SUPABASE_SECRET|sb_secret_/i.test(studio+teacher+beta),'v65 frontend contains no privileged Supabase key material');
+must(!/service_role|SUPABASE_SECRET|sb_secret_/i.test(studio+teacher+deferred+beta),'v65 frontend contains no privileged Supabase key material');
 must(css.includes('#qs65Root')&&css.includes('.qs65-cards')&&css.includes('.qs65-editor')&&css.includes('.qs65-live-preview')&&css.includes('.qs65-quality'),'v65 CSS covers studio, editor, preview and quality states');
 must(css.includes('@media(max-width:850px)')&&css.includes('@media(max-width:620px)')&&css.includes('@media(pointer:coarse)'),'v65 includes tablet, phone and touch layouts');
 must(vercel.includes('/question-studio-v65.js')&&vercel.includes('/question-studio-v65.css'),'v65 assets use explicit no-store headers');
