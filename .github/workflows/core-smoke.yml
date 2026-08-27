@@ -43,8 +43,10 @@ jobs:
         run: node --check security-commercial-v67.js
       - name: Check v67 Status page syntax
         run: node --check status-v67.js
+      - name: Check v68 Onboarding Product Activation syntax
+        run: node --check onboarding-v68.js
       - name: Run static regression audit
-        run: node tests/stable-candidate-audit-v67.mjs
+        run: node tests/stable-candidate-audit-v68.mjs
       - name: Run v57 dashboard regression audit
         run: node tests/v57-dashboard-regression.mjs
       - name: Run v58 Live Classroom regression audit
@@ -67,6 +69,8 @@ jobs:
         run: node tests/v66-assignments-regression.mjs
       - name: Run v67 Security Commercial regression audit
         run: node tests/v67-security-commercial-regression.mjs
+      - name: Run v68 Onboarding Product Activation regression audit
+        run: node tests/v68-onboarding-product-activation-regression.mjs
       - name: Validate critical files exist
         run: |
           test -f teacher.html
@@ -109,7 +113,9 @@ jobs:
           test -f security-commercial-v67.css
           test -f status-v67.js
           test -f status-v67.css
-          test -f tests/stable-candidate-audit-v67.mjs
+          test -f onboarding-v68.js
+          test -f onboarding-v68.css
+          test -f tests/stable-candidate-audit-v68.mjs
           test -f tests/v57-dashboard-regression.mjs
           test -f tests/v58-live-classroom-regression.mjs
           test -f tests/v59-mobile-classroom-regression.mjs
@@ -121,3 +127,4 @@ jobs:
           test -f tests/v65-question-studio-regression.mjs
           test -f tests/v66-assignments-regression.mjs
           test -f tests/v67-security-commercial-regression.mjs
+          test -f tests/v68-onboarding-product-activation-regression.mjs
