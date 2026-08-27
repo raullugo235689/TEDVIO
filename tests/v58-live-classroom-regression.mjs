@@ -2,6 +2,8 @@ import fs from 'node:fs';
 
 const read=p=>fs.readFileSync(p,'utf8');
 const teacher=read('teacher.html');
+const deferred=fs.existsSync('teacher-progressive-boot-v68.js')?read('teacher-progressive-boot-v68.js'):'';
+const teacherRuntime=teacher+deferred;
 const live=read('live-classroom-v58.js');
 const css=read('live-classroom-v58.css');
 const beta=read('beta.js');
@@ -10,8 +12,8 @@ let failed=0;
 const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
 
 must(teacher.includes('live-classroom-v58.css?v=58'),'teacher loads Live Classroom v58 CSS');
-must(teacher.includes('live-classroom-v58.js?v=58'),'teacher loads Live Classroom v58 runtime');
-must(teacher.includes('beta-pilot-ready-v57.js?v=57'),'v57 smart dashboard remains active');
+must(teacherRuntime.includes('live-classroom-v58.js?v=58'),'teacher loads Live Classroom v58 runtime directly or progressively');
+must(teacherRuntime.includes('beta-pilot-ready-v57.js?v=57'),'v57 smart dashboard remains active directly or progressively');
 must(teacher.includes('beta.js?v=56'),'audited v56 core session engine remains active');
 must(live.includes("const VERSION='2026.08.25.58'"),'Live Classroom telemetry reports v58');
 must(live.includes("from('v2_sessions').select")&&live.includes("from('v2_participants').select")&&live.includes("from('v2_questions').select")&&live.includes("from('v2_responses').select"),'Live Classroom reads canonical live-session state');
