@@ -1,14 +1,16 @@
 import fs from'node:fs';
 const read=p=>fs.readFileSync(p,'utf8');
-const teacher=read('teacher.html'),beta=read('beta.html'),secure=read('student-security-v67.js'),support=read('security-commercial-v67.js'),css=read('security-commercial-v67.css'),statusHtml=read('status.html'),statusJs=read('status-v67.js'),statusCss=read('status-v67.css'),student60=read('student-v60.js'),core=read('runtime-core-v64.js'),vercel=read('vercel.json'),sw=read('sw.js'),version=JSON.parse(read('version.json'));
+const teacher=read('teacher.html'),beta=read('beta.html'),deferred=fs.existsSync('teacher-progressive-boot-v68.js')?read('teacher-progressive-boot-v68.js'):'',teacherRuntime=teacher+deferred,secure=read('student-security-v67.js'),support=read('security-commercial-v67.js'),css=read('security-commercial-v67.css'),statusHtml=read('status.html'),statusJs=read('status-v67.js'),statusCss=read('status-v67.css'),student60=read('student-v60.js'),core=read('runtime-core-v64.js'),vercel=read('vercel.json'),sw=read('sw.js'),version=JSON.parse(read('version.json'));
 let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
-for(const html of[teacher,beta]){
- must(html.includes('security-commercial-v67.css?v=67')&&html.includes('security-commercial-v67.js?v=67'),'teacher-capable shell loads v67 commercial security center');
- must(html.includes('student-security-v67.js?v=67'),'teacher-capable shell loads v67 student security hydration');
- must(html.indexOf('student-v60.js?v=60')<html.indexOf('student-security-v67.js?v=67'),'v67 student security loads after audited Student v60');
- must(html.indexOf('assignments-v66.js?v=66')<html.indexOf('security-commercial-v67.js?v=67'),'v67 support layer loads after Assignments v66');
- must(html.includes('runtime-core-v64.js?v=64'),'v64 reliability core remains active under v67');
-}
+must(teacher.includes('security-commercial-v67.css?v=67')&&teacherRuntime.includes('security-commercial-v67.js?v=67'),'progressive teacher shell preserves v67 commercial security center');
+must(!teacher.includes('student-security-v67.js?v=67')&&!deferred.includes('student-security-v67.js?v=67'),'progressive teacher omits student-only v67 hydration runtime');
+must(teacherRuntime.indexOf('assignments-v66.js?v=66')<teacherRuntime.indexOf('security-commercial-v67.js?v=67'),'teacher v67 support layer loads after Assignments v66');
+must(teacher.includes('runtime-core-v64.js?v=64'),'v64 reliability core remains active under v67');
+must(beta.includes('security-commercial-v67.css?v=67')&&beta.includes('security-commercial-v67.js?v=67'),'beta teacher-capable shell loads v67 commercial security center');
+must(beta.includes('student-security-v67.js?v=67'),'student-capable beta shell loads v67 student security hydration');
+must(beta.indexOf('student-v60.js?v=60')<beta.indexOf('student-security-v67.js?v=67'),'v67 student security loads after audited Student v60 on beta route');
+must(beta.indexOf('assignments-v66.js?v=66')<beta.indexOf('security-commercial-v67.js?v=67'),'beta v67 support layer loads after Assignments v66');
+must(beta.includes('runtime-core-v64.js?v=64'),'v64 reliability core remains active under v67');
 must(secure.includes("const VERSION='2026.08.26.67'")&&support.includes("const VERSION='2026.08.26.67'"),'v67 runtimes report correct version');
 must(secure.includes("rpc('v2_student_answer_result'")&&secure.includes("rpc('v2_student_feedback'"),'v67 hydrates personal result only through reveal-gated server RPCs');
 must(secure.includes("document.querySelector('.tv60-result')")&&secure.includes("document.querySelector('.tv60-finish')"),'v67 hydrates only result/final student surfaces');
@@ -18,7 +20,7 @@ must(support.includes("rpc('tedvio_public_health_v67'")&&support.includes("rpc('
 must(support.includes("from('tedvio_support_reports').insert")&&support.includes("from('tedvio_support_reports').update"),'support center creates user tickets and exposes admin ticket handling under RLS');
 must(support.includes('Copiar diagnóstico')&&support.includes('Ver estado de TEDVIO')&&support.includes('Cola Admin'),'v67 exposes diagnostics, public status and admin support queue');
 must(support.includes('userAgent')&&support.includes('realtime')&&support.includes('backendLatencyMs'),'diagnostic bundle contains useful runtime context');
-must(!/access_token|refresh_token|service_role|SUPABASE_SECRET|sb_secret_/i.test(secure+support+statusJs+teacher+beta),'v67 frontend diagnostics contain no auth tokens or privileged key material');
+must(!/access_token|refresh_token|service_role|SUPABASE_SECRET|sb_secret_/i.test(secure+support+statusJs+teacher+deferred+beta),'v67 frontend diagnostics contain no auth tokens or privileged key material');
 must(statusHtml.includes('status-v67.css?v=67')&&statusHtml.includes('status-v67.js?v=67'),'public status page loads isolated v67 assets');
 must(!statusHtml.includes('beta.js')&&!statusHtml.includes('student-v60.js')&&!statusHtml.includes('assignments-v66.js'),'public status page does not load classroom or teacher engines');
 must(statusJs.includes("rpc('tedvio_public_health_v67'")&&statusJs.includes("fetch('./version.json'"),'status page probes live backend and current version metadata');
