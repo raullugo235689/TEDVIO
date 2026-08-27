@@ -1,19 +1,21 @@
 import fs from'node:fs';
 const read=p=>fs.readFileSync(p,'utf8');
-const teacher=read('teacher.html'),beta=read('beta.html'),admin=read('admin-v62.js'),css=read('admin-v62.css'),guard=read('account-guard-v62.js'),legacy=read('beta-admin-v1.js'),vercel=read('vercel.json'),sw=read('sw.js'),version=JSON.parse(read('version.json'));
+const teacher=read('teacher.html'),beta=read('beta.html'),deferred=fs.existsSync('teacher-progressive-boot-v68.js')?read('teacher-progressive-boot-v68.js'):'',teacherRuntime=teacher+deferred,admin=read('admin-v62.js'),css=read('admin-v62.css'),guard=read('account-guard-v62.js'),legacy=read('beta-admin-v1.js'),vercel=read('vercel.json'),sw=read('sw.js'),version=JSON.parse(read('version.json'));
 let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
-for(const html of[teacher,beta]){
-  must(html.includes('admin-v62.css?v=62')&&html.includes('admin-v62.js?v=62'),'teacher-capable shell loads Admin Institutional Control v62');
-  must(html.includes('account-guard-v62.js?v=62'),'teacher-capable shell loads v62 account guard');
-  must(!html.includes('beta-admin-v1.js?v=56'),'legacy admin runtime is rollback-only and not loaded');
-  must(html.indexOf('beta-stability.js?v=56')<html.indexOf('account-guard-v62.js?v=62'),'account guard loads after stable auth/join runtime');
-}
+must(teacher.includes('admin-v62.css?v=62')&&teacherRuntime.includes('admin-v62.js?v=62'),'teacher shell preserves Admin Institutional Control v62');
+must(teacherRuntime.includes('account-guard-v62.js?v=62'),'teacher shell preserves v62 account guard');
+must(!teacher.includes('beta-admin-v1.js?v=56')&&!deferred.includes('beta-admin-v1.js?v=56'),'legacy admin runtime is rollback-only and not loaded on teacher');
+must(teacher.indexOf('auth-handoff-v68-3.js?v=683')<teacher.indexOf('teacher-progressive-boot-v68.js?v=684')&&deferred.indexOf('account-guard-v62.js?v=62')>=0,'teacher account guard initializes only after canonical auth handoff/core');
+must(beta.includes('admin-v62.css?v=62')&&beta.includes('admin-v62.js?v=62'),'beta teacher-capable shell preserves Admin Institutional Control v62');
+must(beta.includes('account-guard-v62.js?v=62'),'beta teacher-capable shell preserves v62 account guard');
+must(!beta.includes('beta-admin-v1.js?v=56'),'legacy admin runtime is rollback-only and not loaded on beta');
+must(beta.indexOf('beta-stability.js?v=56')<beta.indexOf('account-guard-v62.js?v=62'),'beta account guard loads after stable auth/join runtime');
 must(legacy.includes('Módulo de usuarios preparado para la siguiente fase.'),'legacy admin runtime remains preserved for rollback');
 must(admin.includes("const VERSION='2026.08.25.62'"),'v62 admin runtime reports correct version');
 must(admin.includes("db.rpc('tedvio_my_admin_role'")&&admin.includes("db.rpc('tedvio_admin_v62_snapshot'"),'v62 uses server-authorized admin role and snapshot RPCs');
 must(admin.includes("db.functions.invoke('tedvio-admin-v62'") ,'privileged admin actions are delegated to the authenticated Edge Function');
 for(const action of['invite_user','update_user','create_institution','update_institution','set_membership','update_plan'])must(admin.includes(`'${action}'`),`v62 frontend exposes ${action} workflow through Edge Function`);
-must(!/service_role|SUPABASE_SECRET|sb_secret_/i.test(admin+guard+teacher+beta),'frontend contains no service-role or secret API key material');
+must(!/service_role|SUPABASE_SECRET|sb_secret_/i.test(admin+guard+teacher+deferred+beta),'frontend contains no service-role or secret API key material');
 must(!/\.auth\.admin\./.test(admin+guard),'browser runtimes never call Supabase Auth admin APIs directly');
 must(!/from\('tedvio_user_profiles'\)\.(?:insert|update|upsert|delete)\(/.test(admin),'admin UI does not mutate user profiles directly');
 must(!/from\('tedvio_institution_memberships'\)\.(?:insert|update|upsert|delete)\(/.test(admin),'admin UI does not mutate memberships directly');
