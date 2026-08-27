@@ -25,9 +25,15 @@ must(js.includes('Inicio ${score()}/5')&&js.includes('tv68ActivationBanner'),'v6
 must(js.includes('last_step')&&js.includes('dismissed')&&js.includes('completed_steps'),'v68 can resume or dismiss onboarding without losing progress');
 must(js.includes('course_created')&&js.includes('question_created')&&js.includes('first_session_created')===false,'frontend tracks course/question while first-session event remains server authoritative');
 must(!/service_role|SUPABASE_SECRET|sb_secret_|access_token|refresh_token/i.test(js+teacher+beta),'v68 frontend contains no privileged keys or auth tokens');
+must(js.includes("hotfix:'68.1'")&&js.includes('scheduleDomSync')&&js.includes('domSyncTimer')&&js.includes('domSyncing'),'v68.1 installs debounced DOM synchronization guard');
+must(js.includes("if(b.textContent!==text)b.textContent=text"),'v68.1 topbar onboarding badge is idempotent');
+must(js.includes('current.dataset.key===key')&&js.includes('d.dataset.key=key'),'v68.1 activation banner updates only when its semantic state changes');
+must(js.includes("closest?.('#tv68OnboardingBtn,#tv68ActivationBanner,#tv68Overlay,#tv68Coach')"),'v68.1 observer ignores mutations produced by onboarding UI itself');
+must(!js.includes("new MutationObserver(()=>{if(teacherRoute()){installNav();installBanner()}})"),'legacy self-triggering MutationObserver pattern is removed');
+must(!js.includes("function installBanner(){document.querySelector('#tv68ActivationBanner')?.remove()"),'v68.1 no longer destroys/recreates the activation banner on every sync');
 must(css.includes('.tv68-checklist')&&css.includes('.tv68-choice')&&css.includes('.tv68-coach')&&css.includes('.tv68-funnel-grid'),'v68 CSS covers onboarding, demo coach and activation funnel');
 must(css.includes('@media(max-width:780px)')&&css.includes('@media(max-width:520px)')&&css.includes('@media(pointer:coarse)'),'v68 includes tablet, phone and touch layouts');
 must(vercel.includes('/onboarding-v68.js')&&vercel.includes('/onboarding-v68.css'),'v68 assets use explicit no-store headers');
 must(sw.includes('tedvio-pilot-v68-20260826'),'service worker uses v68 cache namespace');
 must(version.channel==='pilot-ready'&&String(version.version).endsWith('.68')&&version.audit==='onboarding-product-activation-demo-funnel','version metadata is Pilot Ready v68 Onboarding & Product Activation');
-if(failed){console.error(`\n${failed} v68 regression check(s) failed.`);process.exit(1)}console.log('\nTEDVIO v68 Onboarding & Product Activation regression audit passed.');
+if(failed){console.error(`\n${failed} v68 regression check(s) failed.`);process.exit(1)}console.log('\nTEDVIO v68.1 Onboarding DOM Stability regression audit passed.');
