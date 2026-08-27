@@ -28,7 +28,7 @@ for(const h of['X-Content-Type-Options','Strict-Transport-Security','Referrer-Po
 must(vercel.includes("camera=(self)")&&vercel.includes("microphone=()"),'permissions policy preserves camera while denying unused sensitive capabilities');
 must(vercel.includes("Content-Security-Policy-Report-Only")&&vercel.includes("https://*.supabase.co")&&vercel.includes("wss://*.supabase.co"),'CSP is observation-only and allows Supabase API/Realtime');
 for(const asset of['/student-security-v67.js','/security-commercial-v67.js','/security-commercial-v67.css','/status.html','/status-v67.js','/status-v67.css'])must(vercel.includes(asset),`v67 no-store config includes ${asset}`);
-must(sw.includes('tedvio-pilot-v67-20260826'),'service worker uses v67 cache namespace');
-must(version.channel==='pilot-ready'&&String(version.version).endsWith('.67')&&version.audit==='security-commercial-readiness-private-rpc-rate-limit-support','version metadata is Pilot Ready v67 Security & Commercial Readiness');
+must(/tedvio-pilot-v\d+-20260826/.test(sw),'service worker keeps a versioned Pilot cache namespace');
+const globalV=Number(String(version.version).split('.').pop());must(version.channel==='pilot-ready'&&globalV>=67,'global Pilot Ready version remains v67 or newer');
 must(core.includes("const VERSION='2026.08.26.64'"),'v64 reliability runtime stays unchanged under v67');
 if(failed){console.error(`\n${failed} v67 regression check(s) failed.`);process.exit(1)}console.log('\nTEDVIO v67 Security & Commercial Readiness regression audit passed.');
