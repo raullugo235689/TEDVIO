@@ -71,7 +71,13 @@
   function installBankHook(){
     if(typeof window.betaView!=='function'||window.betaView.__tedvioDemand685)return;
     baseView=window.betaView;
-    const wrapped=function(v,...args){const r=baseView.call(this,v,...args);if(v==='bank')setTimeout(()=>ensure('bank'),0);return r};wrapped.__tedvioDemand685=true;window.betaView=wrapped;
+    const wrapped=function(v,...args){
+      const shouldPrime=v==='bank'&&!features.has('bank');
+      const r=baseView.call(this,v,...args);
+      if(shouldPrime)setTimeout(async()=>{await ensure('bank');if(window.betaView!==wrapped)window.betaView?.('bank')},0);
+      return r;
+    };
+    wrapped.__tedvioDemand685=true;window.betaView=wrapped;
   }
 
   function installLazyShims(){
