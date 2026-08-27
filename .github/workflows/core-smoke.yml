@@ -45,6 +45,8 @@ jobs:
         run: node --check status-v67.js
       - name: Check v68 Onboarding Product Activation syntax
         run: node --check onboarding-v68.js
+      - name: Run iOS Safari syntax audit
+        run: node tests/ios-safari-syntax-audit.mjs
       - name: Run static regression audit
         run: node tests/stable-candidate-audit-v68.mjs
       - name: Run v57 dashboard regression audit
@@ -115,6 +117,7 @@ jobs:
           test -f status-v67.css
           test -f onboarding-v68.js
           test -f onboarding-v68.css
+          test -f tests/ios-safari-syntax-audit.mjs
           test -f tests/stable-candidate-audit-v68.mjs
           test -f tests/v57-dashboard-regression.mjs
           test -f tests/v58-live-classroom-regression.mjs
