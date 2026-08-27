@@ -1,0 +1,33 @@
+import fs from'node:fs';
+const read=p=>fs.readFileSync(p,'utf8');
+const teacher=read('teacher.html'),beta=read('beta.html'),js=read('onboarding-v68.js'),css=read('onboarding-v68.css'),vercel=read('vercel.json'),sw=read('sw.js'),version=JSON.parse(read('version.json'));
+let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
+for(const html of[teacher,beta]){
+ must(html.includes('onboarding-v68.css?v=68')&&html.includes('onboarding-v68.js?v=68'),'teacher-capable shell loads v68 onboarding runtime and styles');
+ must(html.indexOf('security-commercial-v67.js?v=67')<html.indexOf('onboarding-v68.js?v=68'),'v68 loads after v67 commercial/security layer');
+ must(html.includes('runtime-core-v64.js?v=64'),'v64 Reliability core remains active under v68');
+}
+must(teacher.includes('beta-pilot-ready-v57.js?v=57'),'teacher keeps v57 dashboard controller');
+must(beta.includes('beta-pilot-ready-v1.js?v=56')&&!beta.includes('beta-pilot-ready-v57.js?v=57'),'beta fallback remains on v56 dashboard controller');
+must(js.includes("const VERSION='2026.08.26.68'"),'v68 runtime reports correct version');
+must(js.includes("rpc('tedvio_activation_snapshot_v68'")&&js.includes("rpc('tedvio_activation_funnel_v68'"),'v68 reads real activation snapshot and admin funnel');
+must(js.includes("from('tedvio_activation_events').insert")&&js.includes("from('tedvio_onboarding_progress').upsert"),'v68 persists activation events and resumable onboarding progress');
+must(js.includes("from('v2_universities')")&&js.includes("from('v2_programs')")&&js.includes("from('v2_groups')")&&js.includes("from('v2_group_students')")&&js.includes("from('v2_question_bank')"),'v68 setup writes to canonical academic/group/bank structures');
+must(js.includes("rpc('tedvio_create_demo_v68'")&&js.includes("rpc('tedvio_launch_first_session_v68'"),'demo and first-session creation are delegated to audited server RPCs');
+must(!/from\('v2_(?:sessions|questions|responses|participants)'\)\.(?:insert|update|upsert|delete)/.test(js),'v68 frontend does not directly mutate classroom session/response state');
+must(js.includes('Demo de 2 minutos')&&js.includes('No consume tu plan'),'v68 communicates quota-free demo experience');
+must(js.includes('10 alumnos')&&js.includes('5 preguntas')&&js.includes('Probar como alumno'),'demo coach exposes realistic classroom trial');
+must(js.includes("./beta.html#join?code=")&&js.includes("./proyectar.html?code="),'v68 coach provides student and projection handoff');
+must(js.includes('parseRoster')&&js.includes("accept=\".csv,.txt\"")&&js.includes('students_imported'),'v68 supports paste/CSV roster activation flow');
+must(js.includes("tv68Template('scale')")&&js.includes("tv68Template('open')")&&js.includes("tv68Template('mc')"),'v68 provides safe starter activity templates');
+must(js.includes('workspace_opened')&&js.includes('toLocaleDateString')&&js.includes('activeDay'),'v68 records once-per-day activity for retention measurement');
+must(js.includes('Inicio ${score()}/5')&&js.includes('tv68ActivationBanner'),'v68 exposes persistent checklist and next-action banner');
+must(js.includes('last_step')&&js.includes('dismissed')&&js.includes('completed_steps'),'v68 can resume or dismiss onboarding without losing progress');
+must(js.includes('course_created')&&js.includes('question_created')&&js.includes('first_session_created')===false,'frontend tracks course/question while first-session event remains server authoritative');
+must(!/service_role|SUPABASE_SECRET|sb_secret_|access_token|refresh_token/i.test(js+teacher+beta),'v68 frontend contains no privileged keys or auth tokens');
+must(css.includes('.tv68-checklist')&&css.includes('.tv68-choice')&&css.includes('.tv68-coach')&&css.includes('.tv68-funnel-grid'),'v68 CSS covers onboarding, demo coach and activation funnel');
+must(css.includes('@media(max-width:780px)')&&css.includes('@media(max-width:520px)')&&css.includes('@media(pointer:coarse)'),'v68 includes tablet, phone and touch layouts');
+must(vercel.includes('/onboarding-v68.js')&&vercel.includes('/onboarding-v68.css'),'v68 assets use explicit no-store headers');
+must(sw.includes('tedvio-pilot-v68-20260826'),'service worker uses v68 cache namespace');
+must(version.channel==='pilot-ready'&&String(version.version).endsWith('.68')&&version.audit==='onboarding-product-activation-demo-funnel','version metadata is Pilot Ready v68 Onboarding & Product Activation');
+if(failed){console.error(`\n${failed} v68 regression check(s) failed.`);process.exit(1)}console.log('\nTEDVIO v68 Onboarding & Product Activation regression audit passed.');
