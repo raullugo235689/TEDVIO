@@ -31,10 +31,12 @@
   window.addEventListener('popstate',()=>scheduleDiscover(60));
   window.addEventListener('online',()=>scheduleDiscover(50));
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)scheduleDiscover(50)});
+  window.addEventListener('tedvio:teacher-shell',()=>scheduleDiscover(40));
   window.addEventListener('beforeunload',()=>{if(channel&&db)try{db.removeChannel(channel)}catch{}});
   try{if('PerformanceObserver'in window){const po=new PerformanceObserver(list=>{for(const e of list.getEntries())if(e.duration>=200)stats.longTasks++});po.observe({entryTypes:['longtask']})}}catch{}
-  const mo=new MutationObserver(()=>scheduleDiscover(180));
-  if(document.documentElement)mo.observe(document.documentElement,{childList:true,subtree:true});
+  const watchRoot=document.querySelector('#betaApp')||document.documentElement;
+  const mo=new MutationObserver(()=>scheduleDiscover(140));
+  if(watchRoot)mo.observe(watchRoot,{childList:true,subtree:false});
 
   import('https://esm.sh/@supabase/supabase-js@2').then(({createClient})=>{const cfg=window.TEDVIO_CONFIG||{};if(!cfg.SUPABASE_URL||!cfg.SUPABASE_PUBLISHABLE_KEY)throw new Error('TEDVIO_CONFIG incompleto');db=createClient(cfg.SUPABASE_URL,cfg.SUPABASE_PUBLISHABLE_KEY);window.__TEDVIO_RUNTIME64__.client=db;scheduleDiscover(0);nativeSetInterval(()=>scheduleDiscover(0),30000)}).catch(e=>report('core_boot_error',e));
 })();
