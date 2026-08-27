@@ -1,12 +1,18 @@
 import fs from 'node:fs';
 
 const html=fs.readFileSync('teacher.html','utf8');
-const scripts=[...html.matchAll(/<script[^>]+src="\.\/(.+?\.js)(?:\?[^" ]*)?"[^>]*>/g)].map(m=>m[1]);
+const direct=[...html.matchAll(/<script[^>]+src="\.\/(.+?\.js)(?:\?[^" ]*)?"[^>]*>/g)].map(m=>m[1]);
+let deferred=[];
+if(fs.existsSync('teacher-progressive-boot-v68.js')){
+  const loader=fs.readFileSync('teacher-progressive-boot-v68.js','utf8');
+  deferred=[...loader.matchAll(/["']\.\/(.+?\.js)(?:\?[^"']*)?["']/g)].map(m=>m[1]);
+}
+const scripts=[...new Set([...direct,...deferred])];
 let failed=0;
 const fail=(file,msg,snippet='')=>{failed++;console.error(`FAIL ${file}: ${msg}${snippet?`\n  ${snippet}`:''}`)};
 const ok=(file,msg)=>console.log(`OK   ${file}: ${msg}`);
 
-for(const file of [...new Set(scripts)]){
+for(const file of scripts){
   if(!fs.existsSync(file))continue;
   const src=fs.readFileSync(file,'utf8');
   const lines=src.split(/\r?\n/);
@@ -26,4 +32,4 @@ for(const file of [...new Set(scripts)]){
 }
 
 if(failed){console.error(`\n${failed} iOS/Safari compatibility issue(s) found.`);process.exit(1)}
-console.log('\nTEDVIO iOS/Safari syntax audit passed.');
+console.log(`\nTEDVIO iOS/Safari syntax audit passed (${scripts.length} teacher scripts, including deferred modules).`);

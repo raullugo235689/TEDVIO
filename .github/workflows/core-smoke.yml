@@ -47,6 +47,8 @@ jobs:
         run: node --check onboarding-v68.js
       - name: Check v68.3 Auth Handoff syntax
         run: node --check auth-handoff-v68-3.js
+      - name: Check v68.4 Progressive Teacher Boot syntax
+        run: node --check teacher-progressive-boot-v68.js
       - name: Run iOS Safari syntax audit
         run: node tests/ios-safari-syntax-audit.mjs
       - name: Run static regression audit
@@ -77,6 +79,8 @@ jobs:
         run: node tests/v68-onboarding-product-activation-regression.mjs
       - name: Run v68.3 Auth Handoff regression audit
         run: node tests/v68-auth-handoff-regression.mjs
+      - name: Run v68.4 Progressive Teacher Boot regression audit
+        run: node tests/v68-4-teacher-progressive-boot-regression.mjs
       - name: Validate critical files exist
         run: |
           test -f teacher.html
@@ -87,6 +91,7 @@ jobs:
           test -f assignment.html
           test -f status.html
           test -f auth-handoff-v68-3.js
+          test -f teacher-progressive-boot-v68.js
           test -f beta-attendance-pro-v1.js
           test -f beta-group-center-v2.js
           test -f beta-paper-exams-v2.js
@@ -124,6 +129,7 @@ jobs:
           test -f onboarding-v68.css
           test -f tests/ios-safari-syntax-audit.mjs
           test -f tests/v68-auth-handoff-regression.mjs
+          test -f tests/v68-4-teacher-progressive-boot-regression.mjs
           test -f tests/stable-candidate-audit-v68.mjs
           test -f tests/v57-dashboard-regression.mjs
           test -f tests/v58-live-classroom-regression.mjs

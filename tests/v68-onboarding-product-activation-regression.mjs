@@ -1,13 +1,13 @@
 import fs from'node:fs';
 const read=p=>fs.readFileSync(p,'utf8');
-const teacher=read('teacher.html'),beta=read('beta.html'),js=read('onboarding-v68.js'),css=read('onboarding-v68.css'),vercel=read('vercel.json'),sw=read('sw.js'),version=JSON.parse(read('version.json'));
+const teacher=read('teacher.html'),beta=read('beta.html'),deferred=fs.existsSync('teacher-progressive-boot-v68.js')?read('teacher-progressive-boot-v68.js'):'',teacherRuntime=teacher+deferred,js=read('onboarding-v68.js'),css=read('onboarding-v68.css'),vercel=read('vercel.json'),sw=read('sw.js'),version=JSON.parse(read('version.json'));
 let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
-for(const html of[teacher,beta]){
- must(html.includes('onboarding-v68.css?v=68')&&html.includes('onboarding-v68.js?v=68'),'teacher-capable shell loads v68 onboarding runtime and styles');
- must(html.indexOf('security-commercial-v67.js?v=67')<html.indexOf('onboarding-v68.js?v=68'),'v68 loads after v67 commercial/security layer');
+for(const [name,html,runtime] of[['teacher',teacher,teacherRuntime],['beta',beta,beta]]){
+ must(html.includes('onboarding-v68.css?v=68')&&runtime.includes('onboarding-v68.js?v=68'),`${name} shell preserves v68 onboarding runtime and styles`);
+ must(runtime.indexOf('security-commercial-v67.js?v=67')<runtime.indexOf('onboarding-v68.js?v=68'),`${name} v68 loads after v67 commercial/security layer`);
  must(html.includes('runtime-core-v64.js?v=64'),'v64 Reliability core remains active under v68');
 }
-must(teacher.includes('beta-pilot-ready-v57.js?v=57'),'teacher keeps v57 dashboard controller');
+must(teacherRuntime.includes('beta-pilot-ready-v57.js?v=57'),'teacher keeps v57 dashboard controller through progressive boot');
 must(beta.includes('beta-pilot-ready-v1.js?v=56')&&!beta.includes('beta-pilot-ready-v57.js?v=57'),'beta fallback remains on v56 dashboard controller');
 must(js.includes("const VERSION='2026.08.26.68'"),'v68 runtime reports correct version');
 must(js.includes("rpc('tedvio_activation_snapshot_v68'")&&js.includes("rpc('tedvio_activation_funnel_v68'"),'v68 reads real activation snapshot and admin funnel');
@@ -24,7 +24,7 @@ must(js.includes('workspace_opened')&&js.includes('toLocaleDateString')&&js.incl
 must(js.includes('Inicio ${score()}/5')&&js.includes('tv68ActivationBanner'),'v68 exposes persistent checklist and next-action banner');
 must(js.includes('last_step')&&js.includes('dismissed')&&js.includes('completed_steps'),'v68 can resume or dismiss onboarding without losing progress');
 must(js.includes('course_created')&&js.includes('question_created')&&js.includes('first_session_created')===false,'frontend tracks course/question while first-session event remains server authoritative');
-must(!/service_role|SUPABASE_SECRET|sb_secret_|access_token|refresh_token/i.test(js+teacher+beta),'v68 frontend contains no privileged keys or auth tokens');
+must(!/service_role|SUPABASE_SECRET|sb_secret_|access_token|refresh_token/i.test(js+teacher+deferred+beta),'v68 frontend contains no privileged keys or auth tokens');
 must(js.includes("hotfix:'68.1'")&&js.includes('scheduleDomSync')&&js.includes('domSyncTimer')&&js.includes('domSyncing'),'v68.1 installs debounced DOM synchronization guard');
 must(js.includes("if(b.textContent!==text)b.textContent=text"),'v68.1 topbar onboarding badge is idempotent');
 must(js.includes('current.dataset.key===key')&&js.includes('d.dataset.key=key'),'v68.1 activation banner updates only when its semantic state changes');

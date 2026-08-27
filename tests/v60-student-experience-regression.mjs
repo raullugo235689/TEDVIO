@@ -1,14 +1,15 @@
 import fs from 'node:fs';
 const read=p=>fs.readFileSync(p,'utf8');
-const teacher=read('teacher.html'),beta=read('beta.html'),student=read('student-v60.js'),css=read('student-v60.css'),legacy=read('beta.js'),secure=read('beta-stability.js');
+const teacher=read('teacher.html'),beta=read('beta.html'),boot=fs.existsSync('teacher-progressive-boot-v68.js')?read('teacher-progressive-boot-v68.js'):'',student=read('student-v60.js'),css=read('student-v60.css'),legacy=read('beta.js'),secure=read('beta-stability.js');
 let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
 
-for(const html of [teacher,beta]){
-  must(html.includes('student-v60.css?v=60'),'student-capable shell loads v60 visual layer');
-  must(html.includes('student-v60.js?v=60'),'student-capable shell loads v60 runtime');
-  must(html.includes('beta-runtime-hooks.js?v=56'),'runtime hooks remain available for legacy student cancellation');
-  must(html.includes('beta-stability.js?v=56'),'secure join runtime remains loaded before Student Experience Pro');
-}
+must(teacher.includes('student-v60.css?v=60'),'teacher keeps v60 visual compatibility layer');
+must(teacher.includes('beta-runtime-hooks.js?v=56'),'teacher keeps runtime hooks for canonical core');
+must(!teacher.includes('student-v60.js?v=60')&&!boot.includes('student-v60.js'),'progressive /teacher intentionally omits student-only v60 runtime');
+must(beta.includes('student-v60.css?v=60'),'student-capable beta shell loads v60 visual layer');
+must(beta.includes('student-v60.js?v=60'),'student-capable beta shell loads v60 runtime');
+must(beta.includes('beta-runtime-hooks.js?v=56'),'student-capable beta shell keeps runtime hooks');
+must(beta.includes('beta-stability.js?v=56')&&beta.indexOf('beta-stability.js?v=56')<beta.indexOf('student-v60.js?v=60'),'secure join runtime remains loaded before Student Experience Pro on beta route');
 must(student.includes("const VERSION='2026.08.25.60'"),'v60 runtime reports correct version');
 must(student.includes("window.__TEDVIO_STUDENT_INTERVAL__")&&student.includes('nativeClear(id)'),'v60 cancels legacy renderStudent polling when it owns the student route');
 must(student.includes("localStorage.getItem(STUDENT_KEY)")&&student.includes('tedvio.v60.answers.'),'v60 restores participant identity and persisted answered-question state');
