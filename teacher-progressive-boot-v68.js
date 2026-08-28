@@ -19,7 +19,7 @@
     onboarding:{styles:['./onboarding-v68.css?v=68'],scripts:[['./onboarding-v68.js?v=68','module']]},
     admin:{styles:['./admin-v62.css?v=62'],scripts:[['./admin-v62.js?v=62','module']]},
     analytics:{styles:['./academic-analytics-v61.css?v=61'],scripts:[XLSX,...PDF,['./academic-analytics-v61.js?v=61','module']]},
-    omr:{styles:['./beta-paper-exams-v1.css?v=56'],scripts:[XLSX,['https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js','classic'],...PDF,['./paper-omr-v1.js?v=56','classic'],['./beta-paper-exams-v2.js?v=56','module']]},
+    omr:{styles:['./beta-paper-exams-v1.css?v=56','./assessment-intelligence-v73.css?v=73'],scripts:[XLSX,['https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js','classic'],...PDF,['./paper-omr-v1.js?v=56','classic'],['./beta-paper-exams-v2.js?v=56','module'],['./assessment-intelligence-v73.js?v=73','module']]},
     livePro:{styles:['./live-classroom-v58.css?v=58','./live-classroom-v58-qr-fix.css?v=581'],scripts:[['./live-classroom-v58.js?v=58','module']]}
   };
   function entitled(feature){const e=window.TEDVIO_ENTITLEMENTS?.features||{};return e[feature]!==false}
