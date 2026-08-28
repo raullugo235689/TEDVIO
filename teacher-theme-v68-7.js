@@ -2,7 +2,7 @@ const VERSION='2026.08.27.68.7';
 const KEY='tedvio.teacher.theme';
 const root=document.querySelector('#betaApp');
 const metaTheme=document.querySelector('meta[name="theme-color"]');
-let report6811Requested=false,settings6811Promise=null,reports6812Requested=false;
+let report6811Requested=false,settings6811Promise=null,reports6812Requested=false,account69Promise=null;
 
 function normalize(value){return value==='dark'?'dark':'light'}
 function readTheme(){try{return normalize(localStorage.getItem(KEY))}catch{return'light'}}
@@ -37,13 +37,13 @@ function control(){
   });
   return wrap;
 }
+function accountButton(){const b=document.createElement('button');b.id='tv69AccountBtn';b.type='button';b.className='b-btn secondary';b.textContent='Cuenta';b.setAttribute('aria-label','Abrir Centro de Cuenta y Privacidad');b.onclick=openAccountCenter;return b}
 function install(){
   const bars=document.querySelectorAll('.tv686-top .b-top-actions,.tv686-session-shell .b-top-actions');
   bars.forEach(bar=>{
-    if(bar.querySelector('#tv687ThemeControl'))return;
-    const node=control();
     const primary=bar.querySelector('.b-btn.primary');
-    if(primary)bar.insertBefore(node,primary);else bar.appendChild(node);
+    if(!bar.querySelector('#tv687ThemeControl')){const node=control();primary?bar.insertBefore(node,primary):bar.appendChild(node)}
+    if(!bar.querySelector('#tv69AccountBtn')){const node=accountButton();primary?bar.insertBefore(node,primary):bar.appendChild(node)}
   });
   syncButtons(document.documentElement.dataset.tedvioTheme||readTheme());
 }
@@ -65,6 +65,14 @@ async function openInstitutionSettings(){
     await settings6811Promise;window.tv6811OpenSettings?.();
   }catch(error){settings6811Promise=null;console.error('TEDVIO v68.11 institution settings',error);alert('No pude abrir la configuración institucional.')}
 }
+async function openAccountCenter(){
+  try{
+    const api=window.__TEDVIO_PROGRESSIVE_BOOT68__;
+    if(api?.loadStyle)await api.loadStyle('./account-center-v69.css?v=69');
+    if(!account69Promise)account69Promise=import('./account-center-v69.js?v=69');
+    await account69Promise;window.tv69OpenAccount?.('overview');
+  }catch(error){account69Promise=null;console.error('TEDVIO v69 Account Center',error);alert('No pude abrir el Centro de Cuenta.')}
+}
 
 applyTheme(readTheme(),{persist:false});
 window.addEventListener('tedvio:teacher-shell',()=>requestAnimationFrame(install));
@@ -77,4 +85,5 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 if(typeof window.tvAttendanceProOpen==='function'){loadAttendanceReport({detail:{name:'groups'}});loadReportCenterLauncher({detail:{name:'groups'}})}
 window.tv687Theme=applyTheme;
 window.tv6811OpenInstitutionSettings=openInstitutionSettings;
+window.tv69OpenAccountCenter=openAccountCenter;
 window.__TEDVIO_THEME687__={version:VERSION,get theme(){return document.documentElement.dataset.tedvioTheme||'light'},set:applyTheme};
