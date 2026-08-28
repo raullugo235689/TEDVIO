@@ -1,0 +1,520 @@
+/* TEDVIO v68.8 · Mobile UI & Theme Compatibility
+   Visual-only compatibility layer: no JS, no polling, no backend work. */
+
+:root[data-tedvio-theme="light"]{
+  --tv688-input:#ffffff;
+  --tv688-table-head:#f6f8fc;
+  --tv688-overlay:rgba(4,17,39,.58);
+  --tv688-positive:#eaf8f0;
+}
+:root[data-tedvio-theme="dark"]{
+  --tv688-input:#071a38;
+  --tv688-table-head:#0d2a56;
+  --tv688-overlay:rgba(1,8,22,.80);
+  --tv688-positive:#103b31;
+}
+
+/* --------------------------------------------------------------------------
+   GROUP CENTER 360 · canonical theme surfaces + structural fallback
+   -------------------------------------------------------------------------- */
+html[data-tedvio-theme] #gaOverlay{
+  background:var(--tv688-overlay)!important;
+  backdrop-filter:blur(14px) saturate(115%)!important;
+}
+html[data-tedvio-theme] #gaOverlay .b-modal.large.ga360-shell{
+  width:min(1240px,96vw)!important;
+  max-height:92vh!important;
+  padding:0!important;
+  overflow:hidden!important;
+  display:flex!important;
+  flex-direction:column!important;
+  background:var(--tv687-bg)!important;
+  color:var(--tv687-text)!important;
+  border:1px solid var(--tv687-border)!important;
+  border-radius:26px!important;
+  box-shadow:0 36px 110px rgba(2,12,32,.34)!important;
+}
+html[data-tedvio-theme] .ga360-top{
+  flex:0 0 auto;
+  display:flex!important;
+  justify-content:space-between!important;
+  gap:20px!important;
+  align-items:flex-start!important;
+  padding:23px 25px 18px!important;
+  background:linear-gradient(135deg,#06142f 0%,#0a2d67 64%,#1f68d8 100%)!important;
+  color:#fff!important;
+  border-bottom:1px solid rgba(151,187,241,.18)!important;
+}
+html[data-tedvio-theme] .ga360-top>div:first-child{min-width:0;max-width:min(860px,74vw)}
+html[data-tedvio-theme] .ga360-kicker{
+  color:#9fc2ff!important;
+  font-size:9px!important;
+  font-weight:950!important;
+  letter-spacing:.14em!important;
+  text-transform:uppercase!important;
+  margin-bottom:5px!important;
+}
+html[data-tedvio-theme] .ga360-top h2{
+  margin:0!important;
+  color:#fff!important;
+  font-size:30px!important;
+  line-height:1.05!important;
+  letter-spacing:-.035em!important;
+}
+html[data-tedvio-theme] .ga360-meta{
+  margin-top:8px!important;
+  color:#cedcf0!important;
+  font-size:11px!important;
+  line-height:1.45!important;
+  overflow-wrap:anywhere!important;
+}
+html[data-tedvio-theme] .ga360-top>.b-row{
+  flex:0 0 auto;
+  display:flex!important;
+  gap:8px!important;
+  flex-wrap:nowrap!important;
+}
+html[data-tedvio-theme] .ga360-top .b-btn{
+  min-height:42px!important;
+  background:rgba(255,255,255,.10)!important;
+  color:#fff!important;
+  border:1px solid rgba(255,255,255,.22)!important;
+  border-radius:12px!important;
+  font-weight:850!important;
+}
+html[data-tedvio-theme] .ga360-top .b-btn:hover{background:rgba(255,255,255,.16)!important}
+
+html[data-tedvio-theme] .ga360-stats{
+  flex:0 0 auto;
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:10px!important;
+  padding:14px 18px!important;
+  background:var(--tv687-surface)!important;
+  border-bottom:1px solid var(--tv687-border)!important;
+}
+html[data-tedvio-theme] .ga360-stat{
+  min-width:0!important;
+  padding:13px 15px!important;
+  border:1px solid var(--tv687-border)!important;
+  border-radius:15px!important;
+  background:var(--tv687-surface-2)!important;
+  box-shadow:var(--tv687-shadow-soft)!important;
+}
+html[data-tedvio-theme] .ga360-stat span{
+  display:block!important;
+  color:var(--tv687-muted)!important;
+  font-size:9px!important;
+  font-weight:900!important;
+  letter-spacing:.055em!important;
+  text-transform:uppercase!important;
+}
+html[data-tedvio-theme] .ga360-stat b{
+  display:block!important;
+  margin-top:5px!important;
+  color:var(--tv687-text)!important;
+  font-size:27px!important;
+  line-height:1!important;
+  letter-spacing:-.035em!important;
+}
+html[data-tedvio-theme] .ga360-tabs{
+  flex:0 0 auto;
+  display:flex!important;
+  gap:6px!important;
+  padding:10px 14px!important;
+  background:var(--tv687-surface)!important;
+  border-bottom:1px solid var(--tv687-border)!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  scrollbar-width:none!important;
+  -webkit-overflow-scrolling:touch!important;
+}
+html[data-tedvio-theme] .ga360-tabs::-webkit-scrollbar{display:none!important}
+html[data-tedvio-theme] .ga360-tabs button{
+  flex:0 0 auto!important;
+  appearance:none!important;
+  min-height:39px!important;
+  padding:8px 12px!important;
+  border:1px solid transparent!important;
+  border-radius:11px!important;
+  background:var(--tv687-surface-2)!important;
+  color:var(--tv687-muted)!important;
+  font-size:11px!important;
+  font-weight:850!important;
+  white-space:nowrap!important;
+  touch-action:manipulation!important;
+}
+html[data-tedvio-theme] .ga360-tabs button.active{
+  background:linear-gradient(135deg,#245fdc,#397fff)!important;
+  color:#fff!important;
+  border-color:#4f89ff!important;
+  box-shadow:0 7px 18px rgba(35,99,225,.20)!important;
+}
+html[data-tedvio-theme] .ga360-body{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:auto!important;
+  padding:18px!important;
+  background:var(--tv687-bg)!important;
+  color:var(--tv687-text)!important;
+  -webkit-overflow-scrolling:touch!important;
+}
+html[data-tedvio-theme] .ga360-hero,
+html[data-tedvio-theme] .ga360-analytics{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(270px,.6fr);gap:14px}
+html[data-tedvio-theme] .ga360-panel,
+html[data-tedvio-theme] .ga360-action,
+html[data-tedvio-theme] .ga360-item,
+html[data-tedvio-theme] .ga360-cat,
+html[data-tedvio-theme] .ga360-follow>div,
+html[data-tedvio-theme] .ga360-profile-stats>div,
+html[data-tedvio-theme] .ga360-weight,
+html[data-tedvio-theme] .ga360-score-list label,
+html[data-tedvio-theme] .ga360-mini{
+  background:var(--tv687-surface)!important;
+  color:var(--tv687-text)!important;
+  border-color:var(--tv687-border)!important;
+}
+html[data-tedvio-theme] .ga360-panel{border:1px solid var(--tv687-border)!important;border-radius:18px!important;padding:18px!important;box-shadow:var(--tv687-shadow-soft)!important}
+html[data-tedvio-theme] .ga360-panel h3,
+html[data-tedvio-theme] .ga360-action b,
+html[data-tedvio-theme] .ga360-item strong,
+html[data-tedvio-theme] .ga360-cat b,
+html[data-tedvio-theme] .ga360-mini-head h3,
+html[data-tedvio-theme] .ga360-weight b,
+html[data-tedvio-theme] .ga360-score-list b,
+html[data-tedvio-theme] .ga360-table td,
+html[data-tedvio-theme] .ga360-table td strong,
+html[data-tedvio-theme] .ga360-link,
+html[data-tedvio-theme] .ga360-big{color:var(--tv687-text)!important}
+html[data-tedvio-theme] .ga360-panel p,
+html[data-tedvio-theme] .ga360-action small,
+html[data-tedvio-theme] .ga360-item small,
+html[data-tedvio-theme] .ga360-cat small,
+html[data-tedvio-theme] .ga360-mini-head p,
+html[data-tedvio-theme] .ga360-weight small,
+html[data-tedvio-theme] .ga360-score-list small,
+html[data-tedvio-theme] .ga360-sub,
+html[data-tedvio-theme] .ga360-qr-countdown,
+html[data-tedvio-theme] .ga360-qr-names{color:var(--tv687-muted)!important}
+html[data-tedvio-theme] .ga360-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important;margin-top:15px!important}
+html[data-tedvio-theme] .ga360-action{padding:13px!important;border:1px solid var(--tv687-border)!important;border-radius:14px!important;text-align:left!important;touch-action:manipulation!important}
+html[data-tedvio-theme] .ga360-action:hover{border-color:var(--tv687-border-strong)!important;box-shadow:var(--tv687-shadow-soft)!important}
+html[data-tedvio-theme] .ga360-follow{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important;margin-top:13px!important}
+html[data-tedvio-theme] .ga360-follow>div{padding:13px!important;border:1px solid var(--tv687-border)!important;border-radius:14px!important;background:var(--tv687-surface-2)!important}
+html[data-tedvio-theme] .ga360-follow span,
+html[data-tedvio-theme] .ga360-profile-stats span{color:var(--tv687-muted)!important}
+html[data-tedvio-theme] .ga360-follow b,
+html[data-tedvio-theme] .ga360-profile-stats b{color:var(--tv687-text)!important}
+html[data-tedvio-theme] .ga360-toolbar{display:flex!important;justify-content:space-between!important;align-items:center!important;gap:10px!important;flex-wrap:wrap!important;margin-bottom:13px!important}
+html[data-tedvio-theme] .ga360-toolbar h3{color:var(--tv687-text)!important}
+html[data-tedvio-theme] .ga360-search,
+html[data-tedvio-theme] .ga360-mini input,
+html[data-tedvio-theme] .ga360-mini select,
+html[data-tedvio-theme] .ga360-mini textarea{
+  background:var(--tv688-input)!important;
+  color:var(--tv687-text)!important;
+  border-color:var(--tv687-border)!important;
+}
+html[data-tedvio-theme] .ga360-list{display:grid!important;gap:8px!important}
+html[data-tedvio-theme] .ga360-item{display:flex!important;justify-content:space-between!important;align-items:center!important;gap:12px!important;padding:12px 13px!important;border:1px solid var(--tv687-border)!important;border-radius:13px!important}
+html[data-tedvio-theme] .ga360-badge{background:var(--tv687-chip)!important;color:var(--tv687-chip-text)!important}
+html[data-tedvio-theme] .b-table-wrap:has(.ga360-table){overflow:auto!important;border:1px solid var(--tv687-border)!important;border-radius:15px!important;background:var(--tv687-surface)!important}
+html[data-tedvio-theme] .ga360-table{width:100%!important;border-collapse:collapse!important;background:var(--tv687-surface)!important;color:var(--tv687-text)!important}
+html[data-tedvio-theme] .ga360-table th,
+html[data-tedvio-theme] .ga360-table td{border-color:var(--tv687-border)!important}
+html[data-tedvio-theme] .ga360-table th{background:var(--tv688-table-head)!important;color:var(--tv687-muted)!important}
+html[data-tedvio-theme] .ga360-student-row:hover td{background:var(--tv687-surface-2)!important}
+html[data-tedvio-theme] .ga360-mini-overlay{background:var(--tv688-overlay)!important}
+html[data-tedvio-theme] .ga360-mini{border:1px solid var(--tv687-border)!important;box-shadow:0 34px 100px rgba(0,0,0,.32)!important}
+html[data-tedvio-theme] .ga360-qrow,
+html[data-tedvio-theme] .ga360-profile-stats>div{background:var(--tv687-surface-2)!important}
+html[data-tedvio-theme] .ga360-qr-live #ga360QR{background:#fff!important}
+
+/* --------------------------------------------------------------------------
+   ATTENDANCE PRO
+   -------------------------------------------------------------------------- */
+html[data-tedvio-theme] #tvAttPro{background:var(--tv688-overlay)!important}
+html[data-tedvio-theme] #tvAttPro .tap-shell,
+html[data-tedvio-theme] .tap-edit{background:var(--tv687-bg)!important;color:var(--tv687-text)!important;border-color:var(--tv687-border)!important}
+html[data-tedvio-theme] .tap-head{background:color-mix(in srgb,var(--tv687-surface) 94%,transparent)!important;border-color:var(--tv687-border)!important}
+html[data-tedvio-theme] .tap-head h2,
+html[data-tedvio-theme] .tap-panel h3,
+html[data-tedvio-theme] .tap-section-head h3,
+html[data-tedvio-theme] .tap-metric b,
+html[data-tedvio-theme] .tap-profile-grid b,
+html[data-tedvio-theme] .tap-live-count{color:var(--tv687-text)!important}
+html[data-tedvio-theme] .tap-head p,
+html[data-tedvio-theme] .tap-sub,
+html[data-tedvio-theme] .tap-field label,
+html[data-tedvio-theme] .tap-profile-grid span{color:var(--tv687-muted)!important}
+html[data-tedvio-theme] .tap-panel,
+html[data-tedvio-theme] .tap-metric,
+html[data-tedvio-theme] .tap-session,
+html[data-tedvio-theme] .tap-table-wrap,
+html[data-tedvio-theme] .tap-profile-extra,
+html[data-tedvio-theme] .tap-profile-grid div{
+  background:var(--tv687-surface)!important;
+  color:var(--tv687-text)!important;
+  border-color:var(--tv687-border)!important;
+}
+html[data-tedvio-theme] .tap-field input,
+html[data-tedvio-theme] .tap-field select,
+html[data-tedvio-theme] .tap-obs{background:var(--tv688-input)!important;color:var(--tv687-text)!important;border-color:var(--tv687-border)!important}
+html[data-tedvio-theme] .tap-check{background:var(--tv687-surface-2)!important;color:var(--tv687-text)!important;border-color:var(--tv687-border)!important}
+html[data-tedvio-theme] .tap-table th{background:var(--tv688-table-head)!important;color:var(--tv687-muted)!important}
+html[data-tedvio-theme] .tap-table td{color:var(--tv687-text)!important;border-color:var(--tv687-border)!important}
+
+/* --------------------------------------------------------------------------
+   QUESTION STUDIO
+   -------------------------------------------------------------------------- */
+html[data-tedvio-theme="dark"] #qs65Root{--qnavy:var(--tv687-text);--qmuted:var(--tv687-muted);--qline:var(--tv687-border);--qsoft:var(--tv687-surface-2)}
+html[data-tedvio-theme] .qs65-hero,
+html[data-tedvio-theme] .qs65-kpis>div,
+html[data-tedvio-theme] .qs65-toolbar,
+html[data-tedvio-theme] .qs65-card,
+html[data-tedvio-theme] .qs65-row,
+html[data-tedvio-theme] .qs65-modal,
+html[data-tedvio-theme] .qs65-teacher-preview,
+html[data-tedvio-theme] .qs65-preview-device{
+  background:var(--tv687-surface)!important;
+  color:var(--tv687-text)!important;
+  border-color:var(--tv687-border)!important;
+}
+html[data-tedvio-theme] .qs65-hero h1,
+html[data-tedvio-theme] .qs65-card h3,
+html[data-tedvio-theme] .qs65-row-main>b,
+html[data-tedvio-theme] .qs65-modal-head h2,
+html[data-tedvio-theme] .qs65-preview-device h2{color:var(--tv687-text)!important}
+html[data-tedvio-theme] .qs65-toolbar input,
+html[data-tedvio-theme] .qs65-toolbar select,
+html[data-tedvio-theme] .qs65-form input,
+html[data-tedvio-theme] .qs65-form select,
+html[data-tedvio-theme] .qs65-form textarea{background:var(--tv688-input)!important;color:var(--tv687-text)!important;border-color:var(--tv687-border)!important}
+html[data-tedvio-theme] .qs65-metrics>div,
+html[data-tedvio-theme] .qs65-live-preview,
+html[data-tedvio-theme] .qs65-info{background:var(--tv687-surface-2)!important;border-color:var(--tv687-border)!important;color:var(--tv687-text)!important}
+
+/* --------------------------------------------------------------------------
+   ASSIGNMENTS
+   -------------------------------------------------------------------------- */
+html[data-tedvio-theme] .tv66-overlay{background:var(--tv687-bg)!important;color:var(--tv687-text)!important}
+html[data-tedvio-theme] .tv66-kpis>div,
+html[data-tedvio-theme] .tv66-card,
+html[data-tedvio-theme] .tv66-modal,
+html[data-tedvio-theme] .tv66-share,
+html[data-tedvio-theme] .tv66-results-table,
+html[data-tedvio-theme] .tv66-attempt-modal,
+html[data-tedvio-theme] .tv66-question-picker{
+  background:var(--tv687-surface)!important;
+  color:var(--tv687-text)!important;
+  border-color:var(--tv687-border)!important;
+}
+html[data-tedvio-theme] .tv66-kpis b,
+html[data-tedvio-theme] .tv66-card h3,
+html[data-tedvio-theme] .tv66-modal-head h2,
+html[data-tedvio-theme] .tv66-qrow b,
+html[data-tedvio-theme] .tv66-results-table td b,
+html[data-tedvio-theme] .tv66-attempt-list section b{color:var(--tv687-text)!important}
+html[data-tedvio-theme] .tv66-card p,
+html[data-tedvio-theme] .tv66-kpis span,
+html[data-tedvio-theme] .tv66-modal-head p,
+html[data-tedvio-theme] .tv66-qrow small{color:var(--tv687-muted)!important}
+html[data-tedvio-theme] .tv66-card-dates span,
+html[data-tedvio-theme] .tv66-checks label,
+html[data-tedvio-theme] .tv66-picker-head,
+html[data-tedvio-theme] .tv66-modal-actions{background:var(--tv687-surface-2)!important;color:var(--tv687-text)!important}
+html[data-tedvio-theme] .tv66-form input,
+html[data-tedvio-theme] .tv66-form textarea,
+html[data-tedvio-theme] .tv66-form select,
+html[data-tedvio-theme] .tv66-picker-head input,
+html[data-tedvio-theme] .tv66-share input{background:var(--tv688-input)!important;color:var(--tv687-text)!important;border-color:var(--tv687-border)!important}
+html[data-tedvio-theme] .tv66-qrow,
+html[data-tedvio-theme] .tv66-attempt-list>div,
+html[data-tedvio-theme] .tv66-results-table th,
+html[data-tedvio-theme] .tv66-results-table td{border-color:var(--tv687-border)!important}
+html[data-tedvio-theme] .tv66-results-table th{background:var(--tv688-table-head)!important;color:var(--tv687-muted)!important}
+
+/* --------------------------------------------------------------------------
+   ANALYTICS
+   -------------------------------------------------------------------------- */
+html[data-tedvio-theme] #ga61Root{color:var(--tv687-text)!important}
+html[data-tedvio-theme] .ga61-head h3,
+html[data-tedvio-theme] .ga61-kpis b,
+html[data-tedvio-theme] .ga61-card-head h4,
+html[data-tedvio-theme] .ga61-risk-grid b,
+html[data-tedvio-theme] .ga61-coverage b,
+html[data-tedvio-theme] .ga61-hard p b,
+html[data-tedvio-theme] .ga61-hard strong,
+html[data-tedvio-theme] .ga61-health{color:var(--tv687-text)!important}
+html[data-tedvio-theme] .ga61-head p,
+html[data-tedvio-theme] .ga61-kpis span,
+html[data-tedvio-theme] .ga61-card-head p,
+html[data-tedvio-theme] .ga61-corr p,
+html[data-tedvio-theme] .ga61-table td,
+html[data-tedvio-theme] .ga61-note{color:var(--tv687-muted)!important}
+html[data-tedvio-theme] .ga61-kpis>div,
+html[data-tedvio-theme] .ga61-card,
+html[data-tedvio-theme] .ga61-risk-grid>div,
+html[data-tedvio-theme] .ga61-hard>div,
+html[data-tedvio-theme] .ga61-coverage>div,
+html[data-tedvio-theme] .ga61-next,
+html[data-tedvio-theme] .ga61-empty,
+html[data-tedvio-theme] .ga61-loading{
+  background:var(--tv687-surface)!important;
+  color:var(--tv687-text)!important;
+  border-color:var(--tv687-border)!important;
+}
+html[data-tedvio-theme] .ga61-table th{color:var(--tv687-muted)!important;border-color:var(--tv687-border)!important}
+html[data-tedvio-theme] .ga61-table td{border-color:var(--tv687-border)!important}
+
+/* --------------------------------------------------------------------------
+   ADMIN + ONBOARDING
+   -------------------------------------------------------------------------- */
+html[data-tedvio-theme] #tvAdminOverlay .b-modal{background:var(--tv687-bg)!important;color:var(--tv687-text)!important;border-color:var(--tv687-border)!important}
+html[data-tedvio-theme] .tv62-main{background:var(--tv687-bg)!important;color:var(--tv687-text)!important}
+html[data-tedvio-theme] .tv62-head h2{color:var(--tv687-text)!important}
+html[data-tedvio-theme] .tv62-head p{color:var(--tv687-muted)!important}
+html[data-tedvio-theme] .tv62-main input,
+html[data-tedvio-theme] .tv62-main select,
+html[data-tedvio-theme] .tv62-main textarea{background:var(--tv688-input)!important;color:var(--tv687-text)!important;border-color:var(--tv687-border)!important}
+
+html[data-tedvio-theme] .tv68-modal,
+html[data-tedvio-theme] .tv68-choice>button,
+html[data-tedvio-theme] .tv68-checklist>div,
+html[data-tedvio-theme] .tv68-existing button,
+html[data-tedvio-theme] .tv68-funnel-grid>div,
+html[data-tedvio-theme] .tv68-picks{background:var(--tv687-surface)!important;color:var(--tv687-text)!important;border-color:var(--tv687-border)!important}
+html[data-tedvio-theme] .tv68-head{background:color-mix(in srgb,var(--tv687-surface) 96%,transparent)!important;border-color:var(--tv687-border)!important}
+html[data-tedvio-theme] .tv68-head h2,
+html[data-tedvio-theme] .tv68-progress>div b,
+html[data-tedvio-theme] .tv68-checklist b,
+html[data-tedvio-theme] .tv68-choice b,
+html[data-tedvio-theme] .tv68-template-row b,
+html[data-tedvio-theme] .tv68-section-title h3,
+html[data-tedvio-theme] .tv68-funnel-grid b{color:var(--tv687-text)!important}
+html[data-tedvio-theme] .tv68-head p,
+html[data-tedvio-theme] .tv68-checklist small,
+html[data-tedvio-theme] .tv68-choice small,
+html[data-tedvio-theme] .tv68-form label,
+html[data-tedvio-theme] .tv68-funnel-grid span{color:var(--tv687-muted)!important}
+html[data-tedvio-theme] .tv68-form input,
+html[data-tedvio-theme] .tv68-form select,
+html[data-tedvio-theme] .tv68-form textarea{background:var(--tv688-input)!important;color:var(--tv687-text)!important;border-color:var(--tv687-border)!important}
+
+/* --------------------------------------------------------------------------
+   MOBILE · GROUP CENTER becomes an actual mobile workspace
+   -------------------------------------------------------------------------- */
+@media(max-width:620px){
+  html[data-tedvio-theme] #gaOverlay{
+    padding:0!important;
+    align-items:stretch!important;
+    justify-items:stretch!important;
+  }
+  html[data-tedvio-theme] #gaOverlay .b-modal.large.ga360-shell{
+    width:100vw!important;
+    height:100dvh!important;
+    max-height:100dvh!important;
+    border-radius:0!important;
+    border-left:0!important;
+    border-right:0!important;
+  }
+  html[data-tedvio-theme] .ga360-top{
+    padding:max(15px,env(safe-area-inset-top)) 15px 13px!important;
+    gap:12px!important;
+    flex-direction:column!important;
+  }
+  html[data-tedvio-theme] .ga360-top>div:first-child{width:100%!important;max-width:none!important}
+  html[data-tedvio-theme] .ga360-kicker{font-size:8px!important;margin-bottom:4px!important}
+  html[data-tedvio-theme] .ga360-top h2{font-size:30px!important;line-height:1!important}
+  html[data-tedvio-theme] .ga360-meta{
+    max-width:100%!important;
+    margin-top:7px!important;
+    font-size:10px!important;
+    line-height:1.35!important;
+    display:-webkit-box!important;
+    -webkit-box-orient:vertical!important;
+    -webkit-line-clamp:2!important;
+    overflow:hidden!important;
+  }
+  html[data-tedvio-theme] .ga360-top>.b-row{width:100%!important;justify-content:space-between!important}
+  html[data-tedvio-theme] .ga360-top>.b-row .b-btn:first-child{flex:1!important}
+  html[data-tedvio-theme] .ga360-top>.b-row .b-btn:last-child{width:44px!important;min-width:44px!important;padding:0!important}
+
+  html[data-tedvio-theme] .ga360-stats{
+    grid-template-columns:1fr 1fr!important;
+    padding:11px 12px!important;
+    gap:8px!important;
+  }
+  html[data-tedvio-theme] .ga360-stat{min-height:76px!important;padding:12px 13px!important;display:flex!important;flex-direction:column!important;justify-content:center!important}
+  html[data-tedvio-theme] .ga360-stat span{font-size:8px!important;line-height:1.2!important}
+  html[data-tedvio-theme] .ga360-stat b{font-size:26px!important;margin-top:5px!important}
+
+  html[data-tedvio-theme] .ga360-tabs{
+    position:relative!important;
+    padding:8px 10px!important;
+    gap:7px!important;
+    scroll-snap-type:x proximity!important;
+  }
+  html[data-tedvio-theme] .ga360-tabs button{
+    scroll-snap-align:start!important;
+    min-height:42px!important;
+    padding:9px 13px!important;
+    border:1px solid var(--tv687-border)!important;
+    font-size:11px!important;
+  }
+  html[data-tedvio-theme] .ga360-tabs button.active{border-color:#4e86ff!important}
+
+  html[data-tedvio-theme] .ga360-body{padding:13px!important}
+  html[data-tedvio-theme] .ga360-hero,
+  html[data-tedvio-theme] .ga360-analytics{grid-template-columns:1fr!important;gap:10px!important}
+  html[data-tedvio-theme] .ga360-panel{padding:15px!important;border-radius:16px!important}
+  html[data-tedvio-theme] .ga360-actions{grid-template-columns:1fr!important;gap:8px!important}
+  html[data-tedvio-theme] .ga360-action{min-height:57px!important;padding:12px 13px!important}
+  html[data-tedvio-theme] .ga360-follow{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important}
+  html[data-tedvio-theme] .ga360-follow>div{padding:10px!important}
+  html[data-tedvio-theme] .ga360-follow b{font-size:20px!important}
+
+  html[data-tedvio-theme] .ga360-toolbar{
+    align-items:stretch!important;
+    flex-direction:column!important;
+    gap:9px!important;
+  }
+  html[data-tedvio-theme] .ga360-toolbar>div:first-child{min-width:0!important}
+  html[data-tedvio-theme] .ga360-toolbar>.b-row{width:100%!important;display:grid!important;grid-template-columns:1fr 1fr!important;gap:7px!important}
+  html[data-tedvio-theme] .ga360-toolbar>.b-row .b-btn{width:100%!important;min-width:0!important}
+  html[data-tedvio-theme] .ga360-toolbar>.b-btn{align-self:stretch!important;width:100%!important}
+  html[data-tedvio-theme] .ga360-search{width:100%!important;min-width:0!important;box-sizing:border-box!important}
+  html[data-tedvio-theme] .ga360-item{align-items:flex-start!important;flex-wrap:wrap!important}
+  html[data-tedvio-theme] .ga360-item>.b-btn{width:100%!important}
+  html[data-tedvio-theme] .b-table-wrap:has(.ga360-table){overflow-x:auto!important;-webkit-overflow-scrolling:touch!important}
+  html[data-tedvio-theme] .ga360-table{min-width:760px!important}
+  html[data-tedvio-theme] .ga360-cats{grid-template-columns:1fr 1fr!important;gap:7px!important}
+  html[data-tedvio-theme] .ga360-profile-stats{grid-template-columns:1fr 1fr!important}
+  html[data-tedvio-theme] .ga360-mini-overlay{padding:0!important;align-items:end!important}
+  html[data-tedvio-theme] .ga360-mini{width:100vw!important;max-height:94dvh!important;border-radius:22px 22px 0 0!important;padding:16px!important;box-sizing:border-box!important}
+
+  /* Keep other internal modules usable on phones after theme switch. */
+  html[data-tedvio-theme] .tv66-kpis{grid-template-columns:1fr 1fr!important}
+  html[data-tedvio-theme] .qs65-kpis{grid-template-columns:1fr 1fr!important}
+  html[data-tedvio-theme] .ga61-kpis{grid-template-columns:1fr 1fr!important}
+  html[data-tedvio-theme] #tvAttPro{padding:0!important;align-items:stretch!important}
+  html[data-tedvio-theme] #tvAttPro .tap-shell{width:100vw!important;height:100dvh!important;max-height:100dvh!important;border-radius:0!important}
+  html[data-tedvio-theme] .tap-body{padding:13px!important}
+}
+
+@media(max-width:390px){
+  html[data-tedvio-theme] .ga360-top h2{font-size:27px!important}
+  html[data-tedvio-theme] .ga360-stats{gap:7px!important}
+  html[data-tedvio-theme] .ga360-stat{padding:10px!important}
+  html[data-tedvio-theme] .ga360-stat b{font-size:24px!important}
+  html[data-tedvio-theme] .ga360-follow{grid-template-columns:1fr!important}
+  html[data-tedvio-theme] .ga360-toolbar>.b-row{grid-template-columns:1fr!important}
+}
+
+@media(pointer:coarse){
+  html[data-tedvio-theme] .ga360-tabs button,
+  html[data-tedvio-theme] .ga360-action,
+  html[data-tedvio-theme] .ga360-top .b-btn,
+  html[data-tedvio-theme] .ga360-toolbar .b-btn{touch-action:manipulation!important}
+}
