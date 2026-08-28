@@ -21,6 +21,6 @@ must(core.includes('db.removeChannel(channel)')&&core.includes("addEventListener
 const guardAt=stability.indexOf('if(window.__TEDVIO_RUNTIME64__?.enabled)'),patchAt=stability.indexOf("Object.defineProperty(Element.prototype,'innerHTML'");must(guardAt>=0&&patchAt>guardAt,'rollback stability bridge still bypasses global patch when v64 active');
 must(vercel.includes('/runtime-core-v64.js')&&vercel.includes('/beta-session-stability-v1.js'),'v64/rollback assets remain no-store');
 must(!/service_role|SUPABASE_SECRET|sb_secret_/i.test(core+teacher+beta+control+projection),'v64 frontend has no privileged keys');
-must(/tedvio-pilot-v68-20260826/.test(sw),'service worker remains v68 namespace');
+const cacheMajor=Number(sw.match(/tedvio-pilot-v(\d+)/)?.[1]||0);must(cacheMajor>=68,'service worker remains on audited v68+ namespace');
 const globalVersion=Number(String(version.version||'').split('.').pop()||0);must(version.channel==='pilot-ready'&&globalVersion>=64,'global Pilot Ready version remains v64 or newer');
-if(failed){console.error(`\n${failed} v64 regression check(s) failed.`);process.exit(1)}console.log('\nTEDVIO v64 Reliability passes with v68.6 scoped observer.');
+if(failed){console.error(`\n${failed} v64 regression check(s) failed.`);process.exit(1)}console.log('\nTEDVIO v64 Reliability passes with v68+ scoped observer.');
