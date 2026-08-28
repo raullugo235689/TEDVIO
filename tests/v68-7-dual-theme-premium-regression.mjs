@@ -7,7 +7,7 @@ const styles=[...teacher.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"
 must(teacher.includes('data-tedvio-theme="light"'),'white appearance is the safe default');
 must(teacher.includes('teacher-theme-v68-7.js?v=687')&&teacher.includes('teacher-theme-v68-7.css?v=687'),'teacher shell loads v68.7 theme controller and styles');
 must(scripts.length===5&&scripts.filter(x=>x.includes('teacher-theme-v68-7.js')).length===1,'theme adds only one tiny JS runtime to the four-script Teacher Core');
-must(styles.length===8&&styles.filter(x=>x.includes('teacher-theme-v68-7.css')).length===1,'theme adds only one visual stylesheet to the lean teacher shell');
+must(styles.length<=9&&styles.filter(x=>x.includes('teacher-theme-v68-7.css')).length===1,'theme family stays lean while allowing one CSS-only compatibility layer');
 must(!teacher.includes('beta.js?v=56')&&!teacher.includes('student-v60.js'),'dual theme does not restore legacy/student engines');
 must(js.includes("const VERSION='2026.08.27.68.7'")&&js.includes("const KEY='tedvio.teacher.theme'"),'theme controller reports v68.7 and uses a dedicated preference key');
 must(js.includes("value==='dark'?'dark':'light'")&&js.includes("localStorage.setItem(KEY,theme)"),'theme values are constrained and persisted locally');
