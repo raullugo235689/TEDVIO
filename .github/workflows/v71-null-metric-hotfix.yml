@@ -1,0 +1,34 @@
+name: TEDVIO v71 Null Metric Safety Hotfix
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/v71-null-metric-hotfix.yml'
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preserve missing academic metrics as null
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('teacher-group-intelligence-v71.js')
+          s=p.read_text()
+          old="const n=v=>{const x=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(x)?x:null};"
+          new="const n=v=>{const clean=String(v??'').replace(/[^0-9.-]/g,'');if(!clean||clean==='-'||clean==='.'||clean==='-.')return null;const x=Number(clean);return Number.isFinite(x)?x:null};"
+          if old not in s:
+              raise SystemExit('Expected v71 metric parser not found; refusing an unsafe patch.')
+          p.write_text(s.replace(old,new,1))
+          PY
+          node --check teacher-group-intelligence-v71.js
+          git diff --check
+      - name: Commit audited safety fix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add teacher-group-intelligence-v71.js
+          git commit -m 'Fix v71 missing academic metric handling'
+          git push
