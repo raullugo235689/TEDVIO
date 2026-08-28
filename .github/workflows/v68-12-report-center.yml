@@ -1,0 +1,20 @@
+name: TEDVIO v68.12 Report Center Audit
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax
+        run: |
+          node --check report-center-launcher-v68-12.js
+          node --check report-center-v68-12.js
+      - name: Regression
+        run: node tests/v68-12-report-center-regression.mjs
