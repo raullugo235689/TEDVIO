@@ -1,8 +1,8 @@
 {
   "app": "TEDVIO",
-  "version": "2026.08.28.73",
+  "version": "2026.08.28.74",
   "channel": "pilot-ready",
-  "audit": "assessment-intelligence",
+  "audit": "ai-copilot",
   "source": "main",
   "generated_at": "2026-08-28"
 }
