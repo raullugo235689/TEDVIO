@@ -9,8 +9,8 @@ const api=read('api/tedvio-ai.js');
 const migration=read('supabase/migrations/20260828201138_v74_teacher_ai_context.sql');
 const version=JSON.parse(read('version.json'));
 
-assert.equal(version.version,'2026.08.28.74');
-assert.equal(version.audit,'ai-copilot');
+assert.equal(version.version,'2026.08.28.741');
+assert.equal(version.audit,'ai-copilot-reliability');
 
 assert.doesNotMatch(teacher,/teacher-ai-copilot-v74|api\/tedvio-ai/,'v74 must add nothing to teacher first paint');
 assert.match(boot,/ai:\{styles:\['\.\/teacher-ai-copilot-v74\.css\?v=74'\],scripts:\[\['\.\/teacher-ai-copilot-v74\.js\?v=74','module'\]\]\}/);
@@ -35,7 +35,10 @@ assert.match(api,/\/auth\/v1\/user/,'backend validates the teacher session with 
 assert.match(api,/v2_teacher_ai_context/,'backend uses the compact teacher-scoped RPC');
 assert.match(api,/VERCEL_OIDC_TOKEN/,'backend supports Vercel AI Gateway OIDC');
 assert.match(api,/AI_GATEWAY_API_KEY/);
-assert.match(api,/OPENAI_API_KEY/,'server-only OpenAI key is an optional fallback');
+assert.ok(api.indexOf("process.env.VERCEL_OIDC_TOKEN")<api.indexOf("process.env.AI_GATEWAY_API_KEY"),'Vercel OIDC is tried before a manually configured gateway key');
+assert.match(api,/OPENAI_API_KEY/,'server-only OpenAI key remains an optional fallback');
+assert.match(api,/TEDVIO_AI_ALLOW_DIRECT_OPENAI==='true'/,'direct provider billing requires explicit opt-in');
+assert.match(api,/TEDVIO_AI_FORCE_LOCAL==='true'/,'AI can be disabled without disabling TEDVIO');
 assert.match(api,/https:\/\/ai-gateway\.vercel\.sh\/v1\/responses/);
 assert.match(api,/https:\/\/api\.openai\.com\/v1\/responses/);
 assert.match(api,/openai\/gpt-5\.6-luna/);
@@ -44,6 +47,7 @@ assert.match(api,/type:'json_schema'/,'model response is schema constrained');
 assert.match(api,/store:false/);
 assert.match(api,/sameOrigin\(request\)/,'AI POST is restricted to same-origin browser use');
 assert.match(api,/MAX_REQUESTS=15/,'AI endpoint includes best-effort per-user abuse control');
+assert.match(api,/AI_TIMEOUT_MS=25000/,'AI endpoint leaves time to return a graceful fallback');
 assert.match(api,/compactPriority/);
 assert.doesNotMatch(api,/service_role|SUPABASE_SECRET|sb_secret_/i,'backend contains no privileged Supabase key');
 assert.doesNotMatch(api,/student_id|enrollment/,'model context never requests internal student IDs or enrollment numbers');
@@ -52,6 +56,15 @@ assert.match(api,/DATOS NO CONFIABLES/,'model instructions treat database text a
 assert.match(api,/No infieras ni diagnostiques salud/,'model is instructed against sensitive-trait inference');
 assert.match(api,/decisiones punitivas automáticas/,'model is not used for automated punitive academic decisions');
 assert.match(api,/allowed=new Set\(\['open_group','open_grades','open_omr','take_attendance','create_reinforcement','none'\]\)/,'client-visible actions are allowlisted');
+
+assert.match(api,/function classifyAiError/,'provider errors are classified without exposing secrets');
+assert.match(api,/function localInsight/,'a local academic fallback is available');
+assert.match(api,/provider:'local-rules'/);
+assert.match(api,/degraded:true/);
+assert.match(api,/diagnostic_code:reason/);
+assert.match(api,/no consumió créditos de IA/,'local fallback is transparent about cost and mode');
+assert.match(api,/return json\(\{\n      \.\.\.localInsight/,'provider failure returns a useful 200 response instead of breaking the Copilot');
+assert.doesNotMatch(api,/return json\(\{error:status>=500\?'TEDVIO AI no pudo responder/,'generic provider failures no longer reach the teacher UI');
 
 assert.match(migration,/create or replace function public\.v2_teacher_ai_context/);
 assert.match(migration,/auth\.uid\(\)/);
@@ -65,4 +78,4 @@ assert.match(css,/@media\(max-width:720px\)/);
 assert.match(css,/prefers-reduced-motion/);
 assert.match(css,/var\(--tv687-surface/);
 
-console.log('TEDVIO v74 AI Copilot regression: OK');
+console.log('TEDVIO v74.1 AI Copilot reliability regression: OK');
