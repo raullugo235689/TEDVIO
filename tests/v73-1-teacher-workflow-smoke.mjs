@@ -13,7 +13,7 @@ assert.match(command,/Modo Clase/,'teacher can enter Modo Clase');
 for(const action of ["action==='attendance'","action==='live'","action==='grades'","action==='exam'"])assert.ok(command.includes(action),`Modo Clase preserves ${action}`);
 assert.match(boot,/groups:\{styles:/,'Groups remains reachable through the lazy registry');
 assert.match(boot,/omr:\{styles:/,'OMR remains reachable through the lazy registry');
-assert.match(boot,/tvPilotOpenGroups/,'teacher can enter Groups from the command center');
+assert.match(command,/tvPilotOpenGroups/,'teacher can enter Groups from the command center');
 assert.match(group,/ga360Student/,'Group Center preserves Student 360 entry');
 assert.match(group,/ga360Tab/,'Group Center preserves tab navigation');
 assert.match(workflow,/TEDVIO · FLUJO DE CALIFICACIÓN/,'smart grade workflow remains connected');
