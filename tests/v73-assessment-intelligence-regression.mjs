@@ -7,9 +7,10 @@ const js=read('assessment-intelligence-v73.js');
 const css=read('assessment-intelligence-v73.css');
 const migration=read('supabase/migrations/20260828193000_v73_assessment_intelligence_metadata.sql');
 const version=JSON.parse(read('version.json'));
+const release=Number(String(version.version||'').split('.').at(-1)||0);
 
-assert.equal(version.version,'2026.08.28.73');
-assert.equal(version.audit,'assessment-intelligence');
+assert.ok(release>=73,'global release must preserve v73 or later');
+if(release===73)assert.equal(version.audit,'assessment-intelligence');
 
 assert.doesNotMatch(teacher,/assessment-intelligence-v73/,'v73 must remain out of first paint');
 assert.match(loader,/assessment-intelligence-v73\.css\?v=73/);
