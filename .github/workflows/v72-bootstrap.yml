@@ -22,6 +22,17 @@ jobs:
           echo '1338fd6c64761d3c04f19abd8b5eca0be071e31cf2b849472d107fd9ea18fdfa  patches/v72-bundle.tar.gz' | sha256sum -c -
           tar -xzf patches/v72-bundle.tar.gz -C .v72-build
           python .v72-build/integrate_v72.py
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('tests/v68-6-teacher-core-split-regression.mjs')
+          s=p.read_text()
+          old="must(styles.length<10||(teacher.includes('teacher-mobile-compat-v68-8.css?v=688')&&teacher.includes('teacher-command-center-v70.css?v=70')),'a tenth stylesheet is allowed only for audited mobile compatibility plus the v70 command center');"
+          new="must(styles.length<10||(teacher.includes('teacher-mobile-compat-v68-8.css?v=688')&&/teacher-command-center-v70\\.css\\?v=(?:70|72)/.test(teacher)),'a tenth stylesheet is allowed only for audited mobile compatibility plus the v70 command center');"
+          if old not in s and new not in s:
+              raise SystemExit('v68.6 stylesheet cache-key assertion not found')
+          if old in s:
+              p.write_text(s.replace(old,new,1))
+          PY
           rm -rf .v72-build patches
       - name: Verify v72 and compatibility
         run: |
