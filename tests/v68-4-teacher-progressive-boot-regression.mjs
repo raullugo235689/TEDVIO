@@ -4,8 +4,9 @@ const teacher=read('teacher.html'),beta=read('beta.html'),boot=read('teacher-pro
 let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
 const direct=[...teacher.matchAll(/<script[^>]+src="([^"]+)"/g)].map(m=>m[1]);
 
-const allowedCore=['config.js','runtime-core-v64.js','teacher-core-v68-6.js','teacher-progressive-boot-v68.js','teacher-theme-v68-7.js'];
-must(direct.length===5&&allowedCore.every(name=>direct.some(src=>src.includes(name))),`teacher first paint remains four split-core scripts plus the isolated theme controller (${direct.length} direct scripts)`);
+const allowedCore=['config.js','runtime-core-v64.js','teacher-core-v68-6.js','teacher-progressive-boot-v68.js','teacher-theme-v68-7.js','teacher-command-center-v70.js'];
+const unexpectedDirect=direct.filter(src=>!allowedCore.some(name=>src.includes(name)));
+must(direct.length===allowedCore.length&&allowedCore.every(name=>direct.some(src=>src.includes(name)))&&unexpectedDirect.length===0,`teacher first paint remains the audited split-core foundation plus the v70 command-center controller (${direct.length} direct scripts)`);
 must(teacher.includes('teacher-core-v68-6.js?v=686')&&teacher.includes('teacher-progressive-boot-v68.js?v=686'),'teacher loads split core + demand loader');
 must(!teacher.includes('beta.js?v=56')&&!teacher.includes('auth-handoff-v68-3.js')&&!teacher.includes('beta-auth-fix.js')&&!teacher.includes('beta-runtime-hooks.js'),'teacher no longer loads monolithic/legacy auth runtime stack');
 must(!teacher.includes('cdn.jsdelivr.net/npm/xlsx')&&!teacher.includes('jspdf')&&!teacher.includes('qrcode.min.js')&&!teacher.includes('jsQR.js'),'heavy libraries stay off first paint');
@@ -18,4 +19,4 @@ must(core.includes("from('tedvio_user_profiles').select('status,plan,role')")&&c
 must(!core.includes("from('v2_question_bank')")&&!core.includes("from('v2_sessions')"),'split core does not preload bank or session history');
 must(boot.includes("document.documentElement.dataset.tedvioBoot='ready'")&&boot.includes('tedvio:teacher-ready'),'loader exposes deterministic ready state');
 if(failed){console.error(`\n${failed} v68.4+ compatibility check(s) failed.`);process.exit(1)}
-console.log('\nTEDVIO v68.4+ compatibility passes under v68.7 Dual Theme Premium.');
+console.log('\nTEDVIO v68.4+ compatibility passes with the v70 command-center layer.');
