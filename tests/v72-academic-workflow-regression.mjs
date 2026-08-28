@@ -11,9 +11,10 @@ const version=JSON.parse(read('version.json'));
 const marker='TEDVIO v72 · Academic Workflow Home';
 const home72=homeJs.slice(homeJs.indexOf(marker));
 const homeCss72=homeCss.slice(homeCss.indexOf(marker));
+const release=Number(String(version.version||'').split('.').at(-1)||0);
 
-assert.equal(version.version,'2026.08.28.72');
-assert.equal(version.audit,'teacher-academic-workflow');
+assert.ok(release>=72,'global release metadata preserves v72 compatibility when later releases advance');
+assert.match(groupJs,/const VERSION='2026\.08\.28\.72'/);
 
 assert.match(html,/teacher-command-center-v70\.css\?v=72/);
 assert.match(html,/teacher-command-center-v70\.js\?v=72/);
