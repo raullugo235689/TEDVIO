@@ -1,0 +1,23 @@
+import fs from'node:fs';
+const read=p=>fs.readFileSync(p,'utf8');
+const report=read('attendance-institutional-report-v68-10.js'),theme=read('teacher-theme-v68-7.js'),teacher=read('teacher.html');
+let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
+must(report.includes("const VERSION='2026.08.28.68.10'"),'institutional attendance report identifies v68.10');
+must(theme.includes("import('./attendance-institutional-report-v68-10.js?v=6810')")&&theme.includes("event?.detail?.name!=='groups'"),'report module stays lazy and loads only after Groups is ready');
+must(!teacher.includes('attendance-institutional-report-v68-10.js'),'report generator is absent from first paint');
+must(!report.includes('createClient(')&&report.includes('window.__TEDVIO_DB__'),'report reuses Teacher Core database client');
+must(report.includes("api.ensure('exports')")&&report.includes('window.jspdf?.jsPDF'),'PDF libraries remain demand-loaded through the export resource');
+for(const source of ["v2_groups","v2_group_students","v2_attendance_sessions","v2_attendance_records","v2_programs","v2_universities"])must(report.includes(source),`report reads ${source}`);
+must(report.includes('REGISTRO DE ASISTENCIA Y EVALUACIÓN')&&report.includes('Ciclo:')&&report.includes('Sección:')&&report.includes('Asignatura:')&&report.includes('Grupo:')&&report.includes('Profesor:'),'institutional header mirrors the official attendance-register structure');
+must(report.includes("...sessions.map(s=>dayLabel(s.attendance_date))")&&report.includes("'A','R','F','J'"),'attendance matrix includes each class date plus A/R/F/J totals');
+must(report.includes("status==='present'?'•'")&&report.includes("status==='late'?'R'")&&report.includes("status==='absent'?'/')")&&report.includes("status==='justified'?'J'"),'matrix uses explicit attendance/late/absence/justified symbols');
+must(report.includes('Simbología')&&report.includes('Asistencia: •')&&report.includes('Retardo: R')&&report.includes('Falta: /')&&report.includes('Justificada: J'),'report includes a printed legend');
+must(report.includes('FECHA DE ENTREGA')&&report.includes('Vo. Bo. / Coordinación académica')&&report.includes('doc.line('),'report includes delivery date and signature areas');
+must(report.includes("sessions.length>20?'landscape':'portrait'"),'orientation switches automatically for dense months');
+must(report.includes('didDrawPage:()=>drawHeader')&&report.includes('Página ${i} de ${pages}'),'multi-page reports repeat the header and show pagination');
+must(report.includes('Generado con TEDVIO')&&report.includes('Reporte institucional de asistencia'),'TEDVIO is identified only as document generator/footer');
+must(report.includes("window.tvAttExportPdf=exportInstitutional")&&report.includes("b.textContent='Reporte institucional'"),'Attendance Pro PDF action is upgraded to institutional report');
+must(!report.includes('setInterval(')&&!report.includes('new MutationObserver'),'report generator adds no polling or DOM observers');
+must(!/service_role|SUPABASE_SECRET|sb_secret_/i.test(report+theme),'report contains no privileged credentials');
+if(failed){console.error(`\n${failed} v68.10 institutional attendance report check(s) failed.`);process.exit(1)}
+console.log('\nTEDVIO v68.10 Institutional Attendance Report regression audit passed.');
