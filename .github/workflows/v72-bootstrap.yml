@@ -32,6 +32,9 @@ jobs:
               raise SystemExit('v68.6 stylesheet cache-key assertion not found')
           if old in s:
               p.write_text(s.replace(old,new,1))
+          for name in ('teacher-command-center-v70.js','teacher-command-center-v70.css'):
+              target=Path(name)
+              target.write_text(target.read_text().rstrip()+'\n')
           PY
           rm -rf .v72-build patches
       - name: Verify v72 and compatibility
