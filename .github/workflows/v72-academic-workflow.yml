@@ -1,0 +1,44 @@
+name: TEDVIO v72 Academic Workflow Audit
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'teacher.html'
+      - 'teacher-command-center-v70.js'
+      - 'teacher-command-center-v70.css'
+      - 'teacher-group-workflow-v72.js'
+      - 'teacher-group-workflow-v72.css'
+      - 'teacher-progressive-boot-v68.js'
+      - 'version.json'
+      - 'tests/v70-classroom-os-regression.mjs'
+      - 'tests/v71-group-intelligence-regression.mjs'
+      - 'tests/v72-academic-workflow-regression.mjs'
+      - '.github/workflows/v72-academic-workflow.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check teacher-command-center-v70.js
+          node --check teacher-group-workflow-v72.js
+          node --check teacher-progressive-boot-v68.js
+      - name: Academic Workflow regression
+        run: node tests/v72-academic-workflow-regression.mjs
+      - name: Compatibility regressions
+        run: |
+          node tests/v68-7-dual-theme-premium-regression.mjs
+          node tests/v68-8-mobile-theme-compat-regression.mjs
+          node tests/v68-5-demand-driven-performance-regression.mjs
+          node tests/v68-6-teacher-core-split-regression.mjs
+          node tests/v70-classroom-os-regression.mjs
+          node tests/v71-group-intelligence-regression.mjs
+          node tests/ios-safari-syntax-audit.mjs
+          git diff --check
