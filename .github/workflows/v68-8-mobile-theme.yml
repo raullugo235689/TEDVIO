@@ -1,0 +1,19 @@
+name: TEDVIO v68.8 Mobile Theme Audit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  mobile-theme-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run v68.8 mobile/theme regression audit
+        run: node tests/v68-8-mobile-theme-compat-regression.mjs
+      - name: Confirm v68.8 assets
+        run: |
+          test -f teacher-mobile-compat-v68-8.css
+          test -f tests/v68-8-mobile-theme-compat-regression.mjs
