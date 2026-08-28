@@ -1,0 +1,21 @@
+name: TEDVIO v68.9 Export Reliability Audit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  export-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check v68.9 export helper syntax
+        run: node --check export-reliability-v68-9.js
+      - name: Run v68.9 export reliability regression
+        run: node tests/v68-9-export-reliability-regression.mjs
+      - name: Confirm export assets
+        run: |
+          test -f export-reliability-v68-9.js
+          test -f tests/v68-9-export-reliability-regression.mjs
