@@ -1,0 +1,21 @@
+import fs from'node:fs';
+const read=p=>fs.readFileSync(p,'utf8');
+const teacher=read('teacher.html'),boot=read('teacher-progressive-boot-v68.js'),helper=read('export-reliability-v68-9.js'),attendance=read('beta-attendance-pro-v1.js');
+let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
+const scripts=[...teacher.matchAll(/<script[^>]+src="([^"]+)"/g)].map(x=>x[1]);
+must(scripts.length===5,'export hotfix adds no first-paint script');
+must(!teacher.includes('xlsx.full.min.js')&&!teacher.includes('jspdf')&&!teacher.includes('export-reliability-v68-9.js'),'export libraries/helper stay off first paint');
+must(boot.includes("exports:{styles:[],scripts:[XLSX,...PDF]}")&&boot.includes("['./export-reliability-v68-9.js?v=689','module']"),'demand loader registers exporters and attendance helper');
+must(boot.includes("const XLSX=['https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js','classic']"),'Excel remains CDN-lazy');
+must(boot.includes("jspdf.umd.min.js")&&boot.includes("jspdf.plugin.autotable.min.js"),'PDF libraries remain CDN-lazy');
+must(helper.includes("const VERSION='2026.08.27.68.9'")&&helper.includes("boot.ensure('exports')"),'v68.9 helper prepares export feature through demand loader');
+must(helper.includes('requestIdleCallback')&&helper.includes('setTimeout(run,280)'),'attendance opening prewarms exporters without blocking UI');
+must(helper.includes("const attendanceOpen=window.tvAttendanceProOpen")&&helper.includes('warm();return result'),'Attendance Pro triggers export prewarm only after opening');
+must(helper.includes("const excel=window.tvAttExportExcel")&&helper.includes("const pdf=window.tvAttExportPdf"),'existing Excel/PDF exporters are wrapped rather than replaced');
+must(helper.includes("if(readyExcel())return excel.apply(this,args)")&&helper.includes("if(readyPdf())return pdf.apply(this,args)"),'ready exporters execute synchronously inside user click');
+must(helper.includes('Pulsa ${kind} nuevamente para descargar'),'Safari-safe fallback asks for a new user activation after async library load');
+must(helper.includes("window.TEDVIO_ENTITLEMENTS?.features?.exports!==false")&&helper.includes('window.tv63OpenPlan?.()'),'export entitlement remains enforced');
+must(attendance.includes('XLSX.writeFile')&&attendance.includes('doc.save('),'canonical attendance file generation remains intact');
+must(!/createClient|supabase|rpc\(|\.from\(/i.test(helper),'export helper performs no backend work');
+if(failed){console.error(`\n${failed} v68.9 Export Reliability check(s) failed.`);process.exit(1)}
+console.log('\nTEDVIO v68.9 Export Reliability regression audit passed.');
