@@ -28,7 +28,7 @@ must(runtime.includes("const watchRoot=document.querySelector('#betaApp')")&&run
 must(!runtime.includes("mo.observe(document.documentElement,{childList:true,subtree:true})"),'runtime-core no longer watches entire document subtree');
 must(beta.includes('beta.js?v=56')&&beta.includes('student-v60.js?v=60')&&beta.includes('student-security-v67.js?v=67'),'beta route preserves full rollback/student engine');
 for(const asset of ['/teacher-core-v68-6.js','/teacher-core-v68-6.css','/teacher-session-core-v68-6.js','/teacher-progressive-boot-v68.js'])must(vercel.includes(asset),`Vercel no-store includes ${asset}`);
-must(sw.includes('tedvio-pilot-v68-20260826-686'),'v68.6 forces a fresh service worker cache namespace');
+const cacheMajor=Number(sw.match(/tedvio-pilot-v(\d+)/)?.[1]||0);must(cacheMajor>=68,'split core remains on a fresh audited v68+ service-worker namespace');
 must(!/service_role|SUPABASE_SECRET|sb_secret_/i.test(core+session+loader+teacher),'split teacher exposes no privileged key material');
 if(failed){console.error(`\n${failed} v68.6+ Teacher Core Split check(s) failed.`);process.exit(1)}
 console.log('\nTEDVIO v68.6+ Teacher Core Split regression audit passed.');

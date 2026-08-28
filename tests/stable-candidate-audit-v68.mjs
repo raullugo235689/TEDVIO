@@ -26,7 +26,8 @@ must(session.includes("addEventListener('tedvio:v64:state'")&&session.includes('
 must(!/service_role|SUPABASE_SECRET|sb_secret_/i.test(config+teacher+tcore+session+loader+beta),'frontend contains no service-role/secret key');
 must(/SUPABASE_(?:PUBLISHABLE|ANON)_KEY/.test(config)&&!/SUPABASE_SERVICE_ROLE/.test(config),'frontend config uses publishable/anon key only');
 must(manifest.start_url==='/teacher'||manifest.start_url==='/teacher.html','PWA starts on teacher route');
-must(sw.includes("cache:'no-store'")&&sw.includes('tedvio-pilot-v68-20260826-686'),'PWA shell is network-first/no-store with v68.6 cache namespace');
-must(version.channel==='pilot-ready'&&String(version.version).endsWith('.68'),'global metadata remains Pilot Ready v68 family');
-if(failed){console.error(`\n${failed} v68 stable audit check(s) failed.`);process.exit(1)}
-console.log('\nTEDVIO v68.6 split-core stable candidate audit passed.');
+const cacheMajor=Number(sw.match(/tedvio-pilot-v(\d+)/)?.[1]||0),releaseMajor=Number(String(version.version||'').split('.').pop()||0);
+must(sw.includes("cache:'no-store'")&&cacheMajor>=68,'PWA shell remains network-first/no-store on v68+ cache namespace');
+must(version.channel==='pilot-ready'&&releaseMajor>=68,'global metadata remains Pilot Ready v68+ family');
+if(failed){console.error(`\n${failed} split-core stable audit check(s) failed.`);process.exit(1)}
+console.log('\nTEDVIO split-core stable candidate audit passed.');

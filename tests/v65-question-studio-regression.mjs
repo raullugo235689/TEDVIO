@@ -22,6 +22,6 @@ must(legacy.includes("from('v2_question_bank')")&&legacy.includes('questionRowFr
 must(css.includes('#qs65Root')&&css.includes('@media(pointer:coarse)'),'Question Studio retains touch layouts');
 must(vercel.includes('/question-studio-v65.js')&&vercel.includes('/question-studio-v65.css'),'v65 assets remain no-store');
 must(!/service_role|SUPABASE_SECRET|sb_secret_/i.test(studio+teacherCore+loader+teacher+beta),'v65/split core contains no privileged keys');
-must(/tedvio-pilot-v68-20260826/.test(sw),'service worker remains v68 namespace');
+const cacheMajor=Number(sw.match(/tedvio-pilot-v(\d+)/)?.[1]||0);must(cacheMajor>=68,'service worker remains on audited v68+ namespace');
 const globalVersion=Number(String(version.version||'').split('.').pop()||0);must(version.channel==='pilot-ready'&&globalVersion>=65,'global Pilot Ready version remains v65 or newer');
-if(failed){console.error(`\n${failed} v65 regression check(s) failed.`);process.exit(1)}console.log('\nTEDVIO v65 Question Studio passes under v68.6 split core.');
+if(failed){console.error(`\n${failed} v65 regression check(s) failed.`);process.exit(1)}console.log('\nTEDVIO v65 Question Studio passes under v68+ split core.');

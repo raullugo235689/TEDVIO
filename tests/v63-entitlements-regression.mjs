@@ -17,6 +17,6 @@ must(e.includes('Los límites se validan también en el servidor.'),'v63 explain
 must(!/service_role|SUPABASE_SECRET|sb_secret_/i.test(e+teacherCore+sessionCore+loader+teacher+beta),'v63/split core expose no privileged key');
 must(css.includes('.tv63-plan-btn')&&css.includes('.tv63-meter')&&css.includes('@media(max-width:620px)'),'rollback v63 CSS remains intact');
 must(vercel.includes('/entitlements-v63.js')&&vercel.includes('/entitlements-v63.css'),'v63 rollback assets remain no-store');
-must(/tedvio-pilot-v68-20260826/.test(sw),'service worker remains v68 namespace');
+const cacheMajor=Number(sw.match(/tedvio-pilot-v(\d+)/)?.[1]||0);must(cacheMajor>=68,'service worker remains on audited v68+ namespace');
 const globalVersion=Number(String(version.version||'').split('.').pop()||0);must(version.channel==='pilot-ready'&&globalVersion>=63,'global Pilot Ready version remains v63 or newer');
-if(failed){console.error(`\n${failed} v63 regression check(s) failed.`);process.exit(1)}console.log('\nTEDVIO v63 entitlement contracts pass through v68.6 Teacher Core.');
+if(failed){console.error(`\n${failed} v63 regression check(s) failed.`);process.exit(1)}console.log('\nTEDVIO v63 entitlement contracts pass through v68+ Teacher Core.');

@@ -1,8 +1,8 @@
 {
   "app": "TEDVIO",
-  "version": "2026.08.26.68",
+  "version": "2026.08.28.69",
   "channel": "pilot-ready",
-  "audit": "onboarding-product-activation-demo-funnel",
+  "audit": "privacy-legal-account-center",
   "source": "main",
-  "generated_at": "2026-08-26"
+  "generated_at": "2026-08-28"
 }

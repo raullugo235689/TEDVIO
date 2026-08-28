@@ -1,0 +1,28 @@
+import fs from'node:fs';
+const read=p=>fs.readFileSync(p,'utf8');
+const app=read('account-center-v69.js'),css=read('account-center-v69.css'),theme=read('teacher-theme-v68-7.js'),teacher=read('teacher.html'),migration=read('supabase/migrations/20260828083500_v69_privacy_legal_account_center.sql'),edge=read('supabase/functions/tedvio-account-v69/index.ts'),version=JSON.parse(read('version.json'));
+let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
+must(app.includes("const VERSION='2026.08.28.69'")&&version.version==='2026.08.28.69'&&version.audit==='privacy-legal-account-center','v69 metadata is explicit');
+must(theme.includes("account-center-v69.css?v=69")&&theme.includes("import('./account-center-v69.js?v=69')")&&theme.includes("b.textContent='Cuenta'"),'Cuenta is a lazy topbar entry');
+must(!teacher.includes('account-center-v69'),'Account Center is absent from teacher first paint');
+must(!app.includes('createClient(')&&app.includes('window.__TEDVIO_DB__'),'Account Center reuses Teacher Core database client');
+must(app.includes("tedvio_account_center_snapshot_v69")&&app.includes("tedvio_user_consents"),'Account Center loads legal/account state and consent history');
+must(app.includes("tedvio_accept_legal_v69")&&app.includes('Aceptar versión'),'legal acceptance is versioned through guarded RPC');
+must(app.includes("db.auth.updateUser({password:a})")&&app.includes("scope:'others'"),'password update and other-session signout are implemented');
+must(app.includes("db.functions.invoke('tedvio-account-v69'")&&app.includes("type:'application/json'")&&app.includes('TEDVIO_Mis_Datos_'),'data export uses authenticated Edge Function and JSON file');
+must(edge.includes("verify")||edge.includes("auth.getUser(token)"),'export verifies the authenticated user');
+must(!edge.includes('access_token')&&!edge.includes('refresh_token')&&!edge.includes('join_token')&&!edge.includes("select('*')"),'export intentionally excludes auth/join tokens and raw wildcard dumps');
+must(edge.includes('question_bank')&&edge.includes('attendance')&&edge.includes('assignments')&&edge.includes('gradebook')&&edge.includes('paper_exams'),'export covers major academic data families');
+must(app.includes("phrase!=='ELIMINAR'")&&app.includes('30 días'),'deletion request requires explicit phrase and displays cooling-off window');
+must(app.includes('tedvio_request_account_deletion_v69')&&app.includes('tedvio_cancel_account_deletion_v69'),'deletion request and cancellation are available');
+must(app.includes('deletion_blockers')&&app.includes('único administrador'),'sole institution-admin dependency is surfaced before deletion');
+for(const table of ['tedvio_legal_documents','tedvio_user_consents','tedvio_account_deletion_requests','tedvio_data_export_audit'])must(migration.includes(`alter table public.${table} enable row level security`),`${table} has RLS enabled`);
+must(migration.includes('security definer')&&migration.includes('tedvio_private.accept_legal_v69')&&migration.includes('security invoker'),'privileged legal writes use private-definer/public-invoker pattern');
+must(migration.includes('from public,anon')&&migration.includes('to authenticated'),'legal/account RPC privileges explicitly deny anon');
+must(migration.includes("interval '30 days'")&&migration.includes("where status='pending'"),'deletion requests are unique while pending and scheduled for 30 days');
+must(css.includes('@media(max-width:760px)')&&css.includes('100dvh'),'Account Center has dedicated mobile layout');
+must(css.includes('var(--tv687-surface')&&css.includes('var(--tv687-text'),'Account Center inherits light/dark semantic theme tokens');
+must(!app.includes('setInterval(')&&!app.includes('new MutationObserver'),'Account Center adds no polling or mutation observers');
+must(!/service_role|SUPABASE_SECRET|sb_secret_/i.test(app+theme+teacher),'frontend contains no privileged credentials');
+if(failed){console.error(`\n${failed} v69 Privacy/Legal/Account check(s) failed.`);process.exit(1)}
+console.log('\nTEDVIO v69 Privacy, Legal & Account Center regression audit passed.');

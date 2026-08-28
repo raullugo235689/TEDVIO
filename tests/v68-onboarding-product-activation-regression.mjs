@@ -23,7 +23,7 @@ must(js.includes("hotfix:'68.1'")&&js.includes('scheduleDomSync')&&js.includes('
 must(!js.includes("new MutationObserver(()=>{if(teacherRoute()){installNav();installBanner()}})"),'self-triggering observer pattern remains removed');
 must(css.includes('.tv68-checklist')&&css.includes('@media(pointer:coarse)'),'onboarding CSS remains touch-ready');
 must(vercel.includes('/onboarding-v68.js')&&vercel.includes('/onboarding-v68.css'),'v68 assets remain no-store');
-must(sw.includes('tedvio-pilot-v68-20260826'),'service worker uses v68 namespace');
-must(version.channel==='pilot-ready'&&String(version.version).endsWith('.68'),'global metadata remains Pilot Ready v68 family');
+const cacheMajor=Number(sw.match(/tedvio-pilot-v(\d+)/)?.[1]||0),globalMajor=Number(String(version.version||'').split('.').pop()||0);must(cacheMajor>=68,'service worker remains on audited v68+ namespace');
+must(version.channel==='pilot-ready'&&globalMajor>=68,'global metadata remains Pilot Ready v68+ family');
 must(!/service_role|SUPABASE_SECRET|sb_secret_|access_token|refresh_token/i.test(js+teacherCore+loader+teacher+beta),'onboarding/split core contain no secrets');
-if(failed){console.error(`\n${failed} v68 regression check(s) failed.`);process.exit(1)}console.log('\nTEDVIO v68 Onboarding remains intact and lazy under v68.6.');
+if(failed){console.error(`\n${failed} v68 regression check(s) failed.`);process.exit(1)}console.log('\nTEDVIO v68 Onboarding remains intact and lazy under v68+ releases.');

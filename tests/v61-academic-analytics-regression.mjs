@@ -19,6 +19,6 @@ must(a.includes('Asistencia vs desempeño')&&a.includes('pearson')&&a.includes('
 must(a.includes('ga61Excel')&&a.includes('ga61Pdf'),'v61 preserves advanced exports');
 must(css.includes('#ga61Root')&&css.includes('@media(max-width:620px)'),'v61 CSS remains responsive');
 must(vercel.includes('/academic-analytics-v61.js')&&vercel.includes('/academic-analytics-v61.css'),'v61 assets remain no-store');
-must(/tedvio-pilot-v68-20260826/.test(sw),'service worker remains v68 namespace');
+const cacheMajor=Number(sw.match(/tedvio-pilot-v(\d+)/)?.[1]||0);must(cacheMajor>=68,"service worker remains on audited v68+ namespace");
 const globalVersion=Number(String(version.version||'').split('.').pop()||0);must(version.channel==='pilot-ready'&&globalVersion>=61,'global Pilot Ready version remains v61 or newer');
-if(failed){console.error(`\n${failed} v61 regression check(s) failed.`);process.exit(1)}console.log('\nTEDVIO v61 Analytics Pro remains intact and lazy under v68.6.');
+if(failed){console.error(`\n${failed} v61 regression check(s) failed.`);process.exit(1)}console.log('\nTEDVIO v61 Analytics Pro remains intact and lazy under v68+ Teacher Core.');

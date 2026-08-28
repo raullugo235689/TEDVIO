@@ -20,6 +20,6 @@ must(!/\.auth\.admin\./.test(admin+guard+teacherCore),'browser runtimes never us
 must(guard.includes("setInterval(()=>check(false),45000)")&&guard.includes('visibilitychange'),'rollback account guard remains intact on beta');
 must(css.includes('.tv62-admin')&&css.includes('@media(max-width:480px)'),'v62 admin CSS remains responsive');
 must(vercel.includes('/admin-v62.js')&&vercel.includes('/admin-v62.css')&&vercel.includes('/account-guard-v62.js'),'v62 assets remain no-store');
-must(/tedvio-pilot-v68-20260826/.test(sw),'service worker remains v68 namespace');
+const cacheMajor=Number(sw.match(/tedvio-pilot-v(\d+)/)?.[1]||0);must(cacheMajor>=68,'service worker remains on audited v68+ namespace');
 const globalVersion=Number(String(version.version||'').split('.').pop()||0);must(version.channel==='pilot-ready'&&globalVersion>=62,'global Pilot Ready version remains v62 or newer');
-if(failed){console.error(`\n${failed} v62 regression check(s) failed.`);process.exit(1)}console.log('\nTEDVIO v62 Admin/Account Guard contracts pass under v68.6 split core.');
+if(failed){console.error(`\n${failed} v62 regression check(s) failed.`);process.exit(1)}console.log('\nTEDVIO v62 Admin/Account Guard contracts pass under v68+ split core.');
