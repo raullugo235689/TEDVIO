@@ -2,7 +2,8 @@ import fs from'node:fs';
 const read=p=>fs.readFileSync(p,'utf8');
 const app=read('account-center-v69.js'),css=read('account-center-v69.css'),theme=read('teacher-theme-v68-7.js'),teacher=read('teacher.html'),migration=read('supabase/migrations/20260828083500_v69_privacy_legal_account_center.sql'),edge=read('supabase/functions/tedvio-account-v69/index.ts'),version=JSON.parse(read('version.json'));
 let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
-must(app.includes("const VERSION='2026.08.28.69'")&&version.version==='2026.08.28.69'&&version.audit==='privacy-legal-account-center','v69 metadata is explicit');
+const globalBuild=Number(String(version.version||'').split('.').pop()||0);
+must(app.includes("const VERSION='2026.08.28.69'")&&globalBuild>=69&&Boolean(version.audit),'v69 component metadata stays explicit while global release metadata may advance');
 must(theme.includes("account-center-v69.css?v=69")&&theme.includes("import('./account-center-v69.js?v=69')")&&theme.includes("b.textContent='Cuenta'"),'Cuenta is a lazy topbar entry');
 must(!teacher.includes('account-center-v69'),'Account Center is absent from teacher first paint');
 must(!app.includes('createClient(')&&app.includes('window.__TEDVIO_DB__'),'Account Center reuses Teacher Core database client');
@@ -25,4 +26,4 @@ must(css.includes('var(--tv687-surface')&&css.includes('var(--tv687-text'),'Acco
 must(!app.includes('setInterval(')&&!app.includes('new MutationObserver'),'Account Center adds no polling or mutation observers');
 must(!/service_role|SUPABASE_SECRET|sb_secret_/i.test(app+theme+teacher),'frontend contains no privileged credentials');
 if(failed){console.error(`\n${failed} v69 Privacy/Legal/Account check(s) failed.`);process.exit(1)}
-console.log('\nTEDVIO v69 Privacy, Legal & Account Center regression audit passed.');
+console.log('\nTEDVIO v69 Privacy, Legal & Account Center regression audit passed under current global release metadata.');

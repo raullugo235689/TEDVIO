@@ -4,10 +4,12 @@ const teacher=read('teacher.html'),css=read('teacher-mobile-compat-v68-8.css'),t
 let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
 const scripts=[...teacher.matchAll(/<script[^>]+src="([^"]+)"/g)].map(x=>x[1]);
 const styles=[...teacher.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/g)].map(x=>x[1]);
+const allowedScripts=['config.js','runtime-core-v64.js','teacher-core-v68-6.js','teacher-progressive-boot-v68.js','teacher-theme-v68-7.js','teacher-command-center-v70.js'];
+const unexpectedScripts=scripts.filter(src=>!allowedScripts.some(name=>src.includes(name)));
 must(teacher.includes('teacher-mobile-compat-v68-8.css?v=688'),'teacher loads v68.8 compatibility CSS after the theme layer');
 must(teacher.indexOf('teacher-theme-v68-7.css?v=687')<teacher.indexOf('teacher-mobile-compat-v68-8.css?v=688'),'v68.8 compatibility overrides load after v68.7 theme');
-must(scripts.length===5,'v68.8 adds no JavaScript to the five-script teacher shell');
-must(styles.length===9,'v68.8 adds exactly one CSS-only compatibility layer');
+must(scripts.length===allowedScripts.length&&allowedScripts.every(name=>scripts.some(src=>src.includes(name)))&&unexpectedScripts.length===0,'v68.8 remains CSS-only inside the explicitly audited v70 teacher shell');
+must(styles.length===10&&styles.filter(x=>x.includes('teacher-mobile-compat-v68-8.css')).length===1&&styles.filter(x=>x.includes('teacher-command-center-v70.css')).length===1,'v68.8 contributes one CSS-only compatibility layer and v70 contributes one command-center layer');
 must(css.includes('TEDVIO v68.8 · Mobile UI & Theme Compatibility'),'compatibility layer reports v68.8');
 for(const token of['#gaOverlay .b-modal.large.ga360-shell','.ga360-stats','.ga360-tabs','.ga360-body','.ga360-panel','.ga360-table'])must(css.includes(token),`Group Center compatibility includes ${token}`);
 must(css.includes('grid-template-columns:1fr 1fr!important')&&css.includes('height:100dvh!important'),'phone Group Center uses 2x2 KPIs and full-height workspace');
@@ -21,4 +23,4 @@ must(theme.includes("const KEY='tedvio.teacher.theme'")&&!/createClient|supabase
 must(sw.includes("/\\.(?:html|js|css|json|webmanifest)$/")||sw.includes('html|js|css|json|webmanifest'),'service worker keeps CSS in network-first/no-store shell handling');
 must(!/service_role|SUPABASE_SECRET|sb_secret_|access_token|refresh_token/i.test(css+teacher),'v68.8 contains no credentials or session tokens');
 if(failed){console.error(`\n${failed} v68.8 Mobile UI & Theme Compatibility check(s) failed.`);process.exit(1)}
-console.log('\nTEDVIO v68.8 Mobile UI & Theme Compatibility regression audit passed.');
+console.log('\nTEDVIO v68.8 Mobile UI & Theme Compatibility regression audit passed under v70.');
