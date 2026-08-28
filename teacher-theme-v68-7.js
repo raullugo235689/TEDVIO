@@ -2,7 +2,7 @@ const VERSION='2026.08.27.68.7';
 const KEY='tedvio.teacher.theme';
 const root=document.querySelector('#betaApp');
 const metaTheme=document.querySelector('meta[name="theme-color"]');
-let report6811Requested=false,settings6811Promise=null;
+let report6811Requested=false,settings6811Promise=null,reports6812Requested=false;
 
 function normalize(value){return value==='dark'?'dark':'light'}
 function readTheme(){try{return normalize(localStorage.getItem(KEY))}catch{return'light'}}
@@ -52,6 +52,11 @@ async function loadAttendanceReport(event){
   report6811Requested=true;
   try{await import('./attendance-institutional-report-v68-11.js?v=6811')}catch(error){report6811Requested=false;console.error('TEDVIO v68.11 attendance report',error)}
 }
+async function loadReportCenterLauncher(event){
+  if(event?.detail?.name!=='groups'||reports6812Requested)return;
+  reports6812Requested=true;
+  try{await import('./report-center-launcher-v68-12.js?v=6812')}catch(error){reports6812Requested=false;console.error('TEDVIO v68.12 Report Center launcher',error)}
+}
 async function openInstitutionSettings(){
   try{
     const api=window.__TEDVIO_PROGRESSIVE_BOOT68__;
@@ -65,10 +70,11 @@ applyTheme(readTheme(),{persist:false});
 window.addEventListener('tedvio:teacher-shell',()=>requestAnimationFrame(install));
 window.addEventListener('tedvio:teacher-ready',()=>requestAnimationFrame(install));
 window.addEventListener('tedvio:feature-ready',loadAttendanceReport);
+window.addEventListener('tedvio:feature-ready',loadReportCenterLauncher);
 document.addEventListener('click',event=>{const button=event.target.closest?.('#tvLazySetup');if(!button)return;event.preventDefault();event.stopImmediatePropagation();openInstitutionSettings()},true);
 if(root){new MutationObserver(()=>requestAnimationFrame(install)).observe(root,{childList:true,subtree:false})}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
-if(typeof window.tvAttendanceProOpen==='function')loadAttendanceReport({detail:{name:'groups'}});
+if(typeof window.tvAttendanceProOpen==='function'){loadAttendanceReport({detail:{name:'groups'}});loadReportCenterLauncher({detail:{name:'groups'}})}
 window.tv687Theme=applyTheme;
 window.tv6811OpenInstitutionSettings=openInstitutionSettings;
 window.__TEDVIO_THEME687__={version:VERSION,get theme(){return document.documentElement.dataset.tedvioTheme||'light'},set:applyTheme};
