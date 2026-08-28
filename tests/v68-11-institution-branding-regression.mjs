@@ -7,7 +7,8 @@ must(theme.includes("#tvLazySetup")&&theme.includes("loadStyle('./institution-se
 must(theme.includes("import('./attendance-institutional-report-v68-11.js?v=6811')")&&theme.includes("event?.detail?.name!=='groups'"),'branded report stays lazy behind Groups');
 must(!teacher.includes('institution-settings-v68-11')&&!teacher.includes('attendance-institutional-report-v68-11'),'v68.11 adds nothing to teacher first paint');
 must(settings.includes("tedvio_institution_memberships")&&settings.includes("m.member_role==='institution_admin'")&&settings.includes(".eq('status','active')"),'settings shows only active institution-admin memberships');
-must(settings.includes("tedvio_institutions")&&settings.includes('report_logo_path')&&settings.includes('report_approver_name')&&settings.includes('report_document_code'),'settings reads institution branding fields');
+must(settings.includes("tedvio_institutions")&&settings.includes('report_display_name')&&settings.includes('report_logo_path')&&settings.includes('report_approver_name')&&settings.includes('report_document_code'),'settings reads institution branding fields');
+must(settings.includes('Nombre mostrado en reportes')&&settings.includes('i.report_display_name||i.name'),'settings separates canonical institution name from report display name');
 must(settings.includes("db.rpc('tedvio_update_institution_branding_v6811'")&&!settings.includes(".from('tedvio_institutions').update"),'settings writes branding only through guarded RPC');
 must(settings.includes("image/png")&&settings.includes("image/jpeg")&&settings.includes('2*1024*1024'),'logo upload is limited to PDF-safe PNG/JPG at 2 MB');
 must(settings.includes("${S.user.id}/institution-branding/${id}/logo-${Date.now()}")&&settings.includes("db.storage.from(BUCKET).upload"),'logo path is scoped to user and institution');
@@ -16,7 +17,9 @@ must(migration.includes("member_role = 'institution_admin'")&&migration.includes
 must(migration.includes('security definer')&&migration.includes('tedvio_private.update_institution_branding_v6811')&&migration.includes('security invoker'),'privileged helper stays private behind public invoker wrapper');
 must(migration.includes('revoke execute on function public.tedvio_update_institution_branding_v6811')&&migration.includes('from anon')&&migration.includes('to authenticated'),'RPC explicitly denies anon and grants authenticated');
 must(migration.includes("'/institution-branding/'")&&migration.includes('INVALID_LOGO_PATH'),'database validates logo ownership path');
-must(report.includes("tedvio_institution_memberships")&&report.includes("tedvio_institutions")&&report.includes("norm(x.name)===target"),'report resolves branding only for matching member institution');
+must(migration.includes('report_display_name =')&&!migration.includes('name = left(btrim(p_name)'),'branding updates report display name without mutating canonical institution name');
+must(report.includes("tedvio_institution_memberships")&&report.includes("tedvio_institutions")&&report.includes("norm(x.name)===target"),'report resolves branding only by stable canonical institution match');
+must(report.includes('b.report_display_name||b.name')&&report.includes("report_display_name"),'report renders configurable display name after canonical matching');
 must(report.includes("report_title")&&report.includes("report_approver_name")&&report.includes("report_approver_title")&&report.includes("report_approval_label")&&report.includes("report_document_code"),'report consumes configured title, approval and document-code fields');
 must(report.includes("getPublicUrl(path)")&&report.includes("doc.addImage")&&report.includes("image/png")&&report.includes("image/jpeg"),'report embeds configured public PNG/JPG logo');
 must(report.includes("meta.approverName||'COORDINACIÓN ACADÉMICA'")&&report.includes("meta.approvalLabel||'Vo. Bo.'"),'report has safe approval fallbacks when fields are blank');
