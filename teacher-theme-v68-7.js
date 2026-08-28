@@ -2,7 +2,7 @@ const VERSION='2026.08.27.68.7';
 const KEY='tedvio.teacher.theme';
 const root=document.querySelector('#betaApp');
 const metaTheme=document.querySelector('meta[name="theme-color"]');
-let report6810Requested=false;
+let report6811Requested=false,settings6811Promise=null;
 
 function normalize(value){return value==='dark'?'dark':'light'}
 function readTheme(){try{return normalize(localStorage.getItem(KEY))}catch{return'light'}}
@@ -48,17 +48,27 @@ function install(){
   syncButtons(document.documentElement.dataset.tedvioTheme||readTheme());
 }
 async function loadAttendanceReport(event){
-  if(event?.detail?.name!=='groups'||report6810Requested)return;
-  report6810Requested=true;
-  try{await import('./attendance-institutional-report-v68-10.js?v=6810')}catch(error){report6810Requested=false;console.error('TEDVIO v68.10 attendance report',error)}
+  if(event?.detail?.name!=='groups'||report6811Requested)return;
+  report6811Requested=true;
+  try{await import('./attendance-institutional-report-v68-11.js?v=6811')}catch(error){report6811Requested=false;console.error('TEDVIO v68.11 attendance report',error)}
+}
+async function openInstitutionSettings(){
+  try{
+    const api=window.__TEDVIO_PROGRESSIVE_BOOT68__;
+    if(api?.loadStyle)await api.loadStyle('./institution-settings-v68-11.css?v=6811');
+    if(!settings6811Promise)settings6811Promise=import('./institution-settings-v68-11.js?v=6811');
+    await settings6811Promise;window.tv6811OpenSettings?.();
+  }catch(error){settings6811Promise=null;console.error('TEDVIO v68.11 institution settings',error);alert('No pude abrir la configuración institucional.')}
 }
 
 applyTheme(readTheme(),{persist:false});
 window.addEventListener('tedvio:teacher-shell',()=>requestAnimationFrame(install));
 window.addEventListener('tedvio:teacher-ready',()=>requestAnimationFrame(install));
 window.addEventListener('tedvio:feature-ready',loadAttendanceReport);
+document.addEventListener('click',event=>{const button=event.target.closest?.('#tvLazySetup');if(!button)return;event.preventDefault();event.stopImmediatePropagation();openInstitutionSettings()},true);
 if(root){new MutationObserver(()=>requestAnimationFrame(install)).observe(root,{childList:true,subtree:false})}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 if(typeof window.tvAttendanceProOpen==='function')loadAttendanceReport({detail:{name:'groups'}});
 window.tv687Theme=applyTheme;
+window.tv6811OpenInstitutionSettings=openInstitutionSettings;
 window.__TEDVIO_THEME687__={version:VERSION,get theme(){return document.documentElement.dataset.tedvioTheme||'light'},set:applyTheme};
