@@ -4,10 +4,12 @@ const teacher=read('teacher.html'),js=read('teacher-theme-v68-7.js'),css=read('t
 let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
 const scripts=[...teacher.matchAll(/<script[^>]+src="([^"]+)"/g)].map(x=>x[1]);
 const styles=[...teacher.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/g)].map(x=>x[1]);
+const allowedScripts=['config.js','runtime-core-v64.js','teacher-core-v68-6.js','teacher-progressive-boot-v68.js','teacher-theme-v68-7.js','teacher-command-center-v70.js'];
+const unexpectedScripts=scripts.filter(src=>!allowedScripts.some(name=>src.includes(name)));
 must(teacher.includes('data-tedvio-theme="light"'),'white appearance is the safe default');
 must(teacher.includes('teacher-theme-v68-7.js?v=687')&&teacher.includes('teacher-theme-v68-7.css?v=687'),'teacher shell loads v68.7 theme controller and styles');
-must(scripts.length===5&&scripts.filter(x=>x.includes('teacher-theme-v68-7.js')).length===1,'theme adds only one tiny JS runtime to the four-script Teacher Core');
-must(styles.length<=9&&styles.filter(x=>x.includes('teacher-theme-v68-7.css')).length===1,'theme family stays lean while allowing one CSS-only compatibility layer');
+must(scripts.length===allowedScripts.length&&allowedScripts.every(name=>scripts.some(src=>src.includes(name)))&&unexpectedScripts.length===0&&scripts.filter(x=>x.includes('teacher-theme-v68-7.js')).length===1,'theme remains one isolated runtime inside the explicitly audited v70 teacher shell');
+must(styles.length===10&&styles.filter(x=>x.includes('teacher-theme-v68-7.css')).length===1&&styles.filter(x=>x.includes('teacher-mobile-compat-v68-8.css')).length===1&&styles.filter(x=>x.includes('teacher-command-center-v70.css')).length===1,'theme family stays lean with one theme, one compatibility and one command-center layer');
 must(!teacher.includes('beta.js?v=56')&&!teacher.includes('student-v60.js'),'dual theme does not restore legacy/student engines');
 must(js.includes("const VERSION='2026.08.27.68.7'")&&js.includes("const KEY='tedvio.teacher.theme'"),'theme controller reports v68.7 and uses a dedicated preference key');
 must(js.includes("value==='dark'?'dark':'light'")&&js.includes("localStorage.setItem(KEY,theme)"),'theme values are constrained and persisted locally');
@@ -27,4 +29,4 @@ must(css.includes('@media(prefers-reduced-motion:reduce)'),'theme respects reduc
 must(vercel.includes('/teacher-theme-v68-7.js')&&vercel.includes('/teacher-theme-v68-7.css'),'theme assets are configured no-store');
 must(!/service_role|SUPABASE_SECRET|sb_secret_|access_token|refresh_token/i.test(js+teacher),'theme layer contains no privileged credentials or session tokens');
 if(failed){console.error(`\n${failed} v68.7 Dual Theme Premium check(s) failed.`);process.exit(1)}
-console.log('\nTEDVIO v68.7 Dual Theme Premium regression audit passed.');
+console.log('\nTEDVIO v68.7 Dual Theme Premium regression audit passed under v70.');
