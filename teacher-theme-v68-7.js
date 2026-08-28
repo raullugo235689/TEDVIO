@@ -2,6 +2,7 @@ const VERSION='2026.08.27.68.7';
 const KEY='tedvio.teacher.theme';
 const root=document.querySelector('#betaApp');
 const metaTheme=document.querySelector('meta[name="theme-color"]');
+let report6810Requested=false;
 
 function normalize(value){return value==='dark'?'dark':'light'}
 function readTheme(){try{return normalize(localStorage.getItem(KEY))}catch{return'light'}}
@@ -46,11 +47,18 @@ function install(){
   });
   syncButtons(document.documentElement.dataset.tedvioTheme||readTheme());
 }
+async function loadAttendanceReport(event){
+  if(event?.detail?.name!=='groups'||report6810Requested)return;
+  report6810Requested=true;
+  try{await import('./attendance-institutional-report-v68-10.js?v=6810')}catch(error){report6810Requested=false;console.error('TEDVIO v68.10 attendance report',error)}
+}
 
 applyTheme(readTheme(),{persist:false});
 window.addEventListener('tedvio:teacher-shell',()=>requestAnimationFrame(install));
 window.addEventListener('tedvio:teacher-ready',()=>requestAnimationFrame(install));
+window.addEventListener('tedvio:feature-ready',loadAttendanceReport);
 if(root){new MutationObserver(()=>requestAnimationFrame(install)).observe(root,{childList:true,subtree:false})}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
+if(typeof window.tvAttendanceProOpen==='function')loadAttendanceReport({detail:{name:'groups'}});
 window.tv687Theme=applyTheme;
 window.__TEDVIO_THEME687__={version:VERSION,get theme(){return document.documentElement.dataset.tedvioTheme||'light'},set:applyTheme};
