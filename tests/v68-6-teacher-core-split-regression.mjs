@@ -4,13 +4,16 @@ const teacher=read('teacher.html'),beta=read('beta.html'),core=read('teacher-cor
 let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
 const scripts=[...teacher.matchAll(/<script[^>]+src="([^"]+)"/g)].map(x=>x[1]);
 const styles=[...teacher.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/g)].map(x=>x[1]);
-must(scripts.length===5,`teacher first paint has four functional scripts plus tiny theme controller (${scripts.length})`);
-must(scripts.some(x=>x.includes('config.js'))&&scripts.some(x=>x.includes('runtime-core-v64.js'))&&scripts.some(x=>x.includes('teacher-core-v68-6.js'))&&scripts.some(x=>x.includes('teacher-progressive-boot-v68.js'))&&scripts.some(x=>x.includes('teacher-theme-v68-7.js')),'first paint is config + reliability + teacher core + demand loader + theme controller');
+const allowedScripts=['config.js','runtime-core-v64.js','teacher-core-v68-6.js','teacher-progressive-boot-v68.js','teacher-theme-v68-7.js','teacher-command-center-v70.js'];
+const unexpectedScripts=scripts.filter(src=>!allowedScripts.some(name=>src.includes(name)));
+must(scripts.length===allowedScripts.length&&allowedScripts.every(name=>scripts.some(src=>src.includes(name)))&&unexpectedScripts.length===0,`teacher first paint keeps the audited split-core foundation plus the v70 command-center controller (${scripts.length})`);
+must(teacher.includes('teacher-command-center-v70.js?v=70'),'v70 command-center runtime is explicit and versioned');
 for(const legacy of ['beta.js','auth-handoff-v68-3.js','beta-auth-fix.js','beta-runtime-hooks.js','beta-session-stability-v1.js','beta-student-runtime-pre.js','student-v60.js','student-security-v67.js'])must(!teacher.includes(legacy),`split teacher omits ${legacy}`);
 const compatStyles=styles.filter(x=>x.includes('teacher-mobile-compat-v68-8.css'));
-must(styles.length<=9&&compatStyles.length<=1,`teacher CSS budget stays lean and permits only one CSS-only v68.8 compatibility layer (${styles.length} stylesheets)`);
+const commandStyles=styles.filter(x=>x.includes('teacher-command-center-v70.css'));
+must(styles.length<=10&&compatStyles.length<=1&&commandStyles.length===1,`teacher CSS budget stays lean and permits one v68.8 compatibility + one v70 command-center layer (${styles.length} stylesheets)`);
 must(teacher.includes('teacher-theme-v68-7.css?v=687'),'dual premium theme CSS remains active');
-must(styles.length<9||teacher.includes('teacher-mobile-compat-v68-8.css?v=688'),'a ninth stylesheet is allowed only when it is the audited v68.8 mobile/theme compatibility layer');
+must(styles.length<10||(teacher.includes('teacher-mobile-compat-v68-8.css?v=688')&&teacher.includes('teacher-command-center-v70.css?v=70')),'a tenth stylesheet is allowed only for audited mobile compatibility plus the v70 command center');
 for(const heavy of ['live-classroom-v58.css','student-v60.css','academic-analytics-v61.css','admin-v62.css','entitlements-v63.css','question-studio-v65.css','assignments-v66.css','security-commercial-v67.css','onboarding-v68.css','beta-attendance-pro-v1.css'])must(!teacher.includes(heavy),`heavy/feature CSS ${heavy} is not first paint`);
 must(core.includes("const VERSION='2026.08.27.68.6'")&&session.includes("const VERSION='2026.08.27.68.6'"),'teacher/session split runtimes report v68.6');
 must(core.includes("from('tedvio_user_profiles').select('status,plan,role')")&&core.includes("db.rpc('tedvio_current_entitlements')")&&core.includes("db.rpc('v2_teacher_today_dashboard')"),'teacher startup uses profile + entitlement + aggregate dashboard only');
@@ -31,4 +34,4 @@ for(const asset of ['/teacher-core-v68-6.js','/teacher-core-v68-6.css','/teacher
 const cacheMajor=Number(sw.match(/tedvio-pilot-v(\d+)/)?.[1]||0);must(cacheMajor>=68,'split core remains on a fresh audited v68+ service-worker namespace');
 must(!/service_role|SUPABASE_SECRET|sb_secret_/i.test(core+session+loader+teacher),'split teacher exposes no privileged key material');
 if(failed){console.error(`\n${failed} v68.6+ Teacher Core Split check(s) failed.`);process.exit(1)}
-console.log('\nTEDVIO v68.6+ Teacher Core Split regression audit passed.');
+console.log('\nTEDVIO v68.6+ Teacher Core Split regression audit passed with the v70 command-center layer.');
