@@ -4,7 +4,7 @@ const core=()=>window.__TEDVIO_TEACHER686__||null;
 const db=()=>core()?.db||null;
 const uid=()=>core()?.state?.user?.id||null;
 const esc=(v='')=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-const n=v=>{const x=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(x)?x:null};
+const n=v=>{const clean=String(v??'').replace(/[^0-9.-]/g,'');if(!clean||clean==='-'||clean==='.'||clean==='-.')return null;const x=Number(clean);return Number.isFinite(x)?x:null};
 const fmtDate=v=>{if(!v)return'—';const d=new Date(String(v).length===10?`${v}T12:00:00`:v);return Number.isFinite(d.getTime())?d.toLocaleDateString('es-MX',{day:'numeric',month:'short'}):'—'};
 const mean=a=>a.length?a.reduce((s,x)=>s+x,0)/a.length:null;
 const median=a=>{if(!a.length)return null;const x=[...a].sort((a,b)=>a-b),m=Math.floor(x.length/2);return x.length%2?x[m]:(x[m-1]+x[m])/2};
