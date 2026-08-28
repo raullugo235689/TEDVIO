@@ -1,0 +1,20 @@
+name: TEDVIO v68.11 Institution Branding Audit
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  institution-branding-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check v68.11 JavaScript syntax
+        run: |
+          node --check institution-settings-v68-11.js
+          node --check attendance-institutional-report-v68-11.js
+      - name: Run v68.11 institution branding regression audit
+        run: node tests/v68-11-institution-branding-regression.mjs
+      - name: Confirm v68.11 assets
+        run: |
+          test -f institution-settings-v68-11.css
+          test -f supabase/migrations/20260828064000_v68_11_institution_branding_signatures.sql
