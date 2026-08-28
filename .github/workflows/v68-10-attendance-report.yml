@@ -1,0 +1,23 @@
+name: TEDVIO v68.10 Attendance Report Audit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  attendance-report-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check institutional report syntax
+        run: node --check attendance-institutional-report-v68-10.js
+      - name: Check theme hook syntax
+        run: node --check teacher-theme-v68-7.js
+      - name: Run v68.10 institutional report regression audit
+        run: node tests/v68-10-institutional-attendance-report-regression.mjs
+      - name: Confirm report assets
+        run: |
+          test -f attendance-institutional-report-v68-10.js
+          test -f tests/v68-10-institutional-attendance-report-regression.mjs
