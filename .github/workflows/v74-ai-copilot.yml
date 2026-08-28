@@ -1,0 +1,48 @@
+name: TEDVIO v74 AI Copilot Audit
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'api/tedvio-ai.js'
+      - 'teacher-ai-copilot-v74.js'
+      - 'teacher-ai-copilot-v74.css'
+      - 'teacher-progressive-boot-v68.js'
+      - 'version.json'
+      - 'supabase/migrations/20260828201138_v74_teacher_ai_context.sql'
+      - 'tests/v73-1-teacher-workflow-smoke.mjs'
+      - 'tests/v73-assessment-intelligence-regression.mjs'
+      - 'tests/v74-ai-copilot-regression.mjs'
+      - '.github/workflows/v74-ai-copilot.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check api/tedvio-ai.js
+          node --check teacher-ai-copilot-v74.js
+          node --check teacher-progressive-boot-v68.js
+      - name: AI Copilot regression
+        run: |
+          node tests/v73-1-teacher-workflow-smoke.mjs
+          node tests/v74-ai-copilot-regression.mjs
+      - name: Compatibility regressions
+        run: |
+          node tests/v68-5-demand-driven-performance-regression.mjs
+          node tests/v68-6-teacher-core-split-regression.mjs
+          node tests/v68-7-dual-theme-premium-regression.mjs
+          node tests/v68-8-mobile-theme-compat-regression.mjs
+          node tests/v68-9-export-reliability-regression.mjs
+          node tests/v70-classroom-os-regression.mjs
+          node tests/v71-group-intelligence-regression.mjs
+          node tests/v72-academic-workflow-regression.mjs
+          node tests/v73-assessment-intelligence-regression.mjs
+          node tests/ios-safari-syntax-audit.mjs
+          git diff --check
