@@ -1,4 +1,5 @@
 alter table public.tedvio_institutions
+  add column if not exists report_display_name text,
   add column if not exists report_logo_path text,
   add column if not exists report_title text not null default 'REGISTRO DE ASISTENCIA Y EVALUACIÓN',
   add column if not exists report_approver_name text,
@@ -34,12 +35,11 @@ begin
       and m.status = 'active'
       and m.member_role = 'institution_admin'
   ) then raise exception 'INSTITUTION_ADMIN_REQUIRED'; end if;
-  if nullif(btrim(coalesce(p_name,'')),'') is null then raise exception 'INSTITUTION_NAME_REQUIRED'; end if;
   if p_report_logo_path is not null and p_report_logo_path !~ ('^' || v_uid::text || '/institution-branding/' || p_institution_id::text || '/[A-Za-z0-9._-]+$') then
     raise exception 'INVALID_LOGO_PATH';
   end if;
   update public.tedvio_institutions i set
-    name = left(btrim(p_name), 160),
+    report_display_name = nullif(left(btrim(coalesce(p_name,'')),160),''),
     report_logo_path = nullif(btrim(coalesce(p_report_logo_path,'')),''),
     report_title = left(coalesce(nullif(btrim(coalesce(p_report_title,'')),''),'REGISTRO DE ASISTENCIA Y EVALUACIÓN'),160),
     report_approver_name = nullif(left(btrim(coalesce(p_report_approver_name,'')),160),''),
