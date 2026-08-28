@@ -1,0 +1,18 @@
+name: TEDVIO v71 Group Intelligence Audit
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax · Group Intelligence
+        run: node --check teacher-group-intelligence-v71.js
+      - name: v71 Group Intelligence regression
+        run: node tests/v71-group-intelligence-regression.mjs

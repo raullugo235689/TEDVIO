@@ -1,8 +1,8 @@
 {
   "app": "TEDVIO",
-  "version": "2026.08.28.70",
+  "version": "2026.08.28.71",
   "channel": "pilot-ready",
-  "audit": "teacher-command-center-classroom-os",
+  "audit": "teacher-group-intelligence",
   "source": "main",
   "generated_at": "2026-08-28"
 }

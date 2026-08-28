@@ -1,0 +1,23 @@
+import fs from'node:fs';
+const read=p=>fs.readFileSync(p,'utf8');
+const js=read('teacher-group-intelligence-v71.js'),css=read('teacher-group-intelligence-v71.css'),loader=read('teacher-progressive-boot-v68.js'),version=JSON.parse(read('version.json'));
+let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
+const build=Number(String(version.version||'').split('.').pop()||0);
+must(build>=71&&version.audit==='teacher-group-intelligence','global release metadata advances to v71');
+must(loader.includes("'./teacher-group-intelligence-v71.css?v=71'")&&loader.includes("['./teacher-group-intelligence-v71.js?v=71','module']"),'group intelligence is registered only in the lazy Groups feature');
+must(!read('teacher.html').includes('teacher-group-intelligence-v71'),'v71 adds nothing to teacher first paint');
+must(js.includes("const VERSION='2026.08.28.71'")&&js.includes('__TEDVIO_GROUP_INTELLIGENCE71__'),'v71 runtime and public diagnostic handle are explicit');
+must(js.includes('__TEDVIO_TEACHER686__')&&!/createClient\(/.test(js),'v71 reuses the authenticated Teacher Core client');
+must(js.includes('TEDVIO · PERFIL 360°')&&js.includes('HISTORIAL ACADÉMICO RECIENTE'),'student 360 adds actionable insight and timeline');
+must(js.includes('TEDVIO · LIBRO INTELIGENTE')&&js.includes('Aprobación')&&js.includes('Mediana'),'gradebook adds group-level academic intelligence');
+must(js.includes('TEDVIO · EXAM INSIGHT')&&js.includes('REACTIVOS CON MAYOR DIFICULTAD'),'latest OMR gets item-difficulty analysis');
+must(js.includes('TEDVIO INSIGHT · REGLAS ACADÉMICAS')&&!/TEDVIO AI|inteligencia artificial/i.test(js),'rules-based insight is labeled honestly and does not impersonate AI');
+must(js.includes("eq('teacher_id',teacher)")&&js.includes("eq('group_id',groupId)"),'queries stay scoped to the authenticated teacher and active group');
+must(!js.includes('setInterval(')&&!js.includes('new MutationObserver'),'v71 adds no polling or mutation observers');
+must(js.includes('STATE.student')&&js.includes('STATE.exam')&&js.includes('STATE.settings'),'on-demand academic queries are cached per group/student');
+must(js.includes('data-tv71-filter')&&js.includes('Exportar CSV'),'gradebook supports risk filters and lightweight export');
+must(css.includes('var(--tv687-surface')&&css.includes('data-tedvio-theme="dark"'),'v71 inherits semantic light/dark theme tokens');
+must(css.includes('@media(max-width:760px)')&&css.includes('@media(prefers-reduced-motion:reduce)'),'v71 remains phone-friendly and motion-safe');
+must(!/service_role|SUPABASE_SECRET|sb_secret_|access_token|refresh_token/i.test(js+loader),'v71 exposes no privileged credentials or auth tokens');
+if(failed){console.error(`\n${failed} v71 Group Intelligence check(s) failed.`);process.exit(1)}
+console.log('\nTEDVIO v71 Group Intelligence regression audit passed.');

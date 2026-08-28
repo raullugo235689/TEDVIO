@@ -11,7 +11,7 @@
   const XLSX=['https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js','classic'];
   const PDF=[['https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js','classic'],['https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js','classic']];
   const registry={
-    groups:{styles:['./beta-groups-premium-v1.css?v=56','./beta-group-center-v2.css?v=56','./beta-attendance-pro-v1.css?v=56'],scripts:[['./beta-academics.js?v=56','module'],['./beta-academics-edit-v1.js?v=56','module'],['./beta-groups-core-v3.js?v=56','module'],['./beta-groups-premium-v1.js?v=56','module'],['./beta-group-center-v2.js?v=56','module'],['./beta-attendance-pro-v1.js?v=56','module'],['./export-reliability-v68-9.js?v=689','module'],['./beta-session-delete-v1.js?v=56','module']]},
+    groups:{styles:['./beta-groups-premium-v1.css?v=56','./beta-group-center-v2.css?v=56','./beta-attendance-pro-v1.css?v=56','./teacher-group-intelligence-v71.css?v=71'],scripts:[['./beta-academics.js?v=56','module'],['./beta-academics-edit-v1.js?v=56','module'],['./beta-groups-core-v3.js?v=56','module'],['./beta-groups-premium-v1.js?v=56','module'],['./beta-group-center-v2.js?v=56','module'],['./beta-attendance-pro-v1.js?v=56','module'],['./export-reliability-v68-9.js?v=689','module'],['./teacher-group-intelligence-v71.js?v=71','module'],['./beta-session-delete-v1.js?v=56','module']]},
     exports:{styles:[],scripts:[XLSX,...PDF]},
     bank:{styles:['./question-studio-v65.css?v=65'],scripts:[XLSX,['./question-studio-v65.js?v=65','module']]},
     tasks:{styles:['./assignments-v66.css?v=66'],scripts:[['./assignments-v66.js?v=66','module']]},
