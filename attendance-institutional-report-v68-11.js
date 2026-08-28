@@ -18,7 +18,7 @@ async function ensurePdf(){if(window.jspdf?.jsPDF&&window.jspdf?.jsPDF?.API)retu
 async function loadBranding(uid,institutionName){
   const{data:memberships,error:me}=await db.from('tedvio_institution_memberships').select('institution_id,status').eq('user_id',uid).eq('status','active');if(me)return null;
   const ids=(memberships||[]).map(x=>x.institution_id);if(!ids.length)return null;
-  const{data,error}=await db.from('tedvio_institutions').select('id,name,report_logo_path,report_title,report_approver_name,report_approver_title,report_approval_label,report_document_code').in('id',ids);if(error)return null;
+  const{data,error}=await db.from('tedvio_institutions').select('id,name,report_display_name,report_logo_path,report_title,report_approver_name,report_approver_title,report_approval_label,report_document_code').in('id',ids);if(error)return null;
   const target=norm(institutionName);return(data||[]).find(x=>norm(x.name)===target)||null;
 }
 async function loadInstitutionalData(){
@@ -42,7 +42,7 @@ async function loadInstitutionalData(){
 function metaFrom(data){
   const g=data.group||{},p=data.program||{},u=data.university||{},b=data.branding||{};
   return{
-    institution:clean(b.name||u.name||g.university||'INSTITUCIÓN ACADÉMICA').toUpperCase(),
+    institution:clean(b.report_display_name||b.name||u.name||g.university||'INSTITUCIÓN ACADÉMICA').toUpperCase(),
     program:clean(p.name||g.program||g.section||'—').toUpperCase(),cycle:clean(g.term||g.school_cycle||g.cycle||'—'),
     subject:clean(g.subject||g.course_name||g.name||g.group_name||'—').toUpperCase(),group:clean(g.name||g.group_name||'—').toUpperCase(),
     professor:professorName(data.user).toUpperCase(),period:`De la fecha ${dateMx(data.bounds.start)} a la fecha ${dateMx(data.bounds.end)}`,
