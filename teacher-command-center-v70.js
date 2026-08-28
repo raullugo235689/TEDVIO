@@ -227,6 +227,7 @@ function render(){
       </aside>
     </div>
   </div>`;
+  tv72EnhanceDashboard();
 }
 function scheduleRender(){
   requestAnimationFrame(()=>requestAnimationFrame(render));
@@ -455,3 +456,81 @@ window.tv70StartLive=startLive;
 window.tv70PickStudent=pickStudent;
 window.tv70Timer={show:showTimer,set:setTimer,start:startTimer,pause:pauseTimer,reset:resetTimer};
 window.__TEDVIO_COMMAND_CENTER70__={version:VERSION,render,openClass,get dashboard(){return dash()}};
+/* TEDVIO v72 · Academic Workflow Home */
+const TV72_VERSION='2026.08.28.72';
+function tv72CompactAction(action,groupId,label,cls='ghost'){
+  return`<button class="tv70-btn ${cls}" data-tv70-action="${esc(action)}"${groupId?` data-group="${esc(groupId)}"`:''}>${esc(label)}</button>`;
+}
+function tv72RouteStep(number,label,value,detail,action,groupId,cta,tone=''){
+  return`<article class="tv72-route-step ${esc(tone)}">
+    <i>${esc(number)}</i>
+    <div><span>${esc(label)}</span><b>${esc(value)}</b><small>${esc(detail)}</small></div>
+    ${tv72CompactAction(action,groupId,cta,'mini ghost')}
+  </article>`;
+}
+function tv72DailyTasks(d,gs){
+  const rows=[];
+  const active=gs.find(g=>['open','paused'].includes(String(g.today_attendance_status||'')));
+  const pending=gs.find(g=>Number(g.students||0)>0&&!g.today_attendance_status);
+  const priority=(Array.isArray(d?.priority_students)?d.priority_students:[]).find(x=>x.status==='risk')||(Array.isArray(d?.priority_students)?d.priority_students:[])[0];
+  if(active)rows.push({tone:'live',title:`${groupName(active)} · ${attendanceState(active).cta}`,detail:attendanceState(active).detail,action:'attendance',groupId:active.id,cta:'Continuar'});
+  if(pending)rows.push({tone:'pending',title:`${groupName(pending)} · Sin lista hoy`,detail:`${groupSubject(pending)} · ${num(pending.students||0)} alumnos.`,action:'attendance',groupId:pending.id,cta:'Tomar lista'});
+  if(priority)rows.push({tone:priority.status==='risk'?'risk':'watch',title:`${priority.full_name||'Alumno'} · ${priority.status==='risk'?'Riesgo':'Seguimiento'}`,detail:[priority.attendance_rate!=null?`Asistencia ${pct(priority.attendance_rate)}`:'',priority.grade!=null?`Promedio ${grade(priority.grade)}`:''].filter(Boolean).join(' · ')||'Requiere revisión académica.',action:'group',groupId:priority.group_id,cta:'Revisar'});
+  if(!rows.length&&d?.latest_evaluation?.group_id)rows.push({tone:'eval',title:d.latest_evaluation.title||'Evaluación reciente',detail:`Promedio ${grade(d.latest_evaluation.average)} · Cierra el ciclo de retroalimentación.`,action:'exam',groupId:d.latest_evaluation.group_id,cta:'Resultados'});
+  if(!rows.length)return`<div class="tv72-task-empty"><b>Tu jornada está al día.</b><span>No hay listas abiertas ni alertas prioritarias en este momento.</span></div>`;
+  return`<div class="tv72-task-list">${rows.slice(0,3).map(x=>`<div class="tv72-task ${esc(x.tone)}"><i></i><div><b>${esc(x.title)}</b><span>${esc(x.detail)}</span></div>${tv72CompactAction(x.action,x.groupId,x.cta,'mini ghost')}</div>`).join('')}</div>`;
+}
+function tv72EnhanceDashboard(){
+  const host=document.querySelector('#tv686Dashboard'),d=dash();
+  if(!host||!d||!host.querySelector('.tv70-dashboard'))return;
+  const gs=Array.isArray(d.groups)?d.groups:[];
+  const pending=gs.filter(g=>Number(g.students||0)>0&&!g.today_attendance_status);
+  const active=gs.filter(g=>['open','paused'].includes(String(g.today_attendance_status||'')));
+  const closed=gs.filter(g=>String(g.today_attendance_status||'')==='closed');
+  const priorityCount=Number(d.risk_students||0)+Number(d.watch_students||0);
+  const lastId=sessionStorage.getItem('tedvio.currentGroupId')||'';
+  const last=groupById(lastId);
+  const signature=[gs.map(g=>`${g.id}:${g.today_attendance_status||'-'}:${g.risk_count||0}:${g.watch_count||0}`).join('|'),lastId,d.risk_students,d.watch_students,d.latest_evaluation?.group_id||''].join('::');
+  const existing=host.querySelector('.tv72-home-workflow');
+  if(existing?.dataset.signature===signature)return;
+  existing?.remove();
+  const contextual=active.length
+    ?`${active.length} asistencia${active.length===1?'':'s'} en curso. Continúa el registro antes de abrir una nueva lista.`
+    :pending.length
+      ?`${pending.length} grupo${pending.length===1?'':'s'} con alumnos espera${pending.length===1?'':'n'} lista de hoy.`
+      :priorityCount
+        ?`${priorityCount} alumno${priorityCount===1?'':'s'} necesita${priorityCount===1?'':'n'} seguimiento académico.`
+        :'Tu operación académica está al día. TEDVIO conserva el siguiente paso de cada grupo.';
+  const intro=host.querySelector('.tv70-command-copy p');
+  if(intro)intro.textContent=contextual;
+  const prepareGroup=pending[0]||gs[0]||null;
+  const liveGroup=active[0]||last||gs[0]||null;
+  const closeGroup=(Array.isArray(d.priority_students)?d.priority_students:[])[0]?.group_id||d.latest_evaluation?.group_id||last?.id||gs[0]?.id||'';
+  const lastAction=last&&['open','paused'].includes(String(last.today_attendance_status||''))?'attendance':'class';
+  const lastCta=lastAction==='attendance'?attendanceState(last).cta:'Continuar grupo';
+  const section=document.createElement('section');
+  section.className='tv72-home-workflow';
+  section.dataset.signature=signature;
+  section.innerHTML=`<header class="tv72-home-head">
+      <div><span class="tv70-overline">TEDVIO · ACADEMIC WORKFLOW</span><h2>Tu ruta académica de hoy</h2><p>Prepara, conduce y cierra cada clase sin perder el hilo del grupo.</p></div>
+      <span class="tv72-release">v72</span>
+    </header>
+    <div class="tv72-home-grid">
+      <div class="tv72-route" aria-label="Ruta académica de hoy">
+        ${tv72RouteStep('1','PREPARAR',pending.length?`${pending.length} pendiente${pending.length===1?'':'s'}`:'Al día',pending.length?'Grupos con alumnos y sin lista hoy.':'No hay listas pendientes.',pending.length?'attendance':'groups',prepareGroup?.id||'',pending.length?'Tomar lista':'Ver grupos',pending.length?'attention':'ok')}
+        ${tv72RouteStep('2','DAR CLASE',active.length?`${active.length} en curso`:(liveGroup?'Lista para iniciar':'Sin grupos'),active.length?'Continúa la asistencia activa.':'Abre Modo Clase con el grupo que sigue.',active.length?'attendance':(liveGroup?'class':'groups'),liveGroup?.id||'',active.length?'Continuar':'Modo Clase',active.length?'live':'blue')}
+        ${tv72RouteStep('3','CERRAR CICLO',priorityCount?`${priorityCount} seguimiento${priorityCount===1?'':'s'}`:(d.latest_evaluation?'1 evaluación':'Sin pendientes'),priorityCount?'Revisa alertas antes de la próxima evaluación.':d.latest_evaluation?'Revisa resultados y retroalimentación.':'No hay cierres urgentes.',priorityCount?'group':(d.latest_evaluation?'exam':'groups'),closeGroup,priorityCount?'Revisar':(d.latest_evaluation?'Resultados':'Ver grupos'),priorityCount?'risk':(d.latest_evaluation?'violet':'ok'))}
+      </div>
+      <aside class="tv72-home-side">
+        <div class="tv72-continue ${last?'ready':'empty'}">
+          <span class="tv70-overline">CONTINUAR DONDE LO DEJASTE</span>
+          ${last?`<h3>${esc(groupName(last))}</h3><p>${esc(groupSubject(last))} · ${esc(formatActivity(last.last_activity))}</p><div class="tv72-continue-meta"><span>${esc(attendanceState(last).label)}</span><span>${num(last.students||0)} alumnos</span></div>${tv72CompactAction(lastAction,last.id,lastCta,'primary')}`:`<h3>Aún no hay un grupo reciente.</h3><p>Cuando abras Modo Clase, TEDVIO conservará aquí tu punto de regreso.</p>${tv72CompactAction(gs.length?'class':'groups',gs[0]?.id||'',gs.length?'Abrir primer grupo':'Crear grupo','primary')}`}
+        </div>
+        <div class="tv72-pending"><div class="tv72-pending-head"><span class="tv70-overline">PENDIENTES DE HOY</span><b>${num(active.length+pending.length+priorityCount)}</b></div>${tv72DailyTasks(d,gs)}</div>
+      </aside>
+    </div>`;
+  const next=host.querySelector('.tv70-next'),kpis=host.querySelector('.tv70-kpis');
+  if(next)next.insertAdjacentElement('afterend',section);else if(kpis)host.querySelector('.tv70-dashboard')?.insertBefore(section,kpis);else host.querySelector('.tv70-dashboard')?.appendChild(section);
+  document.documentElement.dataset.tedvioAcademicWorkflow='72';
+}
+window.__TEDVIO_ACADEMIC_HOME72__={version:TV72_VERSION,enhanceDashboard:tv72EnhanceDashboard};

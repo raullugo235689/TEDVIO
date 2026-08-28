@@ -3,7 +3,7 @@ const read=p=>fs.readFileSync(p,'utf8');
 const js=read('teacher-group-intelligence-v71.js'),css=read('teacher-group-intelligence-v71.css'),loader=read('teacher-progressive-boot-v68.js'),version=JSON.parse(read('version.json'));
 let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
 const build=Number(String(version.version||'').split('.').pop()||0);
-must(build>=71&&version.audit==='teacher-group-intelligence','global release metadata advances to v71');
+must(build>=71&&(build>71?Boolean(version.audit):version.audit==='teacher-group-intelligence'),'global release metadata preserves v71 compatibility when later releases advance');
 must(loader.includes("'./teacher-group-intelligence-v71.css?v=71'")&&loader.includes("['./teacher-group-intelligence-v71.js?v=71','module']"),'group intelligence is registered only in the lazy Groups feature');
 must(!read('teacher.html').includes('teacher-group-intelligence-v71'),'v71 adds nothing to teacher first paint');
 must(js.includes("const VERSION='2026.08.28.71'")&&js.includes('__TEDVIO_GROUP_INTELLIGENCE71__'),'v71 runtime and public diagnostic handle are explicit');

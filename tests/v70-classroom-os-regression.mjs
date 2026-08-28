@@ -7,8 +7,8 @@ const css=fs.readFileSync('teacher-command-center-v70.css','utf8');
 const version=JSON.parse(fs.readFileSync('version.json','utf8'));
 const build=Number(String(version.version||'').split('.').pop()||0);
 
-assert.match(html,/teacher-command-center-v70\.css\?v=70/,'teacher.html must load v70 CSS');
-assert.match(html,/teacher-command-center-v70\.js\?v=70/,'teacher.html must load v70 JS');
+assert.match(html,/teacher-command-center-v70\.css\?v=(?:70|72)/,'teacher.html must load the v70 command-center CSS with a current cache key');
+assert.match(html,/teacher-command-center-v70\.js\?v=(?:70|72)/,'teacher.html must load the v70 command-center JS with a current cache key');
 assert.ok(html.indexOf('teacher-theme-v68-7.js')<html.indexOf('teacher-command-center-v70.js'),'v70 must layer after theme integration');
 
 assert.ok(build>=70,'global release metadata may advance beyond the v70 command-center component');
