@@ -26,6 +26,7 @@ as $$
 declare
   v_uid uuid := auth.uid();
   v_row public.tedvio_institutions;
+  v_existing_logo_path text;
 begin
   if v_uid is null then raise exception 'AUTH_REQUIRED'; end if;
   if not exists (
@@ -35,9 +36,17 @@ begin
       and m.status = 'active'
       and m.member_role = 'institution_admin'
   ) then raise exception 'INSTITUTION_ADMIN_REQUIRED'; end if;
-  if p_report_logo_path is not null and p_report_logo_path !~ ('^' || v_uid::text || '/institution-branding/' || p_institution_id::text || '/[A-Za-z0-9._-]+$') then
+
+  select i.report_logo_path into v_existing_logo_path
+  from public.tedvio_institutions i
+  where i.id = p_institution_id;
+
+  if p_report_logo_path is not null
+     and p_report_logo_path is distinct from v_existing_logo_path
+     and p_report_logo_path !~ ('^' || v_uid::text || '/institution-branding/' || p_institution_id::text || '/[A-Za-z0-9._-]+$') then
     raise exception 'INVALID_LOGO_PATH';
   end if;
+
   update public.tedvio_institutions i set
     report_display_name = nullif(left(btrim(coalesce(p_name,'')),160),''),
     report_logo_path = nullif(btrim(coalesce(p_report_logo_path,'')),''),
