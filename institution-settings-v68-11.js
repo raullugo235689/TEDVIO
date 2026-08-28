@@ -28,10 +28,11 @@ function render(){
   o.innerHTML=`<section class="tv6811-shell"><header class="tv6811-head"><div><span>CONFIGURAR TEDVIO</span><h2>Institución y reportes</h2><p>Define la identidad que aparecerá en documentos oficiales.</p></div><button class="b-btn secondary" type="button" data-close>×</button></header><div class="tv6811-toolbar"><button class="tv6811-tab active" type="button">Institución</button><button class="tv6811-tab" type="button" data-onboarding>Inicio guiado</button></div><main>${S.institutions.length?S.institutions.map(institutionCard).join(''):'<div class="tv6811-empty"><b>No hay instituciones administrables.</b><span>Esta sección solo aparece para administradores institucionales activos.</span></div>'}</main></section>`;
   document.body.appendChild(o);wire(o);
 }
+async function openOnboarding(){const api=window.__TEDVIO_PROGRESSIVE_BOOT68__;if(api?.ensure)await api.ensure('onboarding');document.querySelector('#tv6811Settings')?.remove();window.tv68Open?.('overview')}
 function wire(o){
   o.querySelector('[data-close]').onclick=()=>o.remove();
   o.addEventListener('mousedown',e=>{if(e.target===o)o.remove()});
-  o.querySelector('[data-onboarding]').onclick=()=>{o.remove();window.tv68Open?.('overview')};
+  o.querySelector('[data-onboarding]').onclick=openOnboarding;
   o.querySelectorAll('[data-logo-file]').forEach(input=>input.onchange=()=>previewFile(input));
   o.querySelectorAll('[data-save-inst]').forEach(b=>b.onclick=()=>saveInstitution(b.dataset.saveInst,b));
   o.querySelectorAll('[data-preview-report]').forEach(b=>b.onclick=()=>previewData(b.dataset.previewReport));
@@ -70,4 +71,4 @@ async function saveInstitution(id,button){
 }
 async function open(){try{await load();render()}catch(error){console.error('TEDVIO settings',error);toast(error?.message||'No pude abrir la configuración.','bad')}}
 window.tv6811OpenSettings=open;
-window.__TEDVIO_INSTITUTION_SETTINGS6811__={version:VERSION,open,refresh:load};
+window.__TEDVIO_INSTITUTION_SETTINGS6811__={version:VERSION,open,refresh:load,openOnboarding};
