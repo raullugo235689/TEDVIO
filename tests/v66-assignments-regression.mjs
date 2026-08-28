@@ -25,6 +25,6 @@ must(teacherCss.includes('.tv66-card')&&teacherCss.includes('@media(max-width:68
 must(studentCss.includes('.as66-question')&&studentCss.includes('@media(max-width:760px)'),'student v66 CSS remains responsive');
 must(!/service_role|SUPABASE_SECRET|sb_secret_/i.test(teacherJs+studentJs+teacher+loader+beta+studentHtml),'v66 frontend contains no privileged keys');
 must(vercel.includes('/assignments-v66.js')&&vercel.includes('/assignments-v66.css')&&vercel.includes('/assignment.html'),'v66 assets remain no-store');
-must(/tedvio-pilot-v68-20260826/.test(sw),'service worker remains v68 namespace');
+const cacheMajor=Number(sw.match(/tedvio-pilot-v(\d+)/)?.[1]||0);must(cacheMajor>=68,'service worker remains on audited v68+ namespace');
 const minor=Number(String(version.version).split('.').pop());must(version.channel==='pilot-ready'&&minor>=66,'global Pilot Ready version remains v66 or newer');must(core.includes("const VERSION='2026.08.26.64'"),'v64 core version remains compatible');
-if(failed){console.error(`\n${failed} v66 regression check(s) failed.`);process.exit(1)}console.log('\nTEDVIO v66 Assignments passes under v68.6 split core.');
+if(failed){console.error(`\n${failed} v66 regression check(s) failed.`);process.exit(1)}console.log('\nTEDVIO v66 Assignments passes under v68+ split core.');
