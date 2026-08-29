@@ -1,11 +1,13 @@
-name: TEDVIO v76.1 Navigation Stability Audit
+name: TEDVIO Navigation Stability Compatibility Audit
 on:
   push:
     branches: [main]
     paths:
       - 'teacher.html'
+      - 'teacher-router-v76-2.js'
       - 'version.json'
       - 'tests/v76-1-navigation-stability-regression.mjs'
+      - 'tests/v76-2-quality-core-regression.mjs'
       - 'tests/v76-academic-periods-regression.mjs'
       - 'tests/v68-6-teacher-core-split-regression.mjs'
       - '.github/workflows/v76-1-navigation-stability.yml'
@@ -22,7 +24,9 @@ jobs:
           node-version: '22'
       - name: Navigation stability regression
         run: |
+          node --check teacher-router-v76-2.js
           node tests/v76-1-navigation-stability-regression.mjs
+          node tests/v76-2-quality-core-regression.mjs
           node tests/v76-academic-periods-regression.mjs
           node tests/v68-6-teacher-core-split-regression.mjs
           node tests/ios-safari-syntax-audit.mjs
