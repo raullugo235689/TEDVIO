@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es" data-tedvio-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>TEDVIO v76.3 Visual Stability Harness</title>
+  <style>
+    *{box-sizing:border-box}html{font-family:system-ui,sans-serif;background:#f4f7fb;color:#17365e;scrollbar-gutter:stable}body{margin:0}.tv686-app,.tv686-session-shell{min-height:100vh}.tv686-top{position:sticky;top:0;z-index:70;min-height:72px;display:flex;justify-content:space-between;align-items:center;padding:12px 18px;background:#071a3b;color:#fff}.tv686-brand{font-weight:900}.b-top-actions{display:flex;gap:8px;overflow-x:auto}.b-btn{border:1px solid #58739c;border-radius:10px;padding:9px 12px;min-height:42px;background:#102a50;color:#fff;white-space:nowrap}.b-main{padding:22px;min-height:1600px}.tv70-dashboard,#qs65Root,.route-view{min-height:1400px;border-radius:18px;padding:22px;background:#fff;box-shadow:0 10px 30px rgba(7,26,59,.08)}.tv70-legacy-hidden{display:none!important}.b-overlay{position:fixed;inset:0;z-index:100;background:rgba(3,12,30,.8);display:grid;place-items:center;padding:18px}.b-modal{width:min(800px,100%);min-height:420px;background:#fff;border-radius:22px;padding:22px}.ga-premium-body,.ga360-body{min-height:260px}.tv763-dashboard-stage,.tv762-dashboard-stage{display:none!important}.tv763-sr-only{position:fixed!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important}#tedvioGroupsBtn,#pmAcademia,#tv66AssignmentsBtn,#tedvioPaperBtn,#tv67HelpBtn,#tv68OnboardingBtn,#tvAdminBtn{display:none!important}#tv763SurfaceHold{position:fixed;inset:0;z-index:9000;display:grid;place-items:center;padding:20px;background:rgba(244,247,251,.96);pointer-events:auto}#tv763SurfaceHold .tv763-hold-card{width:min(390px,100%);padding:24px;border:1px solid #dce5f1;border-radius:22px;background:#fff;box-shadow:0 24px 70px rgba(7,26,59,.16);text-align:center}#tv763SurfaceHold span,#tv763SurfaceHold b,#tv763SurfaceHold small{display:block}#tv763SurfaceHold b{font-size:18px}.tv686-top .b-top-actions .b-btn:disabled{opacity:1!important}.tv686-top .b-top-actions button[data-tv763-route][aria-current="page"]{outline:2px solid #70a8ff}@media(hover:none),(pointer:coarse){.b-btn:hover{transform:none!important}}
+  </style>
+</head>
+<body>
+<div id="betaApp">
+  <div class="tv686-app">
+    <header class="tv686-top"><div class="tv686-brand">TEDVIO</div><div class="b-top-actions">
+      <button class="b-btn" onclick="betaView('dashboard')">Inicio</button>
+      <button class="b-btn" onclick="betaView('bank')">Banco</button>
+      <button class="b-btn" onclick="betaView('quizzes')">Preparadas</button>
+      <button class="b-btn" onclick="betaView('history')">Historial</button>
+      <button id="tvLazyGroups" class="b-btn">Grupos</button>
+      <button id="tvLazyOmr" class="b-btn">Exámenes</button>
+    </div></header>
+    <main class="b-main tv686-main"><section id="tv686Dashboard"><div class="tv70-dashboard"><h1>Inicio estable</h1><p>Contenido inicial.</p></div></section></main>
+  </div>
+</div>
+<script>
+  const state={user:{id:'teacher-demo'},profile:{role:'teacher'},dashboard:{groups_count:1,groups:[]},busy:false,view:'dashboard',sessionCore:{leave(){H.leaves++}}};
+  const H=window.__HARNESS__={baseCalls:{dashboard:0,bank:0,quizzes:0,history:0},routeReady:[],leaves:0,bankInstalled:false,bankActive:false,groupEnsures:0,lazyOriginalCalls:0,legacyClicks:0,groupBaseCalls:0,groupOpenCalls:0,omrEnsures:0,blankSurfaceFrames:0,monitoring:true,header:null};
+  const main=()=>document.querySelector('#betaApp .tv686-main');
+  function renderDashboardTarget(){const target=document.querySelector('#tv686Dashboard');if(target)target.innerHTML='<div class="tv70-dashboard"><h1>Centro de mando</h1><p>Dashboard listo y persistente.</p></div>'}
+  window.addEventListener('tedvio:teacher-shell',()=>setTimeout(renderDashboardTarget,12));
+  window.addEventListener('tedvio:profile',()=>setTimeout(renderDashboardTarget,8));
+  window.addEventListener('tedvio:route-ready',event=>H.routeReady.push(event.detail.view));
+  function coreBaseView(view){H.baseCalls[view]=(H.baseCalls[view]||0)+1;state.view=view;if(view==='dashboard'){document.querySelector('#betaApp').innerHTML='<div class="destroyed-shell">legacy destructive route</div>';return}if(view==='quizzes')return new Promise(resolve=>setTimeout(()=>{main().innerHTML='<section class="route-view"><span>PREPARADAS</span><h1>Sesiones preparadas</h1></section>';resolve()},70));if(view==='history')return new Promise(resolve=>setTimeout(()=>{main().innerHTML='<section class="route-view"><span>HISTORIAL</span><h1>Sesiones</h1></section>';resolve()},65))}
+  window.betaView=coreBaseView;
+  window.__TEDVIO_TEACHER686__={version:'harness',state,renderShell(){throw new Error('Persistent shell must not be rebuilt.')},refresh(){state.busy=true;return new Promise(resolve=>setTimeout(()=>{state.busy=false;window.dispatchEvent(new CustomEvent('tedvio:profile',{detail:state.profile}));resolve()},35))}};
+  function installBank(){if(H.bankInstalled)return;const old=window.betaView;const wrapped=function(view,...args){H.bankActive=view==='bank';const result=old.call(this,view,...args);if(H.bankActive)setTimeout(()=>{const host=main();if(host)host.innerHTML='<section id="qs65Root"><h1>Banco profesional</h1></section>'},55);return result};window.betaView=wrapped;window.__TEDVIO_QUESTION_STUDIO65__={refresh(){if(H.bankActive)main().innerHTML='<section id="qs65Root"><h1>Banco profesional</h1></section>'}};H.bankInstalled=true}
+  function injectLegacyButtons(){const bar=document.querySelector('.b-top-actions');for(const [id,text] of [['tedvioGroupsBtn','Grupos legacy'],['pmAcademia','Academia'],['tv66AssignmentsBtn','Tareas legacy'],['tedvioPaperBtn','Exámenes legacy'],['tv67HelpBtn','Ayuda legacy'],['tv68OnboardingBtn','Config legacy'],['tvAdminBtn','Admin legacy']]){if(document.getElementById(id))continue;const b=document.createElement('button');b.id=id;b.className='b-btn';b.textContent=text;if(id==='tedvioGroupsBtn')b.onclick=()=>{H.legacyClicks++;window.gaBack()};bar.appendChild(b)}}
+  function installGroups(){
+    if(window.gaBack)return;
+    window.gaBack=function(){H.groupBaseCalls++;document.querySelector('#gaOverlay')?.remove();const overlay=document.createElement('div');overlay.id='gaOverlay';overlay.className='b-overlay';overlay.innerHTML='<div class="b-modal"><h2>Mis grupos</h2><div class="base-groups">Base temporal</div></div>';document.body.appendChild(overlay);setTimeout(()=>{overlay.dataset.gaPremium='1';overlay.querySelector('.b-modal').classList.add('ga-premium-modal');overlay.querySelector('.base-groups').className='ga-premium-body';overlay.querySelector('.ga-premium-body').textContent='Vista premium lista'},90)};
+    window.gaOpenGroup=async function(){H.groupOpenCalls++;document.querySelector('#gaOverlay')?.remove();const overlay=document.createElement('div');overlay.id='gaOverlay';overlay.className='b-overlay';overlay.innerHTML='<div class="b-modal"><div class="legacy-group">Grupo base</div></div>';document.body.appendChild(overlay);await new Promise(r=>setTimeout(r,35));overlay.querySelector('.b-modal').innerHTML='<div class="ga360-body">Cargando Centro de grupo…</div>';await new Promise(r=>setTimeout(r,95));overlay.querySelector('.b-modal').innerHTML='<div class="ga360-top"><h2>Grupo 1-A</h2></div><div class="ga360-body">Centro final</div>'};
+    injectLegacyButtons();
+  }
+  window.__TEDVIO_PROGRESSIVE_BOOT68__={ensure(name){if(name==='bank'){if(H.bankInstalled)return Promise.resolve(true);return new Promise(resolve=>setTimeout(()=>{installBank();window.dispatchEvent(new CustomEvent('tedvio:feature-ready',{detail:{name:'bank'}}));resolve(true)},40))}if(name==='groups'){H.groupEnsures++;if(window.gaBack){window.dispatchEvent(new CustomEvent('tedvio:feature-ready',{detail:{name:'groups'}}));return Promise.resolve(true)}return new Promise(resolve=>setTimeout(()=>{installGroups();window.dispatchEvent(new CustomEvent('tedvio:feature-ready',{detail:{name:'groups'}}));resolve(true)},55))}if(name==='omr'){H.omrEnsures++;return new Promise(resolve=>setTimeout(()=>{window.dispatchEvent(new CustomEvent('tedvio:feature-ready',{detail:{name:'omr'}}));resolve(true)},65))}return Promise.resolve(true)}};
+  document.querySelector('#tvLazyGroups').onclick=async()=>{H.lazyOriginalCalls++;document.querySelector('#tvLazyGroups').disabled=true;await window.__TEDVIO_PROGRESSIVE_BOOT68__.ensure('groups');document.querySelector('#tedvioGroupsBtn')?.click()};
+  document.querySelector('#tvLazyOmr').onclick=async()=>{const b=document.querySelector('#tvLazyOmr');b.disabled=true;await window.__TEDVIO_PROGRESSIVE_BOOT68__.ensure('omr');const d=document.createElement('div');d.id='peOverlay';d.className='b-overlay';d.innerHTML='<div class="b-modal"><h2>Exámenes en papel</h2></div>';document.body.appendChild(d)};
+  window.startSessionTransition=()=>{const button=document.createElement('button');button.id='tv686CreateSession';button.textContent='Crear';button.onclick=()=>setTimeout(()=>{document.querySelector('#betaApp').innerHTML='<div class="tv686-session-shell"><header class="tv686-top"><div>Sesión</div></header><main id="sessionMain">Lista</main></div>'},320);document.body.appendChild(button);button.click();button.remove()};
+  (function monitor(){if(document.documentElement.dataset.tedvioSurfaceBusy==='true'){const hold=document.querySelector('#tv763SurfaceHold');if(!hold||getComputedStyle(hold).display==='none')H.blankSurfaceFrames++}if(H.monitoring)requestAnimationFrame(monitor)})();
+</script>
+<script src="../../teacher-router-v76-3.js"></script>
+<script id="tv763GroupBootGuard">document.addEventListener('click',async event=>{const button=event.target.closest?.('#tvLazyGroups');if(!button)return;event.preventDefault();event.stopImmediatePropagation();button.setAttribute('aria-busy','true');try{const loader=window.__TEDVIO_PROGRESSIVE_BOOT68__;await loader.ensure('groups');for(let i=0;i<40&&!window.__TEDVIO_VISUAL763__?.snapshot?.().groupInstalled;i++)await new Promise(resolve=>requestAnimationFrame(resolve));const legacy=document.querySelector('#tedvioGroupsBtn');if(legacy)legacy.click();else await window.gaBack?.()}finally{button.removeAttribute('aria-busy');button.removeAttribute('disabled')}},true);</script>
+</body>
+</html>
