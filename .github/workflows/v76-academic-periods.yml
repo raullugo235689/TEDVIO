@@ -1,0 +1,56 @@
+name: TEDVIO v76 Academic Periods Audit
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'teacher.html'
+      - 'teacher-periods-v76.js'
+      - 'teacher-periods-v76.css'
+      - 'version.json'
+      - 'supabase/migrations/20260829014926_v76_academic_periods_and_close_guard.sql'
+      - 'supabase/migrations/20260829015034_v76_period_student_snapshot.sql'
+      - 'supabase/migrations/20260829015747_v76_close_readiness_strict_evidence.sql'
+      - 'supabase/migrations/20260829015941_v76_period_function_privilege_hardening.sql'
+      - 'tests/v76-academic-periods-regression.mjs'
+      - 'tests/v75-academic-agenda-regression.mjs'
+      - 'tests/v742-insight-zero-cost-regression.mjs'
+      - 'tests/v68-4-teacher-progressive-boot-regression.mjs'
+      - 'tests/v68-5-demand-driven-performance-regression.mjs'
+      - 'tests/v68-6-teacher-core-split-regression.mjs'
+      - 'tests/v68-7-dual-theme-premium-regression.mjs'
+      - 'tests/v68-8-mobile-theme-compat-regression.mjs'
+      - '.github/workflows/v76-academic-periods.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check teacher-periods-v76.js
+          node --check teacher-agenda-v75.js
+          node --check teacher-progressive-boot-v68.js
+      - name: Academic periods regression
+        run: |
+          node tests/v76-academic-periods-regression.mjs
+          node tests/v75-academic-agenda-regression.mjs
+          node tests/v742-insight-zero-cost-regression.mjs
+      - name: Split core and mobile compatibility
+        run: |
+          node tests/v68-4-teacher-progressive-boot-regression.mjs
+          node tests/v68-5-demand-driven-performance-regression.mjs
+          node tests/v68-6-teacher-core-split-regression.mjs
+          node tests/v68-7-dual-theme-premium-regression.mjs
+          node tests/v68-8-mobile-theme-compat-regression.mjs
+          node tests/v70-classroom-os-regression.mjs
+          node tests/v71-group-intelligence-regression.mjs
+          node tests/v72-academic-workflow-regression.mjs
+          node tests/v73-assessment-intelligence-regression.mjs
+          node tests/ios-safari-syntax-audit.mjs
+          git diff --check
