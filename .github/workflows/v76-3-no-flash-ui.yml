@@ -1,0 +1,68 @@
+name: TEDVIO v76.3 No-Flash UI Audit
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'teacher.html'
+      - 'teacher-router-v76-3.js'
+      - 'teacher-theme-v68-7.js'
+      - 'version.json'
+      - 'tests/v76-3-no-flash-ui-regression.mjs'
+      - 'tests/v76-2-quality-core-regression.mjs'
+      - 'tests/v76-1-navigation-stability-regression.mjs'
+      - 'tests/browser/visual-stability-harness.html'
+      - 'tests/browser/v76-3-no-flash-ui.spec.mjs'
+      - 'tests/browser/playwright-v76-3.config.mjs'
+      - 'tests/v68-4-teacher-progressive-boot-regression.mjs'
+      - 'tests/v68-5-demand-driven-performance-regression.mjs'
+      - 'tests/v68-6-teacher-core-split-regression.mjs'
+      - 'tests/v68-7-dual-theme-premium-regression.mjs'
+      - 'tests/v68-8-mobile-theme-compat-regression.mjs'
+      - '.github/workflows/v76-3-no-flash-ui.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  static-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check teacher-router-v76-3.js
+          node --check teacher-theme-v68-7.js
+          node --check tests/browser/v76-3-no-flash-ui.spec.mjs
+          node --check tests/browser/playwright-v76-3.config.mjs
+      - name: No-flash regression
+        run: |
+          node tests/v76-3-no-flash-ui-regression.mjs
+          node tests/v76-2-quality-core-regression.mjs
+          node tests/v76-1-navigation-stability-regression.mjs
+          node tests/v76-academic-periods-regression.mjs
+          node tests/v68-4-teacher-progressive-boot-regression.mjs
+          node tests/v68-5-demand-driven-performance-regression.mjs
+          node tests/v68-6-teacher-core-split-regression.mjs
+          node tests/v68-7-dual-theme-premium-regression.mjs
+          node tests/v68-8-mobile-theme-compat-regression.mjs
+          node tests/ios-safari-syntax-audit.mjs
+          git diff --check
+
+  browser-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser test runner
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save --no-package-lock --no-audit --no-fund @playwright/test@1.55.0
+          npx playwright install --with-deps chromium webkit
+      - name: No-flash surfaces in Chromium and WebKit
+        run: npx playwright test --config=tests/browser/playwright-v76-3.config.mjs
