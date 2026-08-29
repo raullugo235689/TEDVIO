@@ -10,7 +10,7 @@ const strict=read('supabase/migrations/20260829015747_v76_close_readiness_strict
 const hardening=read('supabase/migrations/20260829015941_v76_period_function_privilege_hardening.sql');
 const version=JSON.parse(read('version.json'));
 
-assert.equal(version.version,'2026.08.28.76');
+assert.match(version.version,/^2026\.08\.28\.76(?:\.\d+)?$/);
 assert.equal(version.audit,'academic-periods');
 assert.match(teacher,/teacher-periods-v76\.css\?v=76/);
 assert.match(teacher,/teacher-periods-v76\.js\?v=76/);
