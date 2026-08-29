@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="es" data-tedvio-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>TEDVIO Router Harness</title>
+  <style>
+    *{box-sizing:border-box}html{font-family:system-ui,sans-serif;background:#f4f7fb;color:#17365e}body{margin:0}.tv686-app{min-height:100vh}.tv686-top{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;padding:12px 18px;background:#071a3b;color:#fff}.tv686-brand{font-weight:900}.b-top-actions{display:flex;gap:8px}.b-btn{border:1px solid #58739c;border-radius:10px;padding:9px 12px;background:#102a50;color:#fff}.b-main{padding:22px;min-height:1800px}.tv70-dashboard,#qs65Root,.route-view{min-height:1600px;border-radius:18px;padding:22px;background:#fff;box-shadow:0 10px 30px rgba(7,26,59,.08)}.tv686-loading{padding:40px}.tv70-legacy-hidden{display:none!important}
+  </style>
+  <style id="tv762RouterStyle">#tv762RouteBar{position:fixed;inset:0 0 auto;z-index:5650;height:3px;overflow:hidden;pointer-events:none;opacity:0;transition:opacity .12s ease;background:transparent}#tv762RouteBar i{display:block;width:100%;height:100%;transform:scaleX(.08);transform-origin:left center;background:linear-gradient(90deg,#2f69db,#70a8ff)}#tv762RouteBar.show{opacity:1}#tv762RouteBar.show i{animation:tv762-route-progress 1.15s ease-in-out infinite}#tv762RouteBar.done i{animation:none;transform:scaleX(1);transition:transform .08s ease}.tv686-top .b-top-actions button[data-tv762-route][aria-current="page"]{outline:2px solid #70a8ff}.tv762-dashboard-stage{position:fixed!important;left:-220vw!important;top:0!important;width:100vw!important;min-height:100vh!important;visibility:hidden!important;pointer-events:none!important;contain:layout style paint}.tv762-sr-only{position:fixed!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}@keyframes tv762-route-progress{0%{transform:scaleX(.08)}50%{transform:scaleX(.72)}100%{transform:scaleX(.92)}}</style>
+</head>
+<body>
+<div id="betaApp">
+  <div class="tv686-app">
+    <header class="tv686-top"><div class="tv686-brand">TEDVIO</div><div class="b-top-actions">
+      <button class="b-btn" onclick="betaView('dashboard')">Inicio</button>
+      <button class="b-btn" onclick="betaView('bank')">Banco</button>
+      <button class="b-btn" onclick="betaView('quizzes')">Preparadas</button>
+      <button class="b-btn" onclick="betaView('history')">Historial</button>
+    </div></header>
+    <main class="b-main tv686-main"><section id="tv686Dashboard"><div class="tv70-dashboard"><h1>Inicio estable</h1><p>Contenido inicial.</p></div></section></main>
+  </div>
+</div>
+<script>
+  const state={user:{id:'teacher-demo'},profile:{role:'teacher'},dashboard:{groups_count:1,groups:[]},busy:false,view:'dashboard',sessionCore:{leave(){window.__HARNESS__.leaves++}}};
+  const H=window.__HARNESS__={baseCalls:{dashboard:0,bank:0,quizzes:0,history:0},routeReady:[],leaves:0,bankInstalled:false,bankActive:false,blankFrames:0,monitoring:true};
+  const main=()=>document.querySelector('#betaApp .tv686-main');
+  function renderDashboardTarget(){
+    const target=document.querySelector('#tv686Dashboard');
+    if(target)target.innerHTML='<div class="tv70-dashboard"><h1>Centro de mando</h1><p>Dashboard listo y persistente.</p></div>';
+  }
+  window.addEventListener('tedvio:teacher-shell',()=>setTimeout(renderDashboardTarget,20));
+  window.addEventListener('tedvio:profile',()=>setTimeout(renderDashboardTarget,10));
+  window.addEventListener('tedvio:route-ready',event=>H.routeReady.push(event.detail.view));
+  function coreBaseView(view){
+    H.baseCalls[view]=(H.baseCalls[view]||0)+1;
+    state.view=view;
+    if(view==='dashboard'){
+      document.querySelector('#betaApp').innerHTML='<div class="destroyed-shell">legacy destructive route</div>';
+      return;
+    }
+    if(view==='quizzes')return new Promise(resolve=>setTimeout(()=>{main().innerHTML='<section class="route-view"><span>PREPARADAS</span><h1>Sesiones preparadas</h1><p>Vista lista.</p></section>';resolve()},90));
+    if(view==='history')return new Promise(resolve=>setTimeout(()=>{main().innerHTML='<section class="route-view"><span>HISTORIAL</span><h1>Sesiones</h1><p>Historial listo.</p></section>';resolve()},85));
+  }
+  window.betaView=coreBaseView;
+  window.__TEDVIO_TEACHER686__={
+    version:'harness',
+    state,
+    renderShell(){throw new Error('The persistent shell should not be rebuilt in this harness.')},
+    refresh(){
+      state.busy=true;
+      return new Promise(resolve=>setTimeout(()=>{state.busy=false;window.dispatchEvent(new CustomEvent('tedvio:profile',{detail:state.profile}));resolve()},45));
+    }
+  };
+  window.__TEDVIO_PROGRESSIVE_BOOT68__={
+    ensure(name){
+      if(name!=='bank')return Promise.resolve(true);
+      if(H.bankInstalled)return Promise.resolve(true);
+      return new Promise(resolve=>setTimeout(()=>{
+        const old=window.betaView;
+        const wrapped=function(view,...args){
+          H.bankActive=view==='bank';
+          const result=old.call(this,view,...args);
+          if(H.bankActive)setTimeout(()=>{
+            const host=main();
+            if(host)host.innerHTML='<section id="qs65Root"><h1>Banco profesional</h1><p>Question Studio listo.</p></section>';
+          },75);
+          return result;
+        };
+        wrapped.__harnessBank=true;
+        window.betaView=wrapped;
+        window.__TEDVIO_QUESTION_STUDIO65__={version:'harness',refresh(){if(H.bankActive){main().innerHTML='<section id="qs65Root"><h1>Banco profesional</h1></section>'}}};
+        H.bankInstalled=true;
+        resolve(true);
+      },55));
+    }
+  };
+  (function monitor(){
+    if(document.documentElement.dataset.tedvioRouteBusy==='true'){
+      const host=main();
+      if(!host||host.childElementCount===0)H.blankFrames++;
+    }
+    if(H.monitoring)requestAnimationFrame(monitor);
+  })();
+</script>
+<script src="../../teacher-router-v76-2.js"></script>
+</body>
+</html>
