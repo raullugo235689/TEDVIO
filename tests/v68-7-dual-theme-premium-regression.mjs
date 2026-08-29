@@ -1,16 +1,16 @@
 import fs from'node:fs';
 const read=p=>fs.readFileSync(p,'utf8');
-const teacher=read('teacher.html'),js=read('teacher-theme-v68-7.js'),css=read('teacher-theme-v68-7.css'),agendaCss=read('teacher-agenda-v75.css'),periodCss=read('teacher-periods-v76.css'),router=read('teacher-router-v76-2.js'),vercel=read('vercel.json');
+const teacher=read('teacher.html'),js=read('teacher-theme-v68-7.js'),css=read('teacher-theme-v68-7.css'),agendaCss=read('teacher-agenda-v75.css'),periodCss=read('teacher-periods-v76.css'),router=read('teacher-router-v76-3.js'),vercel=read('vercel.json');
 let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
 const scripts=[...teacher.matchAll(/<script[^>]+src="([^"]+)"/g)].map(x=>x[1]);
 const styles=[...teacher.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/g)].map(x=>x[1]);
-const allowedScripts=['config.js','runtime-core-v64.js','teacher-core-v68-6.js','teacher-progressive-boot-v68.js','teacher-theme-v68-7.js','teacher-command-center-v70.js','teacher-agenda-v75.js','teacher-periods-v76.js','teacher-router-v76-2.js'];
+const allowedScripts=['config.js','runtime-core-v64.js','teacher-core-v68-6.js','teacher-progressive-boot-v68.js','teacher-theme-v68-7.js','teacher-command-center-v70.js','teacher-agenda-v75.js','teacher-periods-v76.js','teacher-router-v76-3.js'];
 const unexpectedScripts=scripts.filter(src=>!allowedScripts.some(name=>src.includes(name)));
 must(teacher.includes('data-tedvio-theme="light"'),'white appearance is the safe default');
 must(teacher.includes('teacher-theme-v68-7.js?v=687')&&teacher.includes('teacher-theme-v68-7.css?v=687'),'teacher shell loads v68.7 theme controller and styles');
-must(scripts.length===allowedScripts.length&&allowedScripts.every(name=>scripts.some(src=>src.includes(name)))&&unexpectedScripts.length===0&&scripts.filter(x=>x.includes('teacher-theme-v68-7.js')).length===1,'theme remains isolated inside the audited v76.2 teacher shell');
+must(scripts.length===allowedScripts.length&&allowedScripts.every(name=>scripts.some(src=>src.includes(name)))&&unexpectedScripts.length===0&&scripts.filter(x=>x.includes('teacher-theme-v68-7.js')).length===1,'theme remains isolated inside the audited v76.3 teacher shell');
 must(styles.length===12&&styles.filter(x=>x.includes('teacher-theme-v68-7.css')).length===1&&styles.filter(x=>x.includes('teacher-mobile-compat-v68-8.css')).length===1&&styles.filter(x=>x.includes('teacher-command-center-v70.css')).length===1&&styles.filter(x=>x.includes('teacher-agenda-v75.css')).length===1&&styles.filter(x=>x.includes('teacher-periods-v76.css')).length===1,'theme family stays lean with one theme, compatibility, command-center, agenda and period layer');
-must(teacher.includes('id="tv762RouterStyle"'),'router presentation is embedded without a second theme stylesheet');
+must(teacher.includes('id="tv763VisualStabilityStyle"'),'visual stability presentation is embedded without a second theme stylesheet');
 must(!teacher.includes('beta.js?v=56')&&!teacher.includes('student-v60.js'),'dual theme does not restore legacy/student engines');
 must(js.includes("const VERSION='2026.08.27.68.7'")&&js.includes("const KEY='tedvio.teacher.theme'"),'theme controller reports v68.7 and uses a dedicated preference key');
 must(js.includes("value==='dark'?'dark':'light'")&&js.includes("localStorage.setItem(KEY,theme)"),'theme values are constrained and persisted locally');
@@ -19,6 +19,7 @@ must(js.includes('document.documentElement.dataset.tedvioTheme=theme')&&js.inclu
 must(js.includes("metaTheme.setAttribute('content'")&&js.includes("new CustomEvent('tedvio:theme'"),'theme color and app event stay synchronized');
 must(!js.includes('setInterval(')&&!js.includes('setTimeout('),'theme runtime installs no polling or timers');
 must(js.includes("observe(root,{childList:true,subtree:false})")&&!js.includes('subtree:true'),'theme reinjection observes only top-level Teacher Core swaps');
+must(js.includes('function bindControl')&&js.includes("addEventListener('tedvio:teacher-shell',install)")&&!js.includes("addEventListener('tedvio:teacher-shell',()=>requestAnimationFrame(install))"),'theme/account controls install synchronously before the next paint');
 must(!/createClient|supabase|from\(|rpc\(/i.test(js),'theme switching performs zero backend work');
 must(css.includes(':root[data-tedvio-theme="light"]')&&css.includes(':root[data-tedvio-theme="dark"]'),'CSS defines independent light and dark palettes');
 must(css.includes('.tv687-theme-control')&&css.includes('.tv687-theme-btn.active'),'premium segmented selector is styled');
@@ -31,4 +32,4 @@ must(router.includes('document.documentElement.dataset.tedvioRoute')&&!/#[0-9a-f
 must(vercel.includes('/teacher-theme-v68-7.js')&&vercel.includes('/teacher-theme-v68-7.css'),'theme assets are configured no-store');
 must(!/service_role|SUPABASE_SECRET|sb_secret_|access_token|refresh_token/i.test(js+teacher+router),'theme/router layers contain no privileged credentials or session tokens');
 if(failed){console.error(`\n${failed} v68.7 Dual Theme Premium check(s) failed.`);process.exit(1)}
-console.log('\nTEDVIO v68.7 Dual Theme Premium regression audit passed under v76.2.');
+console.log('\nTEDVIO v68.7 Dual Theme Premium regression audit passed under v76.3 No-Flash UI.');
