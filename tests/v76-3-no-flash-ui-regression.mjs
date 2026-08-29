@@ -1,0 +1,54 @@
+import fs from'node:fs';
+import assert from'node:assert/strict';
+const read=p=>fs.readFileSync(p,'utf8');
+const teacher=read('teacher.html');
+const router=read('teacher-router-v76-3.js');
+const theme=read('teacher-theme-v68-7.js');
+const version=JSON.parse(read('version.json'));
+const scripts=[...teacher.matchAll(/<script[^>]+src="([^"]+)"/g)].map(x=>x[1]);
+const styles=[...teacher.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/g)].map(x=>x[1]);
+
+assert.equal(version.version,'2026.08.28.76');
+assert.equal(version.revision,'76.3-no-flash-ui');
+assert.equal(version.audit,'academic-periods');
+assert.equal(scripts.length,9,'No-Flash UI keeps the existing nine direct runtimes');
+assert.equal(styles.length,12,'No-Flash UI adds no external stylesheet');
+assert.match(teacher,/teacher-router-v76-3\.js\?v=763/);
+assert.match(teacher,/id="tv763VisualStabilityStyle"/);
+assert.match(teacher,/id="tv763GroupBootGuard"/);
+assert.ok(teacher.indexOf('teacher-periods-v76.js?v=76')<teacher.indexOf('teacher-router-v76-3.js?v=763'),'v76.3 layers after academic periods');
+assert.doesNotMatch(teacher,/teacher-router-v76-2\.js\?v=762|tv762RouteBar|tv762-route-progress/,'animated v76.2 route indicator is retired');
+assert.match(teacher,/scrollbar-gutter:stable/);
+assert.match(teacher,/#tedvioGroupsBtn,#pmAcademia,#tv66AssignmentsBtn,#tedvioPaperBtn,#tv67HelpBtn,#tv68OnboardingBtn,#tvAdminBtn\{display:none!important\}/,'late legacy launchers cannot reflow the top navigation');
+assert.match(teacher,/#tv763SurfaceHold/,'multi-stage legacy surfaces are covered by one stable state');
+assert.match(teacher,/@supports \(-webkit-touch-callout:none\)/,'iPhone and iPad receive a WebKit-specific stability layer');
+assert.match(teacher,/-webkit-backdrop-filter:none!important;backdrop-filter:none!important/,'WebKit blur compositing is disabled on unstable surfaces');
+assert.match(teacher,/@media \(hover:none\),\(pointer:coarse\)/);
+assert.match(teacher,/transform:none!important/,'touch hover transforms do not repaint tapped controls');
+assert.match(teacher,/__TEDVIO_VISUAL763__/,'first lazy Groups launch waits for the stability wrapper');
+
+assert.match(router,/const VERSION='2026\.08\.28\.76\.3'/);
+assert.match(router,/ROUTES=new Set\(\['dashboard','bank','quizzes','history'\]\)/);
+assert.match(router,/function stageDashboard/);
+assert.match(router,/live\.replaceChildren\(\.\.\.children\)/,'dashboard still swaps atomically');
+assert.match(router,/installGroupStability/);
+assert.match(router,/groupsReady/);
+assert.match(router,/groupCenterReady/);
+assert.match(router,/withSurface\('Abriendo grupos…'/);
+assert.match(router,/withSurface\('Abriendo centro del grupo…'/);
+assert.match(router,/watchShellTransition/,'session shell transitions are protected after a short grace period');
+assert.match(router,/PerformanceObserver/);
+assert.match(router,/layout-shift/);
+assert.match(router,/clearButton\(button\)/,'lazy launchers recover from disabled state');
+assert.match(router,/removeAttribute\('disabled'\)/);
+assert.doesNotMatch(router,/new MutationObserver/,'No-Flash runtime adds no DOM observer');
+assert.doesNotMatch(router,/setInterval\(/,'No-Flash runtime adds no polling');
+assert.doesNotMatch(router,/createClient\(|\.from\(|\.rpc\(/,'No-Flash runtime performs no backend queries');
+assert.doesNotMatch(router,/OPENAI_API_KEY|AI_GATEWAY_API_KEY|service_role|SUPABASE_SECRET|sb_secret_/i,'No-Flash runtime contains no paid AI or privileged credentials');
+
+assert.match(theme,/function bindControl/);
+assert.match(theme,/addEventListener\('tedvio:teacher-shell',install\)/,'theme controls install synchronously on shell creation');
+assert.doesNotMatch(theme,/addEventListener\('tedvio:teacher-shell',\(\)=>requestAnimationFrame\(install\)\)/,'theme controls no longer arrive one frame late');
+assert.match(theme,/new MutationObserver\(install\)\.observe\(root,\{childList:true,subtree:false\}\)/,'theme observes only top-level shell replacement');
+
+console.log('TEDVIO v76.3 No-Flash UI regression: OK');
