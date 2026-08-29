@@ -1,0 +1,50 @@
+name: TEDVIO v75 Academic Agenda Audit
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'teacher.html'
+      - 'teacher-agenda-v75.js'
+      - 'teacher-agenda-v75.css'
+      - 'version.json'
+      - 'supabase/migrations/20260829010053_v75_group_schedule_slots.sql'
+      - 'tests/v75-academic-agenda-regression.mjs'
+      - 'tests/v74-ai-copilot-regression.mjs'
+      - 'tests/v68-5-demand-driven-performance-regression.mjs'
+      - 'tests/v68-6-teacher-core-split-regression.mjs'
+      - 'tests/v68-7-dual-theme-premium-regression.mjs'
+      - 'tests/v68-8-mobile-theme-compat-regression.mjs'
+      - '.github/workflows/v75-academic-agenda.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check teacher-agenda-v75.js
+          node --check teacher-command-center-v70.js
+          node --check teacher-core-v68-6.js
+      - name: v75 Agenda regression
+        run: |
+          node tests/v75-academic-agenda-regression.mjs
+          node tests/v74-ai-copilot-regression.mjs
+      - name: Foundation compatibility
+        run: |
+          node tests/v68-5-demand-driven-performance-regression.mjs
+          node tests/v68-6-teacher-core-split-regression.mjs
+          node tests/v68-7-dual-theme-premium-regression.mjs
+          node tests/v68-8-mobile-theme-compat-regression.mjs
+          node tests/v68-9-export-reliability-regression.mjs
+          node tests/v70-classroom-os-regression.mjs
+          node tests/v71-group-intelligence-regression.mjs
+          node tests/v72-academic-workflow-regression.mjs
+          node tests/v73-assessment-intelligence-regression.mjs
+          node tests/ios-safari-syntax-audit.mjs
+          git diff --check
