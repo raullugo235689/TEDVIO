@@ -26,7 +26,9 @@ jobs:
           cat .tedvio2-bootstrap.part* | base64 -d | tar -xzf -
           rm -f .tedvio2-bootstrap.part*
           rm -f .tedvio2-bootstrap.tar.gz.b64
-          rm -f .github/workflows/bootstrap-tedvio-2.yml
+          # Workflow files require a token with workflows permission. The final
+          # build workflow is installed separately after this source commit.
+          rm -f .github/workflows/tedvio-2-build.yml
       - name: Install and validate
         working-directory: apps/teacher-v2
         run: |
