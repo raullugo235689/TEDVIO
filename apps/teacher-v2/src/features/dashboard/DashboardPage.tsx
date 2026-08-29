@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   agendaSnapshot,
@@ -63,7 +63,7 @@ function AgendaFocus({ occurrence, label }: { occurrence: AgendaOccurrence | nul
       <h3>{groupSubject(occurrence.group)}</h3>
       <p>{groupName(occurrence.group)} · {formatTime(occurrence.slot.start_time)}–{formatTime(occurrence.slot.end_time)}</p>
       <small>{[occurrence.slot.room, occurrence.slot.modality].filter(Boolean).join(' · ') || 'Ubicación sin especificar'}</small>
-      <LegacyBridge groupId={occurrence.slot.group_id} compact label="Continuar en versión actual" />
+      <Link className="button ghost compact" to={`/attendance/${occurrence.slot.group_id}`}>Preparar asistencia</Link>
     </article>
   );
 }
@@ -80,7 +80,7 @@ function GroupCard({ group }: { group: DashboardGroup }) {
         <span><small>Asistencia</small><b>{formatPercent(group.attendance_rate)}</b></span>
         <span><small>Promedio</small><b>{formatGrade(group.grade_avg)}</b></span>
       </div>
-      <footer><small>Última actividad: {formatActivity(group.last_activity)}</small><LegacyBridge groupId={group.id} compact label="Abrir operación" /></footer>
+      <footer><small>Última actividad: {formatActivity(group.last_activity)}</small><div><Link className="button ghost compact" to={`/groups/${group.id}`}>Abrir grupo</Link><Link className="button primary compact" to={`/attendance/${group.id}`}>Asistencia</Link></div></footer>
     </article>
   );
 }
@@ -113,7 +113,7 @@ export function DashboardPage() {
       <PageHeader
         eyebrow="TEDVIO 2.0 · CENTRO DOCENTE"
         title={`${greeting()}, ${firstName(data.user.email)}.`}
-        detail="La nueva interfaz consulta el mismo backend, pero mantiene un solo shell y un solo estado de navegación."
+        detail="Inicio, Agenda, Grupos, padrón y Asistencia ya operan dentro de un solo shell persistente."
         actions={
           <button className="button secondary" type="button" onClick={() => queryClient.invalidateQueries({ queryKey: ['teacher-home'] })}>
             <Icon name="refresh" />Actualizar
@@ -131,7 +131,7 @@ export function DashboardPage() {
           <h2>{action.title}</h2>
           <p>{action.detail}</p>
           <div className="hero-actions">
-            {action.groupId ? <LegacyBridge groupId={action.groupId} label="Continuar la operación" /> : <button className="button primary" type="button" onClick={() => navigate('/groups')}>Ver grupos</button>}
+            {action.groupId ? <button className="button primary" type="button" onClick={() => navigate(`/attendance/${action.groupId}`)}>Abrir siguiente acción</button> : <button className="button primary" type="button" onClick={() => navigate('/groups')}>Ver grupos</button>}
             <button className="button ghost" type="button" onClick={() => navigate('/agenda')}>Abrir agenda</button>
           </div>
         </div>
@@ -155,9 +155,9 @@ export function DashboardPage() {
 
       <div className="dashboard-columns">
         <SectionCard>
-          <div className="section-heading"><div><span className="eyebrow">OPERACIÓN ACADÉMICA</span><h2>Tus grupos</h2><p>Resumen de datos sin reconstruir la aplicación.</p></div><button className="button ghost" type="button" onClick={() => navigate('/groups')}>Ver todos</button></div>
+          <div className="section-heading"><div><span className="eyebrow">OPERACIÓN ACADÉMICA</span><h2>Tus grupos</h2><p>Resumen y acceso directo al padrón y la asistencia.</p></div><button className="button ghost" type="button" onClick={() => navigate('/groups')}>Ver todos</button></div>
           <div className="groups-grid-v2">
-            {groups.length ? groups.slice(0, 4).map((group) => <GroupCard group={group} key={group.id} />) : <div className="empty-inline"><Icon name="groups" /><div><b>Aún no hay grupos</b><span>La creación se migrará en la siguiente fase.</span></div><LegacyBridge compact /></div>}
+            {groups.length ? groups.slice(0, 4).map((group) => <GroupCard group={group} key={group.id} />) : <div className="empty-inline"><Icon name="groups" /><div><b>Aún no hay grupos</b><span>Crea la estructura y el primer grupo desde TEDVIO 2.0.</span></div><button className="button primary compact" type="button" onClick={() => navigate('/groups')}>Crear grupo</button></div>}
           </div>
         </SectionCard>
 
@@ -169,7 +169,7 @@ export function DashboardPage() {
                 <article key={student.student_id || `${student.group_id}-${index}`}>
                   <span className={`priority-dot ${student.status === 'risk' ? 'risk' : 'watch'}`} />
                   <div><b>{student.full_name || 'Alumno'}</b><small>{[student.attendance_rate != null ? `Asistencia ${formatPercent(student.attendance_rate)}` : '', student.grade != null ? `Promedio ${formatGrade(student.grade)}` : ''].filter(Boolean).join(' · ') || 'Señal académica detectada'}</small></div>
-                  <LegacyBridge groupId={student.group_id || undefined} compact label="Abrir" />
+                  {student.group_id ? <Link className="button ghost compact" to={`/groups/${student.group_id}`}>Abrir</Link> : null}
                 </article>
               )) : <div className="empty-compact"><Icon name="check" /><div><b>Sin alertas prioritarias</b><span>TEDVIO mostrará aquí las señales relevantes.</span></div></div>}
             </div>
@@ -177,15 +177,15 @@ export function DashboardPage() {
 
           <SectionCard>
             <div className="section-heading compact"><div><span className="eyebrow">ÚLTIMA EVALUACIÓN</span><h2>{data.dashboard.latest_evaluation?.title || 'Sin evaluación reciente'}</h2></div></div>
-            {data.dashboard.latest_evaluation ? <div className="latest-eval-v2"><div><span>PROMEDIO</span><b>{formatGrade(data.dashboard.latest_evaluation.average)}</b></div><p>Los resultados y Assessment Intelligence se migrarán sin cambiar los datos existentes.</p><LegacyBridge groupId={data.dashboard.latest_evaluation.group_id || undefined} compact /></div> : <p className="muted-copy">Cuando registres una evaluación aparecerá en este espacio.</p>}
+            {data.dashboard.latest_evaluation ? <div className="latest-eval-v2"><div><span>PROMEDIO</span><b>{formatGrade(data.dashboard.latest_evaluation.average)}</b></div><p>Los resultados y Assessment Intelligence se migrarán en la siguiente etapa.</p><LegacyBridge groupId={data.dashboard.latest_evaluation.group_id || undefined} compact /></div> : <p className="muted-copy">Cuando registres una evaluación aparecerá en este espacio.</p>}
           </SectionCard>
         </div>
       </div>
 
       <section className="migration-note">
         <div className="migration-note-icon"><Icon name="layout" /></div>
-        <div><span className="eyebrow">RECONSTRUCCIÓN CONTROLADA</span><h2>Fase 1 activa: acceso, shell, router e Inicio.</h2><p>Agenda y Grupos ya pueden consultarse. Las operaciones de escritura continúan temporalmente en TEDVIO actual hasta completar su migración y pruebas.</p></div>
-        <LegacyBridge label="Abrir versión operativa" />
+        <div><span className="eyebrow">RECONSTRUCCIÓN CONTROLADA</span><h2>Fase 2 activa: Grupos, alumnos y Asistencia Pro.</h2><p>La operación diaria ya funciona dentro del frontend unificado. Modo Clase, Banco, OMR, Libro y Periodos continúan en migración.</p></div>
+        <LegacyBridge label="Abrir módulos todavía no migrados" />
       </section>
     </div>
   );
