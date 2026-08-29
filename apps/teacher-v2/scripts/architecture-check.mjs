@@ -17,11 +17,17 @@ const source = files.map((file) => ({ file, text: fs.readFileSync(file, 'utf8') 
 const joined = source.map((entry) => entry.text).join('\n');
 const app = fs.readFileSync(path.join(sourceRoot, 'app/App.tsx'), 'utf8');
 const shell = fs.readFileSync(path.join(sourceRoot, 'app/AppShell.tsx'), 'utf8');
+const navigation = fs.readFileSync(path.join(sourceRoot, 'app/navigation.tsx'), 'utf8');
+const main = fs.readFileSync(path.join(sourceRoot, 'main.tsx'), 'utf8');
 const groupsApi = fs.readFileSync(path.join(sourceRoot, 'core/groups.ts'), 'utf8');
 const attendanceApi = fs.readFileSync(path.join(sourceRoot, 'core/attendance.ts'), 'utf8');
+const bankApi = fs.readFileSync(path.join(sourceRoot, 'core/bank.ts'), 'utf8');
+const classroomApi = fs.readFileSync(path.join(sourceRoot, 'core/classroom.ts'), 'utf8');
 const groupsPage = fs.readFileSync(path.join(sourceRoot, 'features/groups/GroupsPage.tsx'), 'utf8');
 const groupDetail = fs.readFileSync(path.join(sourceRoot, 'features/groups/GroupDetailPage.tsx'), 'utf8');
 const attendancePage = fs.readFileSync(path.join(sourceRoot, 'features/attendance/AttendancePage.tsx'), 'utf8');
+const bankPage = fs.readFileSync(path.join(sourceRoot, 'features/bank/BankPage.tsx'), 'utf8');
+const classroomPage = fs.readFileSync(path.join(sourceRoot, 'features/classroom/ClassroomPage.tsx'), 'utf8');
 
 function must(condition, message) {
   if (condition) console.log('OK  ', message);
@@ -46,7 +52,7 @@ must(!/window\.beta|__TEDVIO_TEACHER686__|teacher-command-center-v\d/i.test(join
 must(!/OPENAI|AI_GATEWAY|gpt-/i.test(joined), 'la reconstrucción no introduce IA generativa ni costos de inferencia');
 must((joined.match(/createClient\(/g) || []).length === 1, 'existe exactamente un cliente Supabase');
 must(shell.includes('<Outlet />'), 'AppShell es persistente y contiene un único Outlet');
-must(fs.readFileSync(path.join(sourceRoot, 'main.tsx'), 'utf8').includes('<HashRouter>'), 'React Router controla toda la navegación');
+must(main.includes('<HashRouter>'), 'React Router controla toda la navegación');
 must(fs.readFileSync(path.join(sourceRoot, 'core/api.ts'), 'utf8').includes("rpc('v2_teacher_today_dashboard')"), 'Inicio reutiliza el RPC académico existente');
 must(!files.some((file) => /(?:^|[-_.])v\d+(?:[-_.]|$)/i.test(path.basename(file))), 'los archivos activos no llevan números históricos de versión');
 must(!joined.includes('setInterval('), 'no se introduce polling permanente');
@@ -70,6 +76,32 @@ must((attendanceApi.match(/\.eq\('teacher_id', user\.id\)/g) || []).length >= 6,
 must(!groupsApi.includes('.delete(') && !attendanceApi.includes('.delete('), 'Fase 2 no elimina grupos, alumnos ni listas');
 must(groupsApi.includes("onConflict: 'group_id,enrollment'") && attendanceApi.includes("onConflict: 'attendance_session_id,student_id'"), 'importación y asistencia respetan las claves únicas existentes');
 must(attendanceApi.includes("'present' | 'late' | 'absent' | 'justified'") || fs.readFileSync(path.join(sourceRoot, 'core/types.ts'), 'utf8').includes("'present' | 'late' | 'absent' | 'justified'"), 'estados de asistencia coinciden con las restricciones de base de datos');
+
+must(app.includes('path="classroom"') && app.includes('path="classroom/:sessionId"') && app.includes('<ClassroomPage />'), 'Modo Clase tiene rutas React propias');
+must(app.includes('path="bank"') && app.includes('<BankPage />'), 'Banco de Reactivos tiene una ruta React propia');
+must(!app.includes('module="classroom"') && !app.includes('module="bank"'), 'Modo Clase y Banco fueron retirados de los placeholders heredados');
+must(navigation.includes("label: 'Modo Clase'") && navigation.includes("label: 'Banco'") && (navigation.match(/migrated: true/g) || []).length >= 6, 'la navegación marca Fase 3 como migrada');
+must(main.includes("import './styles/phase-three.css'"), 'los estilos de Fase 3 se cargan desde un módulo único');
+
+must(bankPage.includes('saveBankQuestion') && bankPage.includes('duplicateBankQuestion') && bankPage.includes('launchClassroomSession') && bankPage.includes('appendBankQuestionsToSession'), 'Question Studio cubre autoría, reutilización y lanzamiento');
+must(classroomPage.includes('subscribeClassroom') && classroomPage.includes('launchClassroomQuestion') && classroomPage.includes('revealClassroomQuestion') && classroomPage.includes('closeClassroomSession'), 'Modo Clase cubre tiempo real, preguntas y cierre');
+must(classroomPage.includes('saveClassroomStudentNote') && classroomPage.includes('sessionStorage'), 'Modo Clase distingue notas persistentes y contadores locales');
+
+for (const table of ['v2_question_bank', 'v2_sessions', 'v2_questions']) {
+  must(bankApi.includes(`from('${table}')`), `capa del banco utiliza ${table}`);
+}
+for (const table of ['v2_sessions', 'v2_questions', 'v2_participants', 'v2_responses', 'v2_group_students', 'v2_student_notes']) {
+  must(classroomApi.includes(`from('${table}')`), `capa de Modo Clase utiliza ${table}`);
+}
+must(bankApi.includes("rpc('v2_teacher_question_bank_metrics')"), 'Banco reutiliza métricas académicas existentes');
+must(bankApi.includes("rpc('tedvio_launch_first_session_v68'"), 'Banco lanza sesiones mediante el RPC protegido existente');
+must(bankApi.includes("onConflict: 'group_id,student_id'") === false, 'Banco no mezcla notas de estudiantes');
+must(classroomApi.includes("onConflict: 'group_id,student_id'"), 'Notas docentes respetan la clave única del expediente');
+must((bankApi.match(/\.eq\('teacher_id', user\.id\)/g) || []).length >= 5, 'operaciones del banco restringen datos al docente autenticado');
+must((classroomApi.match(/\.eq\('teacher_id', user\.id\)/g) || []).length >= 7, 'operaciones de Modo Clase restringen datos al docente autenticado');
+must(!bankApi.includes('.delete(') && !classroomApi.includes('.delete('), 'Fase 3 archiva preguntas y conserva sesiones en lugar de eliminarlas');
+must(classroomApi.includes(".channel(channelName)") && classroomApi.includes("table: 'v2_responses'"), 'Modo Clase usa Supabase Realtime sin polling permanente');
+must(classroomApi.includes('/beta.html#join?code=') && classroomApi.includes('/proyectar.html?code='), 'Modo Clase conserva acceso de alumnos y proyección existentes');
 
 if (failures.length) {
   console.error(`\n${failures.length} regla(s) de arquitectura fallaron.`);

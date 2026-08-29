@@ -1,16 +1,14 @@
 import { LegacyBridge, PageHeader, SectionCard, StatusPill } from '../../shared/components';
 import { Icon, type IconName } from '../../shared/icons';
 
-type ModuleKey = 'classroom' | 'bank' | 'exams' | 'gradebook' | 'periods' | 'reports' | 'settings';
+type ModuleKey = 'exams' | 'gradebook' | 'periods' | 'reports' | 'settings';
 
 const modules: Record<ModuleKey, { eyebrow: string; title: string; detail: string; icon: IconName; phase: string; preserved: string[] }> = {
-  classroom: { eyebrow: 'MODO CLASE', title: 'Un cockpit docente dentro del shell nuevo', detail: 'Se migrarán cronómetro, participación, Live y cierre de clase sin volver a montar la aplicación.', icon: 'classroom', phase: 'Fase 3', preserved: ['Cronómetro', 'Alumno aleatorio', 'Live', 'Resumen de cierre'] },
-  bank: { eyebrow: 'BANCO', title: 'Question Studio tendrá una ruta propia', detail: 'El banco dejará de envolver funciones globales y pasará a un módulo React con caché y formularios tipados.', icon: 'bank', phase: 'Fase 3', preserved: ['Reactivos existentes', 'Etiquetas', 'Medios', 'Uso en exámenes'] },
   exams: { eyebrow: 'EVALUACIONES', title: 'OMR y Assessment Intelligence se conservarán', detail: 'La lectura, calificación y analítica permanecerán sobre el modelo actual, con una interfaz unificada.', icon: 'exam', phase: 'Fase 4', preserved: ['Exámenes', 'Resultados OMR', 'Distractores', 'Mapa de contenidos'] },
   gradebook: { eyebrow: 'CALIFICACIONES', title: 'El libro será migrado como módulo central', detail: 'Ponderaciones, evidencias, pendientes y Alumno 360° se moverán sin recalcular ni borrar datos.', icon: 'grades', phase: 'Fase 4', preserved: ['Categorías', 'Actividades', 'Calificaciones', 'Alumno 360°'] },
   periods: { eyebrow: 'PERIODOS', title: 'Los cierres protegidos seguirán vigentes', detail: 'Parciales, fotografías de cierre y reaperturas auditadas conservarán la protección de base de datos.', icon: 'periods', phase: 'Fase 5', preserved: ['Parciales', 'Snapshots', 'Bloqueos', 'Reaperturas'] },
   reports: { eyebrow: 'REPORTES', title: 'Un centro de reportes sin dependencias en el arranque', detail: 'PDF y Excel se cargarán solo cuando el docente los solicite.', icon: 'reports', phase: 'Fase 5', preserved: ['Asistencia', 'Grupo', 'Alumno', 'Cierre académico'] },
-  settings: { eyebrow: 'CONFIGURACIÓN', title: 'Preferencias y cuenta en un solo lugar', detail: 'Tema, perfil, institución, horario y seguridad se organizarán en una ruta estable.', icon: 'settings', phase: 'Fase 3', preserved: ['Perfil', 'Tema', 'Institución', 'Horario'] },
+  settings: { eyebrow: 'CONFIGURACIÓN', title: 'Preferencias y cuenta en un solo lugar', detail: 'Tema, perfil, institución, horario y seguridad se organizarán en una ruta estable.', icon: 'settings', phase: 'Fase 5', preserved: ['Perfil', 'Tema', 'Institución', 'Horario'] },
 };
 
 export function MigrationPage({ module }: { module: ModuleKey }) {

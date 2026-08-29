@@ -13,31 +13,37 @@ La reconstrucción se realiza en paralelo y conserva producción en `/teacher`. 
 - Autenticación compatible con la sesión existente.
 - Dashboard real mediante `v2_teacher_today_dashboard`.
 - Agenda mediante `v2_group_schedule_slots`.
-- Tema claro/oscuro y navegación móvil.
-- Sin cambios de esquema, migraciones o RLS.
 
 ## Fase 2 · Grupos, alumnos y Asistencia Pro
 
-- Estructura académica: institución → programa → grupo.
+- Estructura Institución → Programa → Grupo.
 - Creación y edición de grupos.
-- Centro de grupo con ruta React propia.
+- Centro de grupo con ruta propia.
 - Alta, edición, importación, desactivación y reactivación de alumnos.
-- Historial reciente de asistencia.
-- Creación de listas por fecha.
-- Estados Presente, Retardo, Falta y Justificada.
-- Observaciones individuales y nota general.
-- Guardado, pausa, reanudación, cierre y reapertura.
-- Navegación interna Inicio → Agenda → Grupo → Asistencia.
-- Sin eliminar registros históricos ni duplicar datos.
+- Asistencia diaria con Presente, Retardo, Falta y Justificada.
+- Guardar, pausar, reanudar, cerrar y reabrir listas.
+- Sin eliminación física de grupos, alumnos o listas.
+
+## Fase 3 · Modo Clase y Question Studio
+
+- Banco de Reactivos con búsqueda, filtros, carpetas, etiquetas, dificultad y nivel cognitivo.
+- Autoría y edición de los tipos de pregunta ya soportados por TEDVIO.
+- Favoritos, duplicación y archivo sin eliminación física.
+- Métricas de uso, acierto y discriminación mediante el RPC existente.
+- Selección de reactivos para crear una sesión o ampliar una sesión abierta.
+- Cockpit docente con lobby, código, proyección, participantes, cronómetro y respuesta en vivo.
+- Lanzar, cerrar, revelar y avanzar preguntas.
+- Ranking individual o por equipos, distribución de respuestas y resumen de cierre.
+- Alumno aleatorio, contadores locales transparentes y nota persistente en el expediente.
+- Supabase Realtime en lugar de polling permanente.
+- Sin IA generativa ni costos de inferencia.
 
 ## Próximas fases
 
-1. Modo Clase y Banco de Reactivos.
-2. Evaluaciones, OMR, Libro y Alumno 360°.
-3. Periodos, cierre académico y Reportes.
-4. Configuración integral, editor de Agenda y cuenta.
-5. Pruebas integrales con cuenta demo y sustitución controlada de `/teacher`.
+1. Evaluaciones, OMR, Libro y Alumno 360°.
+2. Periodos, cierre académico, Reportes y Configuración.
+3. Pruebas integrales con cuenta demo y sustitución controlada de `/teacher`.
 
 ## Condiciones de salida
 
-La plataforma actual no se retira hasta que los recorridos docentes reales estén migrados y validados en escritorio, iPad e iPhone. Cada fase debe conservar RLS, los identificadores existentes y la posibilidad de volver temporalmente a `/teacher` para los módulos todavía no migrados.
+La plataforma actual no se retira hasta que los recorridos docentes reales estén migrados y validados en escritorio, iPad e iPhone. Cada fase debe pasar TypeScript, auditoría arquitectónica y build reproducible antes de fusionarse.

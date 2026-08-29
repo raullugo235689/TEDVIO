@@ -7,6 +7,8 @@ import { AgendaPage } from '../features/agenda/AgendaPage';
 import { GroupsPage } from '../features/groups/GroupsPage';
 import { GroupDetailPage } from '../features/groups/GroupDetailPage';
 import { AttendancePage } from '../features/attendance/AttendancePage';
+import { ClassroomPage } from '../features/classroom/ClassroomPage';
+import { BankPage } from '../features/bank/BankPage';
 import { MigrationPage } from '../features/migration/MigrationPage';
 import { LoadingScreen } from '../shared/components';
 
@@ -28,8 +30,9 @@ export function App() {
         <Route path="groups/:groupId" element={<GroupDetailPage />} />
         <Route path="attendance" element={<AttendancePage />} />
         <Route path="attendance/:groupId" element={<AttendancePage />} />
-        <Route path="classroom" element={<MigrationPage module="classroom" />} />
-        <Route path="bank" element={<MigrationPage module="bank" />} />
+        <Route path="classroom" element={<ClassroomPage />} />
+        <Route path="classroom/:sessionId" element={<ClassroomPage />} />
+        <Route path="bank" element={<BankPage />} />
         <Route path="exams" element={<MigrationPage module="exams" />} />
         <Route path="gradebook" element={<MigrationPage module="gradebook" />} />
         <Route path="periods" element={<MigrationPage module="periods" />} />
