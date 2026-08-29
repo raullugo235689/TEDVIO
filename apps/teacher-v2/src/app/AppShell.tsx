@@ -52,7 +52,7 @@ export function AppShell() {
   const primary = navigation.filter((item) => item.section === 'primary');
   const operation = navigation.filter((item) => item.section === 'operation');
   const close = navigation.filter((item) => item.section === 'close');
-  const mobileItems = [navigation[0], navigation[2], navigation[4], navigation[6]].filter(Boolean) as NavigationItem[];
+  const mobileItems = [navigation[0], navigation[2], navigation[3], navigation[6]].filter(Boolean) as NavigationItem[];
 
   async function logout() {
     setSigningOut(true);
@@ -131,7 +131,7 @@ export function AppShell() {
           <section className="mobile-more" role="dialog" aria-modal="true" aria-label="Más opciones" onClick={(event) => event.stopPropagation()}>
             <header><div><span>TEDVIO 2.0</span><h2>Más opciones</h2></div><button type="button" className="icon-button" onClick={() => setMoreOpen(false)} aria-label="Cerrar">×</button></header>
             <div className="mobile-more-grid">
-              {[navigation[1], navigation[3], navigation[5], navigation[7], navigation[8], navigation[9]].filter(Boolean).map((item) => <NavItem item={item as NavigationItem} key={(item as NavigationItem).to} />)}
+              {[navigation[1], navigation[4], navigation[5], navigation[7], navigation[8], navigation[9]].filter(Boolean).map((item) => <NavItem item={item as NavigationItem} key={(item as NavigationItem).to} />)}
               <NavLink to="/settings" className="nav-item"><Icon name="settings" /><span>Configuración</span></NavLink>
             </div>
           </section>
