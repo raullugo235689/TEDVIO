@@ -1,0 +1,91 @@
+import fs from'node:fs';
+import assert from'node:assert/strict';
+const read=p=>fs.readFileSync(p,'utf8');
+const teacher=read('teacher.html');
+const js=read('teacher-periods-v76.js');
+const css=read('teacher-periods-v76.css');
+const base=read('supabase/migrations/20260829014926_v76_academic_periods_and_close_guard.sql');
+const snapshot=read('supabase/migrations/20260829015034_v76_period_student_snapshot.sql');
+const strict=read('supabase/migrations/20260829015747_v76_close_readiness_strict_evidence.sql');
+const hardening=read('supabase/migrations/20260829015941_v76_period_function_privilege_hardening.sql');
+const version=JSON.parse(read('version.json'));
+
+assert.equal(version.version,'2026.08.28.76');
+assert.equal(version.audit,'academic-periods');
+assert.match(teacher,/teacher-periods-v76\.css\?v=76/);
+assert.match(teacher,/teacher-periods-v76\.js\?v=76/);
+assert.ok(teacher.indexOf('teacher-agenda-v75.js?v=75')<teacher.indexOf('teacher-periods-v76.js?v=76'),'v76 loads after the academic agenda');
+assert.doesNotMatch(teacher,/xlsx\.full|jspdf|jsQR/i,'period layer adds no heavy first-paint dependency');
+
+assert.match(js,/__TEDVIO_TEACHER686__/,'v76 reuses Teacher Core');
+assert.doesNotMatch(js,/createClient\(/,'v76 does not create another Supabase client');
+assert.match(js,/from\('v2_academic_periods'\)/);
+assert.match(js,/STATE\.lastLoad<30000/,'period list is cached');
+assert.doesNotMatch(js,/setInterval\(/,'v76 has no polling');
+assert.doesNotMatch(js,/new MutationObserver/,'v76 has no DOM observer');
+assert.match(js,/3 parciales \+ final/);
+assert.match(js,/Parcial 1/);
+assert.match(js,/Parcial 2/);
+assert.match(js,/Parcial 3/);
+assert.match(js,/Final/);
+assert.match(js,/LIBRO POR PERIODO/);
+assert.match(js,/TRAYECTORIA POR PERIODOS/);
+assert.match(js,/v2_teacher_academic_period_summary/);
+assert.match(js,/v2_teacher_close_academic_period/);
+assert.match(js,/v2_teacher_reopen_academic_period/);
+assert.match(js,/closed_snapshot/,'closed snapshots drive historical views');
+assert.match(js,/Reabrir periodo/);
+assert.match(js,/Reapertura controlada/i);
+assert.match(js,/guardCapture/,'client gives a friendly closed-period capture guard');
+assert.match(js,/Las evidencias se vinculan automáticamente por fecha/);
+assert.match(js,/La fotografía de cierre queda preservada/);
+assert.doesNotMatch(js,/OPENAI_API_KEY|AI_GATEWAY_API_KEY|ai-gateway|api\.openai\.com|gpt-5/i,'v76 adds no inference provider or cost');
+assert.doesNotMatch(js,/service_role|SUPABASE_SECRET|sb_secret_/i,'v76 frontend exposes no privileged Supabase secret');
+
+assert.match(base,/create table if not exists public\.v2_academic_periods/);
+assert.match(base,/course_weight numeric\(5,2\)/);
+assert.match(base,/status text not null default 'open'/);
+assert.match(base,/closed_snapshot jsonb/);
+assert.match(base,/transition_log jsonb/);
+assert.match(base,/enable row level security/);
+for(const op of['select','insert','update','delete'])assert.match(base,new RegExp(`v2_academic_periods_${op}_own`));
+assert.match(base,/alter table public\.v2_grade_items add column if not exists period_id/);
+assert.match(base,/alter table public\.v2_paper_exams add column if not exists period_id/);
+assert.match(base,/alter table public\.v2_paper_exams add column if not exists exam_date/);
+assert.match(base,/alter table public\.v2_assignments add column if not exists period_id/);
+assert.match(base,/Los periodos académicos del mismo grupo no pueden traslaparse/);
+assert.match(base,/Usa el cierre académico de TEDVIO/,'direct status closing is blocked');
+assert.match(base,/Usa la reapertura controlada/,'direct reopening is blocked');
+assert.match(base,/El periodo académico está cerrado\. Reábrelo antes de modificar evidencias/);
+for(const trigger of['trg_v2_grade_item_period_guard','trg_v2_grade_score_period_guard','trg_v2_paper_exam_period_guard','trg_v2_paper_result_period_guard','trg_v2_attendance_session_period_guard','trg_v2_attendance_record_period_guard'])assert.match(base,new RegExp(trigger));
+assert.match(base,/v2_refresh_period_evidence_links/,'date ranges backfill existing compatible evidence');
+assert.match(base,/v2_teacher_close_academic_period/);
+assert.match(base,/v2_teacher_reopen_academic_period/);
+assert.match(base,/char_length\(btrim\(coalesce\(p_reason,''\)\)\)<3/,'reopening requires a reason');
+assert.doesNotMatch(base,/security definer/i,'v76 functions remain invoker-context');
+
+assert.match(snapshot,/'student_rows'/);
+assert.match(snapshot,/'group_grade'/);
+assert.match(snapshot,/'approval_rate'/);
+assert.match(snapshot,/'attendance_rate'/);
+assert.match(snapshot,/'omr_avg'/);
+assert.match(snapshot,/closed_snapshot|v2_teacher_academic_period_summary/);
+
+assert.match(strict,/attendance_expected>attendance_records/);
+assert.match(strict,/omr_expected>exam_results/);
+assert.match(strict,/students_without_grade>0/);
+assert.match(strict,/'issues',issues/);
+assert.match(strict,/'ready',\(jsonb_array_length\(issues\)=0\)/,'strict evidence controls close readiness');
+
+for(const fn of['v2_assert_period_link_open','v2_assert_group_date_open','v2_academic_period_guard','v2_grade_item_period_guard','v2_grade_score_period_guard','v2_paper_exam_period_guard','v2_paper_result_period_guard','v2_assignment_period_guard','v2_attendance_session_period_guard','v2_attendance_record_period_guard','v2_refresh_period_evidence_links'])assert.match(hardening,new RegExp(`revoke all on function public\\.${fn.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}`));
+
+assert.match(css,/\.tv76-dash-period/);
+assert.match(css,/\.tv76-book-period/);
+assert.match(css,/\.tv76-student-periods/);
+assert.match(css,/:root\[data-tedvio-theme="dark"\]/);
+assert.match(css,/@media\(max-width:640px\)/);
+assert.match(css,/font-size:16px/,'mobile form inputs avoid iOS focus zoom');
+assert.match(css,/min-height:44px/,'mobile tabs remain touch sized');
+assert.match(css,/prefers-reduced-motion/);
+
+console.log('TEDVIO v76 Academic Periods regression: OK');
