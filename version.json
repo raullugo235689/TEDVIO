@@ -1,8 +1,8 @@
 {
   "app": "TEDVIO",
-  "version": "2026.08.28.75",
+  "version": "2026.08.28.76",
   "channel": "pilot-ready",
-  "audit": "academic-agenda",
+  "audit": "academic-periods",
   "source": "main",
   "generated_at": "2026-08-28"
 }

@@ -1,0 +1,23 @@
+revoke all on function public.v2_assert_period_link_open(uuid,uuid,uuid) from public,anon;
+revoke all on function public.v2_assert_group_date_open(uuid,uuid,date) from public,anon;
+grant execute on function public.v2_assert_period_link_open(uuid,uuid,uuid) to authenticated;
+grant execute on function public.v2_assert_group_date_open(uuid,uuid,date) to authenticated;
+
+revoke all on function public.v2_academic_period_guard() from public,anon;
+revoke all on function public.v2_grade_item_period_guard() from public,anon;
+revoke all on function public.v2_grade_score_period_guard() from public,anon;
+revoke all on function public.v2_paper_exam_period_guard() from public,anon;
+revoke all on function public.v2_paper_result_period_guard() from public,anon;
+revoke all on function public.v2_assignment_period_guard() from public,anon;
+revoke all on function public.v2_attendance_session_period_guard() from public,anon;
+revoke all on function public.v2_attendance_record_period_guard() from public,anon;
+revoke all on function public.v2_refresh_period_evidence_links() from public,anon;
+grant execute on function public.v2_academic_period_guard() to authenticated;
+grant execute on function public.v2_grade_item_period_guard() to authenticated;
+grant execute on function public.v2_grade_score_period_guard() to authenticated;
+grant execute on function public.v2_paper_exam_period_guard() to authenticated;
+grant execute on function public.v2_paper_result_period_guard() to authenticated;
+grant execute on function public.v2_assignment_period_guard() to authenticated;
+grant execute on function public.v2_attendance_session_period_guard() to authenticated;
+grant execute on function public.v2_attendance_record_period_guard() to authenticated;
+grant execute on function public.v2_refresh_period_evidence_links() to authenticated;

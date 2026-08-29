@@ -6,9 +6,10 @@ const js=read('teacher-agenda-v75.js');
 const css=read('teacher-agenda-v75.css');
 const migration=read('supabase/migrations/20260829010053_v75_group_schedule_slots.sql');
 const version=JSON.parse(read('version.json'));
+const release=Number(String(version.version||'').split('.').at(-1)||0);
 
-assert.equal(version.version,'2026.08.28.75');
-assert.equal(version.audit,'academic-agenda');
+assert.ok(release>=75,'global release must preserve v75 or later');
+if(release===75)assert.equal(version.audit,'academic-agenda');
 assert.match(teacher,/teacher-agenda-v75\.css\?v=75/);
 assert.match(teacher,/teacher-agenda-v75\.js\?v=75/);
 assert.ok(teacher.indexOf('teacher-command-center-v70.js?v=72')<teacher.indexOf('teacher-agenda-v75.js?v=75'),'Agenda loads after v70 command center');
