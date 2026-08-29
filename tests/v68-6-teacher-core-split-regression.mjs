@@ -1,19 +1,20 @@
 import fs from'node:fs';
 const read=p=>fs.readFileSync(p,'utf8');
-const teacher=read('teacher.html'),beta=read('beta.html'),core=read('teacher-core-v68-6.js'),session=read('teacher-session-core-v68-6.js'),loader=read('teacher-progressive-boot-v68.js'),agenda=read('teacher-agenda-v75.js'),runtime=read('runtime-core-v64.js'),vercel=read('vercel.json'),sw=read('sw.js');
+const teacher=read('teacher.html'),beta=read('beta.html'),core=read('teacher-core-v68-6.js'),session=read('teacher-session-core-v68-6.js'),loader=read('teacher-progressive-boot-v68.js'),agenda=read('teacher-agenda-v75.js'),periods=read('teacher-periods-v76.js'),runtime=read('runtime-core-v64.js'),vercel=read('vercel.json'),sw=read('sw.js');
 let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
 const scripts=[...teacher.matchAll(/<script[^>]+src="([^"]+)"/g)].map(x=>x[1]);
 const styles=[...teacher.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/g)].map(x=>x[1]);
-const allowedScripts=['config.js','runtime-core-v64.js','teacher-core-v68-6.js','teacher-progressive-boot-v68.js','teacher-theme-v68-7.js','teacher-command-center-v70.js','teacher-agenda-v75.js'];
+const allowedScripts=['config.js','runtime-core-v64.js','teacher-core-v68-6.js','teacher-progressive-boot-v68.js','teacher-theme-v68-7.js','teacher-command-center-v70.js','teacher-agenda-v75.js','teacher-periods-v76.js'];
 const unexpectedScripts=scripts.filter(src=>!allowedScripts.some(name=>src.includes(name)));
-must(scripts.length===allowedScripts.length&&allowedScripts.every(name=>scripts.some(src=>src.includes(name)))&&unexpectedScripts.length===0,`teacher first paint keeps split-core + theme + command center + lightweight agenda (${scripts.length})`);
+must(scripts.length===allowedScripts.length&&allowedScripts.every(name=>scripts.some(src=>src.includes(name)))&&unexpectedScripts.length===0,`teacher first paint keeps split-core + lightweight agenda/period context (${scripts.length})`);
 must(/teacher-command-center-v70\.js\?v=(?:70|72)/.test(teacher),'v70 command-center runtime remains explicit');
-must(teacher.includes('teacher-agenda-v75.js?v=75'),'v75 agenda runtime is explicit and cache-versioned');
+must(teacher.includes('teacher-agenda-v75.js?v=75')&&teacher.includes('teacher-periods-v76.js?v=76'),'v75/v76 academic context runtimes are explicit and cache-versioned');
 for(const legacy of ['beta.js','auth-handoff-v68-3.js','beta-auth-fix.js','beta-runtime-hooks.js','beta-session-stability-v1.js','beta-student-runtime-pre.js','student-v60.js','student-security-v67.js'])must(!teacher.includes(legacy),`split teacher omits ${legacy}`);
 const compatStyles=styles.filter(x=>x.includes('teacher-mobile-compat-v68-8.css'));
 const commandStyles=styles.filter(x=>x.includes('teacher-command-center-v70.css'));
 const agendaStyles=styles.filter(x=>x.includes('teacher-agenda-v75.css'));
-must(styles.length<=11&&compatStyles.length<=1&&commandStyles.length===1&&agendaStyles.length===1,`teacher CSS budget stays lean and permits one mobile + command-center + agenda layer (${styles.length} stylesheets)`);
+const periodStyles=styles.filter(x=>x.includes('teacher-periods-v76.css'));
+must(styles.length<=12&&compatStyles.length<=1&&commandStyles.length===1&&agendaStyles.length===1&&periodStyles.length===1,`teacher CSS budget stays lean and permits one mobile + command + agenda + period layer (${styles.length} stylesheets)`);
 must(teacher.includes('teacher-theme-v68-7.css?v=687'),'dual premium theme CSS remains active');
 for(const heavy of ['live-classroom-v58.css','student-v60.css','academic-analytics-v61.css','admin-v62.css','entitlements-v63.css','question-studio-v65.css','assignments-v66.css','security-commercial-v67.css','onboarding-v68.css','beta-attendance-pro-v1.css'])must(!teacher.includes(heavy),`heavy/feature CSS ${heavy} is not first paint`);
 must(core.includes("const VERSION='2026.08.27.68.6'")&&session.includes("const VERSION='2026.08.27.68.6'"),'teacher/session split runtimes report v68.6');
@@ -22,6 +23,8 @@ must(!core.includes("from('v2_question_bank')")&&!core.includes("from('v2_sessio
 must(!core.includes('new MutationObserver'),'Teacher Core installs no MutationObserver');
 must(!agenda.includes('new MutationObserver')&&!agenda.includes('setInterval('),'Agenda adds no permanent DOM observer or polling');
 must(agenda.includes("from('v2_group_schedule_slots')")&&agenda.includes('STATE.lastLoad<30000'),'Agenda performs one cached schedule lookup outside Teacher Core');
+must(!periods.includes('new MutationObserver')&&!periods.includes('setInterval('),'Periods adds no permanent DOM observer or polling');
+must(periods.includes("from('v2_academic_periods')")&&periods.includes('STATE.lastLoad<30000'),'Periods performs one cached period lookup outside Teacher Core');
 must(core.includes("import('./teacher-session-core-v68-6.js?v=686')"),'live/history/prepared engine is dynamically imported');
 must(session.includes("addEventListener('tedvio:v64:state'")&&session.includes('15000'),'session engine uses Realtime with 15s active-session fallback');
 must(session.includes('setInterval(run,1000)')&&session.includes("if(S.question?.status!=='live')return"),'1s countdown exists only for live questions');
@@ -35,6 +38,6 @@ must(!runtime.includes("mo.observe(document.documentElement,{childList:true,subt
 must(beta.includes('beta.js?v=56')&&beta.includes('student-v60.js?v=60')&&beta.includes('student-security-v67.js?v=67'),'beta route preserves full rollback/student engine');
 for(const asset of ['/teacher-core-v68-6.js','/teacher-core-v68-6.css','/teacher-session-core-v68-6.js','/teacher-progressive-boot-v68.js'])must(vercel.includes(asset),`Vercel no-store includes ${asset}`);
 const cacheMajor=Number(sw.match(/tedvio-pilot-v(\d+)/)?.[1]||0);must(cacheMajor>=68,'split core remains on a fresh audited v68+ service-worker namespace');
-must(!/service_role|SUPABASE_SECRET|sb_secret_/i.test(core+session+loader+teacher+agenda),'teacher shell exposes no privileged key material');
+must(!/service_role|SUPABASE_SECRET|sb_secret_/i.test(core+session+loader+teacher+agenda+periods),'teacher shell exposes no privileged key material');
 if(failed){console.error(`\n${failed} v68.6+ Teacher Core Split check(s) failed.`);process.exit(1)}
-console.log('\nTEDVIO v68.6+ Teacher Core Split regression audit passed with v75 agenda.');
+console.log('\nTEDVIO v68.6+ Teacher Core Split regression audit passed with v75/v76 academic context.');
