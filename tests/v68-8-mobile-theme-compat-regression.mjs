@@ -1,15 +1,15 @@
 import fs from'node:fs';
 const read=p=>fs.readFileSync(p,'utf8');
-const teacher=read('teacher.html'),css=read('teacher-mobile-compat-v68-8.css'),agendaCss=read('teacher-agenda-v75.css'),periodCss=read('teacher-periods-v76.css'),router=read('teacher-router-v76-2.js'),theme=read('teacher-theme-v68-7.js'),sw=read('sw.js');
+const teacher=read('teacher.html'),css=read('teacher-mobile-compat-v68-8.css'),agendaCss=read('teacher-agenda-v75.css'),periodCss=read('teacher-periods-v76.css'),router=read('teacher-router-v76-3.js'),theme=read('teacher-theme-v68-7.js'),sw=read('sw.js');
 let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
 const scripts=[...teacher.matchAll(/<script[^>]+src="([^"]+)"/g)].map(x=>x[1]);
 const styles=[...teacher.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/g)].map(x=>x[1]);
-const allowedScripts=['config.js','runtime-core-v64.js','teacher-core-v68-6.js','teacher-progressive-boot-v68.js','teacher-theme-v68-7.js','teacher-command-center-v70.js','teacher-agenda-v75.js','teacher-periods-v76.js','teacher-router-v76-2.js'];
+const allowedScripts=['config.js','runtime-core-v64.js','teacher-core-v68-6.js','teacher-progressive-boot-v68.js','teacher-theme-v68-7.js','teacher-command-center-v70.js','teacher-agenda-v75.js','teacher-periods-v76.js','teacher-router-v76-3.js'];
 const unexpectedScripts=scripts.filter(src=>!allowedScripts.some(name=>src.includes(name)));
 must(teacher.includes('teacher-mobile-compat-v68-8.css?v=688'),'teacher loads v68.8 compatibility CSS after the theme layer');
 must(teacher.indexOf('teacher-theme-v68-7.css?v=687')<teacher.indexOf('teacher-mobile-compat-v68-8.css?v=688'),'v68.8 compatibility overrides load after v68.7 theme');
-must(scripts.length===allowedScripts.length&&allowedScripts.every(name=>scripts.some(src=>src.includes(name)))&&unexpectedScripts.length===0,'v68.8 remains CSS-only while v76.2 adds one lightweight navigation runtime');
-must(styles.length===12&&styles.filter(x=>x.includes('teacher-mobile-compat-v68-8.css')).length===1&&styles.filter(x=>x.includes('teacher-command-center-v70.css')).length===1&&styles.filter(x=>x.includes('teacher-agenda-v75.css')).length===1&&styles.filter(x=>x.includes('teacher-periods-v76.css')).length===1,'v76.2 preserves the 12-stylesheet responsive shell');
+must(scripts.length===allowedScripts.length&&allowedScripts.every(name=>scripts.some(src=>src.includes(name)))&&unexpectedScripts.length===0,'v68.8 remains CSS-only while v76.3 adds one lightweight no-flash runtime');
+must(styles.length===12&&styles.filter(x=>x.includes('teacher-mobile-compat-v68-8.css')).length===1&&styles.filter(x=>x.includes('teacher-command-center-v70.css')).length===1&&styles.filter(x=>x.includes('teacher-agenda-v75.css')).length===1&&styles.filter(x=>x.includes('teacher-periods-v76.css')).length===1,'v76.3 preserves the 12-stylesheet responsive shell');
 must(css.includes('TEDVIO v68.8 · Mobile UI & Theme Compatibility'),'compatibility layer reports v68.8');
 for(const token of['#gaOverlay .b-modal.large.ga360-shell','.ga360-stats','.ga360-tabs','.ga360-body','.ga360-panel','.ga360-table'])must(css.includes(token),`Group Center compatibility includes ${token}`);
 must(css.includes('grid-template-columns:1fr 1fr!important')&&css.includes('height:100dvh!important'),'phone Group Center uses 2x2 KPIs and full-height workspace');
@@ -21,10 +21,13 @@ must(css.includes('@media(max-width:620px)')&&css.includes('@media(max-width:390
 must(agendaCss.includes('@media(max-width:640px)')&&agendaCss.includes('font-size:16px')&&agendaCss.includes('min-height:44px'),'v75 schedule editor and agenda remain touch-safe on iPhone');
 must(periodCss.includes('@media(max-width:640px)')&&periodCss.includes('font-size:16px')&&periodCss.includes('min-height:44px'),'v76 period manager remains touch-safe and avoids iOS input zoom');
 must(router.includes('requestAnimationFrame')&&router.includes('history.scrollRestoration')&&!router.includes('setInterval('),'router uses frame-scoped transitions and native history without polling');
-must(teacher.includes('@media(prefers-reduced-motion:reduce)')&&teacher.includes('.tv762-sr-only'),'router inline presentation supports reduced motion and screen readers');
+must(teacher.includes('@media(prefers-reduced-motion:reduce)')&&teacher.includes('.tv763-sr-only'),'inline no-flash presentation supports reduced motion and screen readers');
+must(teacher.includes('@supports (-webkit-touch-callout:none)')&&teacher.includes('-webkit-backdrop-filter:none!important'),'iPhone/WebKit disables unstable blur compositing on the teacher shell and overlays');
+must(teacher.includes('@media (hover:none),(pointer:coarse)')&&teacher.includes('transform:none!important'),'touch devices avoid hover transforms that can repaint during taps');
+must(teacher.includes('scrollbar-gutter:stable')&&teacher.includes('backface-visibility:hidden'),'layout width and sticky layers remain stable');
 must(!/setInterval|setTimeout|MutationObserver|createClient|supabase|rpc\(/i.test(css),'v68.8 CSS adds no runtime/backend work');
 must(theme.includes("const KEY='tedvio.teacher.theme'")&&!/createClient|supabase|rpc\(/i.test(theme),'theme controller remains local-only and unchanged in architecture');
 must(sw.includes("/\\.(?:html|js|css|json|webmanifest)$/")||sw.includes('html|js|css|json|webmanifest'),'service worker keeps CSS in network-first/no-store shell handling');
-must(!/service_role|SUPABASE_SECRET|sb_secret_|access_token|refresh_token/i.test(css+teacher+router),'v68.8/v76.2 contain no credentials or session tokens');
+must(!/service_role|SUPABASE_SECRET|sb_secret_|access_token|refresh_token/i.test(css+teacher+router),'v68.8/v76.3 contain no credentials or session tokens');
 if(failed){console.error(`\n${failed} v68.8 Mobile UI & Theme Compatibility check(s) failed.`);process.exit(1)}
-console.log('\nTEDVIO v68.8 Mobile UI & Theme Compatibility regression audit passed under v76.2.');
+console.log('\nTEDVIO v68.8 Mobile UI & Theme Compatibility regression audit passed under v76.3 No-Flash UI.');
