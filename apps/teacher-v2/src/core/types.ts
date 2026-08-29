@@ -1,6 +1,8 @@
 import type { User } from '@supabase/supabase-js';
 
-export type AttendanceState = 'open' | 'paused' | 'closed' | '' | null;
+export type AttendanceSessionState = 'open' | 'paused' | 'closed';
+export type AttendanceState = AttendanceSessionState | '' | null;
+export type AttendanceRecordStatus = 'present' | 'late' | 'absent' | 'justified';
 
 export interface TeacherProfile {
   status?: string | null;
@@ -104,4 +106,94 @@ export interface RecommendedAction {
   detail: string;
   groupId?: string;
   tone: 'blue' | 'green' | 'amber' | 'red' | 'violet';
+}
+
+export interface UniversityRecord {
+  id: string;
+  teacher_id: string;
+  name: string;
+  created_at: string;
+}
+
+export interface ProgramRecord {
+  id: string;
+  teacher_id: string;
+  university_id: string;
+  name: string;
+  created_at: string;
+}
+
+export interface GroupRecord {
+  id: string;
+  teacher_id: string;
+  program_id: string;
+  name: string;
+  term?: string | null;
+  subject?: string | null;
+  created_at: string;
+  university?: string | null;
+  program?: string | null;
+  group_name?: string | null;
+  school_cycle?: string | null;
+  is_demo?: boolean | null;
+  university_name?: string | null;
+  program_name?: string | null;
+}
+
+export interface StudentRecord {
+  id: string;
+  group_id: string;
+  teacher_id: string;
+  enrollment: string;
+  full_name: string;
+  active: boolean;
+  created_at: string;
+}
+
+export interface AttendanceSessionRecord {
+  id: string;
+  group_id: string;
+  teacher_id: string;
+  attendance_date: string;
+  notes?: string | null;
+  created_at: string;
+  status: AttendanceSessionState;
+  opened_at: string;
+  paused_at?: string | null;
+  closed_at?: string | null;
+  late_after_minutes: number;
+  auto_mark_absent: boolean;
+  updated_at: string;
+}
+
+export interface AttendanceRecordRow {
+  id: string;
+  attendance_session_id: string;
+  student_id: string;
+  teacher_id: string;
+  status: AttendanceRecordStatus;
+  note?: string | null;
+  observation?: string | null;
+  updated_at: string;
+}
+
+export interface GroupWorkspaceData {
+  universities: UniversityRecord[];
+  programs: ProgramRecord[];
+  groups: GroupRecord[];
+}
+
+export interface GroupDetailData {
+  group: GroupRecord;
+  students: StudentRecord[];
+  attendance_sessions: AttendanceSessionRecord[];
+  attendance_records: AttendanceRecordRow[];
+}
+
+export interface AttendanceDayData {
+  group: GroupRecord;
+  students: StudentRecord[];
+  session: AttendanceSessionRecord | null;
+  records: AttendanceRecordRow[];
+  date: string;
 }
