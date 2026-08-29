@@ -23,13 +23,9 @@ function applyTheme(value,{persist=true}={}){
   window.dispatchEvent(new CustomEvent('tedvio:theme',{detail:{theme,version:VERSION}}));
   return theme;
 }
-function control(){
-  const wrap=document.createElement('div');
-  wrap.id='tv687ThemeControl';
-  wrap.className='tv687-theme-control';
-  wrap.setAttribute('role','group');
-  wrap.setAttribute('aria-label','Aspecto de TEDVIO');
-  wrap.innerHTML='<button type="button" class="tv687-theme-btn" data-tv687-theme="dark" aria-label="Usar aspecto oscuro">☾ <span>Oscuro</span></button><button type="button" class="tv687-theme-btn" data-tv687-theme="light" aria-label="Usar aspecto blanco">☀ <span>Blanco</span></button>';
+function bindControl(wrap){
+  if(!wrap||wrap.dataset.tv687Bound==='1')return wrap;
+  wrap.dataset.tv687Bound='1';
   wrap.addEventListener('click',event=>{
     const button=event.target.closest('[data-tv687-theme]');
     if(!button)return;
@@ -37,12 +33,22 @@ function control(){
   });
   return wrap;
 }
+function control(){
+  const wrap=document.createElement('div');
+  wrap.id='tv687ThemeControl';
+  wrap.className='tv687-theme-control';
+  wrap.setAttribute('role','group');
+  wrap.setAttribute('aria-label','Aspecto de TEDVIO');
+  wrap.innerHTML='<button type="button" class="tv687-theme-btn" data-tv687-theme="dark" aria-label="Usar aspecto oscuro">☾ <span>Oscuro</span></button><button type="button" class="tv687-theme-btn" data-tv687-theme="light" aria-label="Usar aspecto blanco">☀ <span>Blanco</span></button>';
+  return bindControl(wrap);
+}
 function accountButton(){const b=document.createElement('button');b.id='tv69AccountBtn';b.type='button';b.className='b-btn secondary';b.textContent='Cuenta';b.setAttribute('aria-label','Abrir Centro de Cuenta y Privacidad');b.onclick=openAccountCenter;return b}
 function install(){
   const bars=document.querySelectorAll('.tv686-top .b-top-actions,.tv686-session-shell .b-top-actions');
   bars.forEach(bar=>{
     const primary=bar.querySelector('.b-btn.primary');
-    if(!bar.querySelector('#tv687ThemeControl')){const node=control();primary?bar.insertBefore(node,primary):bar.appendChild(node)}
+    let theme=bar.querySelector('#tv687ThemeControl');
+    if(!theme){theme=control();primary?bar.insertBefore(theme,primary):bar.appendChild(theme)}else bindControl(theme);
     if(!bar.querySelector('#tv69AccountBtn')){const node=accountButton();primary?bar.insertBefore(node,primary):bar.appendChild(node)}
   });
   syncButtons(document.documentElement.dataset.tedvioTheme||readTheme());
@@ -75,12 +81,12 @@ async function openAccountCenter(){
 }
 
 applyTheme(readTheme(),{persist:false});
-window.addEventListener('tedvio:teacher-shell',()=>requestAnimationFrame(install));
-window.addEventListener('tedvio:teacher-ready',()=>requestAnimationFrame(install));
+window.addEventListener('tedvio:teacher-shell',install);
+window.addEventListener('tedvio:teacher-ready',install);
 window.addEventListener('tedvio:feature-ready',loadAttendanceReport);
 window.addEventListener('tedvio:feature-ready',loadReportCenterLauncher);
 document.addEventListener('click',event=>{const button=event.target.closest?.('#tvLazySetup');if(!button)return;event.preventDefault();event.stopImmediatePropagation();openInstitutionSettings()},true);
-if(root){new MutationObserver(()=>requestAnimationFrame(install)).observe(root,{childList:true,subtree:false})}
+if(root){new MutationObserver(install).observe(root,{childList:true,subtree:false})}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 if(typeof window.tvAttendanceProOpen==='function'){loadAttendanceReport({detail:{name:'groups'}});loadReportCenterLauncher({detail:{name:'groups'}})}
 window.tv687Theme=applyTheme;
