@@ -7,9 +7,11 @@ const client=read('teacher-insight-v742.js');
 const css=read('teacher-insight-v742.css');
 const legacyApi=read('api/tedvio-ai.js');
 const version=JSON.parse(read('version.json'));
+const release=Number(String(version.version||'').split('.').at(-1)||0);
+const laterMajor=release>=75&&release<700;
 
-assert.equal(version.version,'2026.08.28.742');
-assert.equal(version.audit,'insight-zero-cost');
+assert.ok(release===742||laterMajor,'global release must preserve v74.2 zero-cost or a later major release');
+if(release===742)assert.equal(version.audit,'insight-zero-cost');
 
 assert.doesNotMatch(teacher,/teacher-insight-v742|teacher-ai-copilot-v74/,'Insight remains off teacher first paint');
 assert.match(boot,/insight:\{styles:\['\.\/teacher-insight-v742\.css\?v=742'\],scripts:\[\['\.\/teacher-insight-v742\.js\?v=742','module'\]\]\}/);
@@ -52,4 +54,4 @@ assert.match(css,/@media\(max-width:720px\)/);
 assert.match(css,/data-tedvio-theme="dark"/);
 assert.match(css,/prefers-reduced-motion/);
 
-console.log('TEDVIO v74.2 Insight zero-cost regression: OK');
+console.log('TEDVIO v74.2+ Insight zero-cost regression: OK');

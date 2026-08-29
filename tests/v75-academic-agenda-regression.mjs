@@ -1,0 +1,60 @@
+import fs from'node:fs';
+import assert from'node:assert/strict';
+const read=p=>fs.readFileSync(p,'utf8');
+const teacher=read('teacher.html');
+const js=read('teacher-agenda-v75.js');
+const css=read('teacher-agenda-v75.css');
+const migration=read('supabase/migrations/20260829010053_v75_group_schedule_slots.sql');
+const version=JSON.parse(read('version.json'));
+
+assert.equal(version.version,'2026.08.28.75');
+assert.equal(version.audit,'academic-agenda');
+assert.match(teacher,/teacher-agenda-v75\.css\?v=75/);
+assert.match(teacher,/teacher-agenda-v75\.js\?v=75/);
+assert.ok(teacher.indexOf('teacher-command-center-v70.js?v=72')<teacher.indexOf('teacher-agenda-v75.js?v=75'),'Agenda loads after v70 command center');
+assert.doesNotMatch(teacher,/xlsx\.full|jspdf|jsQR/i,'Agenda adds no heavy first-paint dependency');
+
+assert.match(js,/TEDVIO · AGENDA ACADÉMICA/);
+assert.match(js,/PREPARAR CLASE/);
+assert.match(js,/CIERRE DE CLASE/);
+assert.match(js,/Horario semanal/);
+assert.match(js,/hora local de este dispositivo/);
+assert.match(js,/getDay\(\)/,'schedule is interpreted in browser-local weekday');
+assert.match(js,/setHours\(/,'schedule occurrences use local wall-clock times');
+assert.match(js,/function agendaMoment/);
+assert.match(js,/function armClock/,'a one-shot transition timer refreshes Now/Next');
+assert.doesNotMatch(js,/setInterval\(/,'Agenda uses no polling');
+assert.doesNotMatch(js,/new MutationObserver/,'Agenda uses no permanent DOM observer');
+assert.match(js,/STATE\.lastLoad<30000/,'schedule reads are cached');
+assert.match(js,/from\('v2_group_schedule_slots'\)/);
+assert.match(js,/\.eq\('teacher_id',user\.id\)/,'schedule list is explicitly teacher scoped');
+assert.match(js,/\.eq\('teacher_id',u\.id\)/,'schedule mutations are explicitly teacher scoped');
+assert.match(js,/from\('v2_sessions'\)/);
+assert.match(js,/from\('v2_participants'\)/);
+assert.match(js,/from\('v2_student_notes'\)/);
+assert.match(js,/from\('v2_attendance_sessions'\)/);
+assert.match(js,/from\('v2_attendance_records'\)/,'class close summary uses real attendance evidence');
+assert.match(js,/tedvio\.v75\.classStart/,'Modo Clase duration is session-local, not fabricated in DB');
+assert.doesNotMatch(js,/service_role|SUPABASE_SECRET|sb_secret_|OPENAI_API_KEY|AI_GATEWAY_API_KEY/i,'Agenda contains no privileged or inference secrets');
+
+assert.match(migration,/create table if not exists public\.v2_group_schedule_slots/);
+assert.match(migration,/references public\.v2_groups\(id\) on delete cascade/);
+assert.match(migration,/weekday smallint not null check \(weekday between 0 and 6\)/);
+assert.match(migration,/check \(end_time > start_time\)/);
+assert.match(migration,/enable row level security/);
+assert.match(migration,/revoke all on table public\.v2_group_schedule_slots from anon, authenticated/);
+assert.match(migration,/grant select, insert, update, delete on table public\.v2_group_schedule_slots to authenticated/);
+for(const op of['select','insert','update','delete'])assert.match(migration,new RegExp(`v2_group_schedule_slots_${op}_own`));
+assert.match(migration,/auth\.uid\(\)/);
+assert.doesNotMatch(migration,/security definer/i);
+assert.doesNotMatch(migration,/\bdrop\b|\btruncate\b/i,'schedule migration is additive');
+
+assert.match(css,/\.tv75-agenda-grid/);
+assert.match(css,/\.tv75-class-finish/);
+assert.match(css,/:root\[data-tedvio-theme="dark"\]/);
+assert.match(css,/@media\(max-width:640px\)/);
+assert.match(css,/font-size:16px/,'mobile time inputs avoid iOS focus zoom');
+assert.match(css,/min-height:44px/,'mobile controls remain touch sized');
+assert.match(css,/prefers-reduced-motion/);
+
+console.log('TEDVIO v75 Academic Agenda regression: OK');

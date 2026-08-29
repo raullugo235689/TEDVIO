@@ -1,14 +1,16 @@
 import fs from'node:fs';
 const read=p=>fs.readFileSync(p,'utf8');
-const teacher=read('teacher.html'),beta=read('beta.html'),boot=read('teacher-progressive-boot-v68.js'),teacherCore=read('teacher-core-v68-6.js'),theme=read('teacher-theme-v68-7.js'),live=read('live-classroom-v58.js'),learning=read('beta-learning.js'),stability=read('beta-stability.js');
+const teacher=read('teacher.html'),beta=read('beta.html'),boot=read('teacher-progressive-boot-v68.js'),teacherCore=read('teacher-core-v68-6.js'),theme=read('teacher-theme-v68-7.js'),agenda=read('teacher-agenda-v75.js'),live=read('live-classroom-v58.js'),learning=read('beta-learning.js'),stability=read('beta-stability.js');
 let failed=0;const must=(ok,msg)=>{if(ok)console.log('OK  ',msg);else{console.error('FAIL',msg);failed++}};
 const direct=[...teacher.matchAll(/<script[^>]+src="([^"]+)"/g)].map(m=>m[1]);
-const allowedDirect=['config.js','runtime-core-v64.js','teacher-core-v68-6.js','teacher-progressive-boot-v68.js','teacher-theme-v68-7.js','teacher-command-center-v70.js'];
+const allowedDirect=['config.js','runtime-core-v64.js','teacher-core-v68-6.js','teacher-progressive-boot-v68.js','teacher-theme-v68-7.js','teacher-command-center-v70.js','teacher-agenda-v75.js'];
 const unexpectedDirect=direct.filter(src=>!allowedDirect.some(name=>src.includes(name)));
 must(boot.includes("const VERSION='2026.08.27.686'"),'demand loader remains v68.6');
 must(teacher.includes('teacher-progressive-boot-v68.js?v=686'),'teacher cache-busts v68.6 demand loader');
-must(direct.length===allowedDirect.length&&allowedDirect.every(name=>direct.some(src=>src.includes(name)))&&unexpectedDirect.length===0,`teacher keeps the audited split-core scripts plus isolated theme and v70 command-center controllers (${direct.length})`);
+must(direct.length===allowedDirect.length&&allowedDirect.every(name=>direct.some(src=>src.includes(name)))&&unexpectedDirect.length===0,`teacher keeps the audited split-core scripts plus theme, command center and lightweight v75 agenda (${direct.length})`);
 must(!theme.includes('setInterval(')&&!theme.includes('setTimeout(')&&!/createClient|supabase|\.rpc\(|\.from\(/i.test(theme),'theme controller adds no polling or backend work');
+must(!agenda.includes('setInterval(')&&!agenda.includes('new MutationObserver'),'v75 agenda uses no polling or DOM observer');
+must(agenda.includes("from('v2_group_schedule_slots')")&&agenda.includes('STATE.lastLoad<30000'),'v75 adds one cached lightweight schedule read');
 must(boot.includes("dataset.tedvioPerformance='teacher-core-split'")&&boot.includes("mode:'teacher-core'"),'teacher runs split-core demand mode');
 must(boot.includes('async function ensure(name)')&&boot.includes('const registry='),'optional features remain explicit demand registry');
 for(const feature of ['groups','bank','tasks','help','onboarding','admin','analytics','omr','livePro'])must(new RegExp(`\\b${feature}:`).test(boot),`lazy registry preserves ${feature}`);
@@ -27,4 +29,4 @@ must(boot.includes("livePro:{styles:['./live-classroom-v58.css?v=58'")&&!teacher
 must(learning.includes('},700)')&&stability.includes('},900);'),'legacy 700/900ms loops remain auditable in rollback files');
 must(!boot.includes('beta-learning.js')&&!boot.includes('beta-stability.js'),'legacy high-frequency loops remain excluded from normal teacher path');
 if(failed){console.error(`\n${failed} v68.5+ performance check(s) failed.`);process.exit(1)}
-console.log('\nTEDVIO v68.5 demand principles remain strengthened with the v70 command-center layer.');
+console.log('\nTEDVIO v68.5 demand principles remain strengthened with v70 + lightweight v75 agenda.');
