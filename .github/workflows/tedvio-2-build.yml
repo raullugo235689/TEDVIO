@@ -1,0 +1,63 @@
+name: TEDVIO 2.0 Frontend Build
+
+on:
+  push:
+    branches: [rebuild/tedvio-2]
+    paths:
+      - 'apps/teacher-v2/**'
+      - '.github/workflows/tedvio-2-build.yml'
+      - 'TEDVIO-2-REBUILD.md'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/teacher-v2/**'
+      - 'teacher-v2/**'
+      - '.github/workflows/tedvio-2-build.yml'
+      - 'TEDVIO-2-REBUILD.md'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tedvio-2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned dependencies
+        working-directory: apps/teacher-v2
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci --no-audit --no-fund
+          else
+            npm install --no-audit --no-fund
+          fi
+      - name: Typecheck, architecture and production build
+        working-directory: apps/teacher-v2
+        run: npm run quality
+      - name: Verify static preview
+        run: |
+          test -f teacher-v2/index.html
+          test -d teacher-v2/assets
+          ! grep -R "OPENAI\|AI_GATEWAY\|service_role" teacher-v2 apps/teacher-v2/src
+      - name: Commit reproducible lockfile and preview artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/rebuild/tedvio-2'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/teacher-v2/package-lock.json teacher-v2
+          if git diff --cached --quiet; then
+            echo "Preview artifact already current."
+          else
+            git commit -m "build(teacher-v2): refresh preview artifact [skip ci]"
+            git push origin HEAD:rebuild/tedvio-2
+          fi
