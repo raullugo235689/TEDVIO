@@ -13,7 +13,7 @@ export const navigation: NavigationItem[] = [
   { to: '/', label: 'Inicio', shortLabel: 'Inicio', icon: 'home', section: 'primary', migrated: true },
   { to: '/agenda', label: 'Agenda', shortLabel: 'Agenda', icon: 'calendar', section: 'primary', migrated: true },
   { to: '/groups', label: 'Grupos', shortLabel: 'Grupos', icon: 'groups', section: 'primary', migrated: true },
-  { to: '/attendance', label: 'Asistencia', shortLabel: 'Asistencia', icon: 'attendance', section: 'operation', migrated: false },
+  { to: '/attendance', label: 'Asistencia', shortLabel: 'Asistencia', icon: 'attendance', section: 'operation', migrated: true },
   { to: '/classroom', label: 'Modo Clase', shortLabel: 'Clase', icon: 'classroom', section: 'operation', migrated: false },
   { to: '/bank', label: 'Banco', shortLabel: 'Banco', icon: 'bank', section: 'operation', migrated: false },
   { to: '/exams', label: 'Evaluaciones', shortLabel: 'Evaluar', icon: 'exam', section: 'operation', migrated: false },
@@ -23,5 +23,7 @@ export const navigation: NavigationItem[] = [
 ];
 
 export function navigationTitle(pathname: string): string {
+  if (pathname.startsWith('/groups/')) return 'Centro de grupo';
+  if (pathname.startsWith('/attendance/')) return 'Asistencia';
   return navigation.find((item) => item.to === pathname)?.label || (pathname === '/settings' ? 'Configuración' : 'TEDVIO 2.0');
 }

@@ -2,9 +2,10 @@ name: TEDVIO 2.0 Frontend Build
 
 on:
   push:
-    branches: [rebuild/tedvio-2]
+    branches: [main, rebuild/tedvio-2]
     paths:
       - 'apps/teacher-v2/**'
+      - 'teacher-v2/**'
       - '.github/workflows/tedvio-2-build.yml'
       - 'TEDVIO-2-REBUILD.md'
   pull_request:
