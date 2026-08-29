@@ -1,17 +1,18 @@
-name: TEDVIO v74 AI Copilot Audit
+name: TEDVIO v74.2 Insight Zero Cost Audit
 on:
   push:
     branches: [main]
     paths:
       - 'api/tedvio-ai.js'
-      - 'teacher-ai-copilot-v74.js'
-      - 'teacher-ai-copilot-v74.css'
+      - 'teacher-insight-v742.js'
+      - 'teacher-insight-v742.css'
       - 'teacher-progressive-boot-v68.js'
       - 'version.json'
       - 'supabase/migrations/20260828201138_v74_teacher_ai_context.sql'
       - 'tests/v73-1-teacher-workflow-smoke.mjs'
       - 'tests/v73-assessment-intelligence-regression.mjs'
       - 'tests/v74-ai-copilot-regression.mjs'
+      - 'tests/v742-insight-zero-cost-regression.mjs'
       - '.github/workflows/v74-ai-copilot.yml'
   pull_request:
     branches: [main]
@@ -27,12 +28,13 @@ jobs:
       - name: Syntax
         run: |
           node --check api/tedvio-ai.js
-          node --check teacher-ai-copilot-v74.js
+          node --check teacher-insight-v742.js
           node --check teacher-progressive-boot-v68.js
-      - name: AI Copilot regression
+      - name: Insight zero-cost regression
         run: |
           node tests/v73-1-teacher-workflow-smoke.mjs
           node tests/v74-ai-copilot-regression.mjs
+          node tests/v742-insight-zero-cost-regression.mjs
       - name: Compatibility regressions
         run: |
           node tests/v68-5-demand-driven-performance-regression.mjs
