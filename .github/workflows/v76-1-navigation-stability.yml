@@ -1,0 +1,29 @@
+name: TEDVIO v76.1 Navigation Stability Audit
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'teacher.html'
+      - 'version.json'
+      - 'tests/v76-1-navigation-stability-regression.mjs'
+      - 'tests/v76-academic-periods-regression.mjs'
+      - 'tests/v68-6-teacher-core-split-regression.mjs'
+      - '.github/workflows/v76-1-navigation-stability.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Navigation stability regression
+        run: |
+          node tests/v76-1-navigation-stability-regression.mjs
+          node tests/v76-academic-periods-regression.mjs
+          node tests/v68-6-teacher-core-split-regression.mjs
+          node tests/ios-safari-syntax-audit.mjs
+          git diff --check
