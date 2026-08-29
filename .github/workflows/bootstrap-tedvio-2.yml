@@ -4,7 +4,7 @@ on:
   push:
     branches: [rebuild/tedvio-2]
     paths:
-      - '.tedvio2-bootstrap.tar.gz.b64'
+      - '.tedvio2-bootstrap.part*'
       - '.github/workflows/bootstrap-tedvio-2.yml'
   workflow_dispatch:
 
@@ -23,7 +23,8 @@ jobs:
           node-version: '22'
       - name: Materialize unified frontend
         run: |
-          base64 -d .tedvio2-bootstrap.tar.gz.b64 | tar -xzf -
+          cat .tedvio2-bootstrap.part* | base64 -d | tar -xzf -
+          rm -f .tedvio2-bootstrap.part*
           rm -f .tedvio2-bootstrap.tar.gz.b64
           rm -f .github/workflows/bootstrap-tedvio-2.yml
       - name: Install and validate
