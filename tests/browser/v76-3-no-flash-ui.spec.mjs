@@ -26,9 +26,11 @@ test('keeps the persistent shell and removes the animated route flash',async({pa
   await page.getByRole('button',{name:'Preparadas'}).click();
   await expect(page.getByRole('heading',{name:'Sesiones preparadas'})).toBeVisible();
   await page.getByRole('button',{name:'Historial'}).click();
-  await expect(page.getByText('HISTORIAL')).toBeVisible();
+  await expect(page.locator('.tv686-main .route-view span').filter({hasText:/^HISTORIAL$/})).toBeVisible();
+  await page.waitForFunction(()=>window.__TEDVIO_ROUTER763__?.current==='history'&&!window.__TEDVIO_ROUTER763__?.pending);
   await page.getByRole('button',{name:'Inicio'}).click();
-  await expect(page.getByRole('heading',{name:'Centro de mando'})).toBeVisible();
+  await expect(page.locator('#tv686Dashboard .tv70-dashboard')).toBeVisible();
+  await page.waitForFunction(()=>window.__TEDVIO_ROUTER763__?.current==='dashboard'&&!window.__TEDVIO_ROUTER763__?.pending);
   expect(await page.evaluate(()=>document.querySelector('.tv686-top')===window.__HARNESS__.header)).toBe(true);
 });
 
