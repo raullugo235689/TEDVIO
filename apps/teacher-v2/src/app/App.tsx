@@ -5,6 +5,8 @@ import { LoginPage } from '../features/auth/LoginPage';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { AgendaPage } from '../features/agenda/AgendaPage';
 import { GroupsPage } from '../features/groups/GroupsPage';
+import { GroupDetailPage } from '../features/groups/GroupDetailPage';
+import { AttendancePage } from '../features/attendance/AttendancePage';
 import { MigrationPage } from '../features/migration/MigrationPage';
 import { LoadingScreen } from '../shared/components';
 
@@ -23,7 +25,9 @@ export function App() {
         <Route index element={<DashboardPage />} />
         <Route path="agenda" element={<AgendaPage />} />
         <Route path="groups" element={<GroupsPage />} />
-        <Route path="attendance" element={<MigrationPage module="attendance" />} />
+        <Route path="groups/:groupId" element={<GroupDetailPage />} />
+        <Route path="attendance" element={<AttendancePage />} />
+        <Route path="attendance/:groupId" element={<AttendancePage />} />
         <Route path="classroom" element={<MigrationPage module="classroom" />} />
         <Route path="bank" element={<MigrationPage module="bank" />} />
         <Route path="exams" element={<MigrationPage module="exams" />} />
