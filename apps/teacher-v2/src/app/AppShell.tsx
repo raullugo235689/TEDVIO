@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../features/auth/AuthProvider';
 import { navigation, navigationTitle, type NavigationItem } from './navigation';
 import { Icon } from '../shared/icons';
@@ -41,7 +41,12 @@ export function AppShell() {
     meta?.setAttribute('content', theme === 'dark' ? '#071426' : '#081a37');
   }, [theme]);
 
-  useEffect(() => setMoreOpen(false), [location.pathname]);
+  useEffect(() => {
+    setMoreOpen(false);
+    window.requestAnimationFrame(() => {
+      document.getElementById('tedvio-main')?.focus({ preventScroll: true });
+    });
+  }, [location.pathname]);
 
   const routeTitle = useMemo(() => navigationTitle(location.pathname), [location.pathname]);
   const primary = navigation.filter((item) => item.section === 'primary');
@@ -61,10 +66,10 @@ export function AppShell() {
   return (
     <div className="app-shell">
       <aside className="sidebar" aria-label="Navegación principal">
-        <a className="sidebar-brand" href="/teacher-v2/" aria-label="TEDVIO 2.0 Inicio">
+        <Link className="sidebar-brand" to="/" aria-label="TEDVIO 2.0 Inicio">
           <img src="/assets/tedvio_official_horizontal.svg" alt="TEDVIO" />
           <span>2.0</span>
-        </a>
+        </Link>
 
         <nav className="sidebar-nav">
           <div className="nav-group">{primary.map((item) => <NavItem item={item} key={item.to} />)}</div>
