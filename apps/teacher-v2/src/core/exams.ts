@@ -557,7 +557,7 @@ export function analyzeExam(detail: ExamDetail): ExamAnalytics {
       const answer = String(answers[question.position - 1] || '').trim();
       current.total += 1;
       if (!answer) current.blank += 1;
-      if (answer && answer === scalarText(question.correct_answer)) current.correct += 1;
+      if (answer && answer.toUpperCase() === answerLetter(question)) current.correct += 1;
       itemMap.set(key, current);
     }
   }
