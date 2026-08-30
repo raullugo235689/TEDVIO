@@ -12,6 +12,7 @@ import { BankPage } from '../features/bank/BankPage';
 import { ExamsPage } from '../features/exams/ExamsPage';
 import { OmrPage } from '../features/omr/OmrPage';
 import { OmrSheetsPage } from '../features/omr/OmrSheetsPage';
+import { GradebookPage } from '../features/gradebook/GradebookPage';
 import { MigrationPage } from '../features/migration/MigrationPage';
 import { LoadingScreen } from '../shared/components';
 
@@ -42,7 +43,8 @@ export function App() {
         <Route path="omr" element={<OmrPage />} />
         <Route path="omr/:examId" element={<OmrPage />} />
         <Route path="omr/:examId/sheets" element={<OmrSheetsPage />} />
-        <Route path="gradebook" element={<MigrationPage module="gradebook" />} />
+        <Route path="gradebook" element={<GradebookPage />} />
+        <Route path="gradebook/:groupId" element={<GradebookPage />} />
         <Route path="periods" element={<MigrationPage module="periods" />} />
         <Route path="reports" element={<MigrationPage module="reports" />} />
         <Route path="settings" element={<MigrationPage module="settings" />} />
