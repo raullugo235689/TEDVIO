@@ -2,7 +2,7 @@ name: TEDVIO 2.0 Frontend Build
 
 on:
   push:
-    branches: [main, rebuild/tedvio-2]
+    branches: [main, rebuild/tedvio-2, rebuild/tedvio-2-phase4a]
     paths:
       - 'apps/teacher-v2/**'
       - 'teacher-v2/**'
@@ -36,6 +36,20 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Normalize OMR item analytics
+        if: github.event_name == 'push' && github.ref == 'refs/heads/rebuild/tedvio-2-phase4a'
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('apps/teacher-v2/src/core/exams.ts')
+          source = path.read_text()
+          old = "if (answer && answer === scalarText(question.correct_answer)) current.correct += 1;"
+          new = "if (answer && answer.toUpperCase() === answerLetter(question)) current.correct += 1;"
+          if old in source:
+              path.write_text(source.replace(old, new))
+          elif new not in source:
+              raise SystemExit('No se encontró la comparación OMR esperada.')
+          PY
       - name: Install pinned dependencies
         working-directory: apps/teacher-v2
         run: |
@@ -54,15 +68,15 @@ jobs:
           test -f supabase/migrations/20260830000825_teacher_v2_phase4a_evaluations.sql
           echo '0100750e7f726689fd540f2ec74ceadd2f32c87951120c268371b6a0c9ca02cc  supabase/migrations/20260830000825_teacher_v2_phase4a_evaluations.sql' | sha256sum -c -
           ! grep -R "OPENAI\|AI_GATEWAY\|service_role" teacher-v2 apps/teacher-v2/src
-      - name: Commit reproducible lockfile and preview artifact
-        if: github.event_name == 'push' && github.ref == 'refs/heads/rebuild/tedvio-2'
+      - name: Commit normalized source and preview artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/rebuild/tedvio-2-phase4a'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add apps/teacher-v2/package-lock.json teacher-v2
+          git add apps/teacher-v2/src/core/exams.ts apps/teacher-v2/package-lock.json teacher-v2
           if git diff --cached --quiet; then
-            echo "Preview artifact already current."
+            echo "OMR analytics and preview already current."
           else
-            git commit -m "build(teacher-v2): refresh preview artifact [skip ci]"
-            git push origin HEAD:rebuild/tedvio-2
+            git commit -m "fix(teacher-v2): compare OMR answers with answer letters [skip ci]"
+            git push origin HEAD:rebuild/tedvio-2-phase4a
           fi
