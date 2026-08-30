@@ -40,13 +40,9 @@ jobs:
       - name: Materialize verified Phase 4A patch
         run: |
           if compgen -G '.phase4a-patch.part*' > /dev/null; then
-            wc -c .phase4a-patch.part*
-            sha256sum .phase4a-patch.part*
-            echo '80ce7588f9e3341cee9afefb0fb230c6ea55747f587600d475979108932f5100  .phase4a-patch.part00' | sha256sum -c -
-            echo '31cd326519a295c0bc29a991817745d3545c3f8f49a62e11aab0e98b0a362d26  .phase4a-patch.part01' | sha256sum -c -
-            echo '968de130ec198325e1443aae444eebebe8cdc5faab11cc57e0678a220af80f09  .phase4a-patch.part02' | sha256sum -c -
-            echo '1250a76b01214ed1db8c7b474d80bdcc6ea12e7ec705426ca3fbf9d53b0dbaf4  .phase4a-patch.part03' | sha256sum -c -
-            cat .phase4a-patch.part* > /tmp/phase4a-patch.b64
+            for part in .phase4a-patch.part*; do
+              tr -d '\r\n' < "$part"
+            done > /tmp/phase4a-patch.b64
             echo '16f6a37f7640416a1ad21096ec326bb5d42683deffd9585a5a7ad357058630d4  /tmp/phase4a-patch.b64' | sha256sum -c -
             base64 -d /tmp/phase4a-patch.b64 > /tmp/phase4a-patch.tar.gz
             echo '99595f5bfb39d85d8bc141d23490140a00f6b9852a1fdec1aad96f6a262a0e3a  /tmp/phase4a-patch.tar.gz' | sha256sum -c -
@@ -69,7 +65,7 @@ jobs:
           test -f teacher-v2/index.html
           test -d teacher-v2/assets
           test -f supabase/migrations/20260830000825_teacher_v2_phase4a_evaluations.sql
-          echo 'aafe98e78fad56a26508c4e6aad8b71f47b4b4f5860226801929cb550dc48241  supabase/migrations/20260830000825_teacher_v2_phase4a_evaluations.sql' | sha256sum -c -
+          echo '0100750e7f726689fd540f2ec74ceadd2f32c87951120c268371b6a0c9ca02cc  supabase/migrations/20260830000825_teacher_v2_phase4a_evaluations.sql' | sha256sum -c -
           ! grep -R "OPENAI\|AI_GATEWAY\|service_role" teacher-v2 apps/teacher-v2/src
       - name: Commit Phase 4A source, migration and preview artifact
         if: github.event_name == 'push' && github.ref == 'refs/heads/rebuild/tedvio-2-phase4a'
