@@ -2,10 +2,12 @@ name: TEDVIO 2.0 Frontend Build
 
 on:
   push:
-    branches: [main, rebuild/tedvio-2]
+    branches: [main, rebuild/tedvio-2, rebuild/tedvio-2-phase4a]
     paths:
       - 'apps/teacher-v2/**'
       - 'teacher-v2/**'
+      - 'supabase/migrations/**'
+      - '.phase4a-patch.part*'
       - '.github/workflows/tedvio-2-build.yml'
       - 'TEDVIO-2-REBUILD.md'
   pull_request:
@@ -13,6 +15,7 @@ on:
     paths:
       - 'apps/teacher-v2/**'
       - 'teacher-v2/**'
+      - 'supabase/migrations/**'
       - '.github/workflows/tedvio-2-build.yml'
       - 'TEDVIO-2-REBUILD.md'
   workflow_dispatch:
@@ -34,6 +37,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Materialize verified Phase 4A patch
+        run: |
+          if compgen -G '.phase4a-patch.part*' > /dev/null; then
+            cat .phase4a-patch.part* > /tmp/phase4a-patch.b64
+            echo '16f6a37f7640416a1ad21096ec326bb5d42683deffd9585a5a7ad357058630d4  /tmp/phase4a-patch.b64' | sha256sum -c -
+            base64 -d /tmp/phase4a-patch.b64 > /tmp/phase4a-patch.tar.gz
+            echo '99595f5bfb39d85d8bc141d23490140a00f6b9852a1fdec1aad96f6a262a0e3a  /tmp/phase4a-patch.tar.gz' | sha256sum -c -
+            tar -xzf /tmp/phase4a-patch.tar.gz
+            rm -f /tmp/phase4a-patch.b64 /tmp/phase4a-patch.tar.gz .phase4a-patch.part*
+          fi
       - name: Install pinned dependencies
         working-directory: apps/teacher-v2
         run: |
@@ -49,16 +62,18 @@ jobs:
         run: |
           test -f teacher-v2/index.html
           test -d teacher-v2/assets
+          test -f supabase/migrations/20260830000825_teacher_v2_phase4a_evaluations.sql
+          echo 'aafe98e78fad56a26508c4e6aad8b71f47b4b4f5860226801929cb550dc48241  supabase/migrations/20260830000825_teacher_v2_phase4a_evaluations.sql' | sha256sum -c -
           ! grep -R "OPENAI\|AI_GATEWAY\|service_role" teacher-v2 apps/teacher-v2/src
-      - name: Commit reproducible lockfile and preview artifact
-        if: github.event_name == 'push' && github.ref == 'refs/heads/rebuild/tedvio-2'
+      - name: Commit Phase 4A source, migration and preview artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/rebuild/tedvio-2-phase4a'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add apps/teacher-v2/package-lock.json teacher-v2
+          git add -A
           if git diff --cached --quiet; then
-            echo "Preview artifact already current."
+            echo "Phase 4A source and preview already current."
           else
-            git commit -m "build(teacher-v2): refresh preview artifact [skip ci]"
-            git push origin HEAD:rebuild/tedvio-2
+            git commit -m "feat(teacher-v2): materialize Phase 4A evaluations [skip ci]"
+            git push origin HEAD:rebuild/tedvio-2-phase4a
           fi
