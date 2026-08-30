@@ -2,7 +2,7 @@ name: TEDVIO 2.0 Frontend Build
 
 on:
   push:
-    branches: [main, rebuild/tedvio-2]
+    branches: [main, 'rebuild/tedvio-2*']
     paths:
       - 'apps/teacher-v2/**'
       - 'teacher-v2/**'
@@ -42,7 +42,7 @@ jobs:
           else
             npm install --no-audit --no-fund
           fi
-      - name: Typecheck, architecture and production build
+      - name: Typecheck, architecture, OMR, gradebook and production build
         working-directory: apps/teacher-v2
         run: npm run quality
       - name: Verify static preview
@@ -51,7 +51,7 @@ jobs:
           test -d teacher-v2/assets
           ! grep -R "OPENAI\|AI_GATEWAY\|service_role" teacher-v2 apps/teacher-v2/src
       - name: Commit reproducible lockfile and preview artifact
-        if: github.event_name == 'push' && github.ref == 'refs/heads/rebuild/tedvio-2'
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/rebuild/tedvio-2')
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -60,5 +60,5 @@ jobs:
             echo "Preview artifact already current."
           else
             git commit -m "build(teacher-v2): refresh preview artifact [skip ci]"
-            git push origin HEAD:rebuild/tedvio-2
+            git push origin HEAD:${GITHUB_REF_NAME}
           fi
