@@ -2,12 +2,11 @@ name: TEDVIO 2.0 Frontend Build
 
 on:
   push:
-    branches: [main, rebuild/tedvio-2, rebuild/tedvio-2-phase4a]
+    branches: [main, rebuild/tedvio-2]
     paths:
       - 'apps/teacher-v2/**'
       - 'teacher-v2/**'
       - 'supabase/migrations/**'
-      - '.phase4a-patch.part*'
       - '.github/workflows/tedvio-2-build.yml'
       - 'TEDVIO-2-REBUILD.md'
   pull_request:
@@ -37,36 +36,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Materialize verified Phase 4A patch
-        run: |
-          if compgen -G '.phase4a-patch.part*' > /dev/null; then
-            python - <<'PY'
-          import base64
-          import hashlib
-          from pathlib import Path
-
-          alphabet = set('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=')
-          parts = []
-          expected_lengths = [12000, 12000, 12000, 4480]
-          for index, expected in enumerate(expected_lengths):
-              text = Path(f'.phase4a-patch.part{index:02d}').read_text()
-              clean = ''.join(char for char in text if char in alphabet)
-              if index == 0 and len(clean) == expected + 1:
-                  clean = clean[:expected]
-              if len(clean) != expected:
-                  raise SystemExit(f'Parte {index:02d} inválida: {len(clean)} caracteres; se esperaban {expected}.')
-              parts.append(clean)
-          payload = ''.join(parts)
-          raw = base64.b64decode(payload, validate=True)
-          digest = hashlib.sha256(raw).hexdigest()
-          expected_digest = '99595f5bfb39d85d8bc141d23490140a00f6b9852a1fdec1aad96f6a262a0e3a'
-          if digest != expected_digest:
-              raise SystemExit(f'Patch corrupto: {digest}')
-          Path('/tmp/phase4a-patch.tar.gz').write_bytes(raw)
-          PY
-            tar -xzf /tmp/phase4a-patch.tar.gz
-            rm -f /tmp/phase4a-patch.tar.gz .phase4a-patch.part*
-          fi
       - name: Install pinned dependencies
         working-directory: apps/teacher-v2
         run: |
@@ -78,22 +47,22 @@ jobs:
       - name: Typecheck, architecture and production build
         working-directory: apps/teacher-v2
         run: npm run quality
-      - name: Verify static preview
+      - name: Verify static preview and migration
         run: |
           test -f teacher-v2/index.html
           test -d teacher-v2/assets
           test -f supabase/migrations/20260830000825_teacher_v2_phase4a_evaluations.sql
           echo '0100750e7f726689fd540f2ec74ceadd2f32c87951120c268371b6a0c9ca02cc  supabase/migrations/20260830000825_teacher_v2_phase4a_evaluations.sql' | sha256sum -c -
           ! grep -R "OPENAI\|AI_GATEWAY\|service_role" teacher-v2 apps/teacher-v2/src
-      - name: Commit Phase 4A source, migration and preview artifact
-        if: github.event_name == 'push' && github.ref == 'refs/heads/rebuild/tedvio-2-phase4a'
+      - name: Commit reproducible lockfile and preview artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/rebuild/tedvio-2'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
+          git add apps/teacher-v2/package-lock.json teacher-v2
           if git diff --cached --quiet; then
-            echo "Phase 4A source and preview already current."
+            echo "Preview artifact already current."
           else
-            git commit -m "feat(teacher-v2): materialize Phase 4A evaluations [skip ci]"
-            git push origin HEAD:rebuild/tedvio-2-phase4a
+            git commit -m "build(teacher-v2): refresh preview artifact [skip ci]"
+            git push origin HEAD:rebuild/tedvio-2
           fi
