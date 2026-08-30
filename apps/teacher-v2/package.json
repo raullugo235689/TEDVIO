@@ -10,8 +10,9 @@
     "dev": "vite --host 0.0.0.0",
     "typecheck": "tsc --noEmit --pretty false",
     "test:architecture": "node scripts/architecture-check.mjs",
+    "test:omr": "node scripts/omr-check.mjs",
     "build": "vite build",
-    "quality": "npm run typecheck && npm run test:architecture && npm run build"
+    "quality": "npm run typecheck && npm run test:architecture && npm run test:omr && npm run build"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.112.4",

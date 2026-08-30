@@ -50,13 +50,28 @@ La reconstrucción se realiza en paralelo y conserva producción en `/teacher`. 
 - Resumen académico, resultados existentes y lectura descriptiva por reactivo y versión.
 - Compatibilidad conservada con las tablas y flujos OMR anteriores.
 
+## Fase 4B · Captura OMR
+
+- Ruta React nativa para selección de evaluación, impresión, captura y resultados.
+- Hojas A4 genéricas o personalizadas por alumno, con versiones alternadas A/B/C.
+- Cuatro marcas de referencia para corregir orientación y perspectiva.
+- Cámara trasera, carga de fotografía y captura manual de respaldo.
+- Procesamiento local mediante Canvas; la imagen no se sube ni se conserva.
+- Clasificación de marcas claras, ambiguas y en blanco.
+- Bloqueo de confirmación mientras existan marcas ambiguas.
+- Revisión manual de cada respuesta antes de publicar el resultado.
+- Recalculo definitivo en PostgreSQL a partir de la clave protegida.
+- Validación de evaluación lista, versión, grupo, padrón y propiedad docente.
+- Correcciones sin eliminación: el valor anterior queda en `revision_log`.
+- Exportación CSV del concentrado confirmado.
+- Sin IA generativa, OCR externo ni costos de inferencia.
+
 ## Próximos bloques
 
-1. Fase 4B · OMR: impresión, cámara, revisión de marcas dudosas y confirmación.
-2. Fase 4C · Libro de calificaciones: categorías, evidencias, ponderaciones y publicación.
-3. Fase 4D · Alumno 360°: expediente consolidado y trayectoria por periodo.
-4. Fase 5 · Periodos, cierre académico, Reportes y Configuración.
-5. Pruebas integrales con cuenta demo y sustitución controlada de `/teacher`.
+1. Fase 4C · Libro de calificaciones: categorías, evidencias, ponderaciones y publicación.
+2. Fase 4D · Alumno 360°: expediente consolidado y trayectoria por periodo.
+3. Fase 5 · Periodos, cierre académico, Reportes y Configuración.
+4. Pruebas integrales con cuenta demo y sustitución controlada de `/teacher`.
 
 ## Condiciones de salida
 

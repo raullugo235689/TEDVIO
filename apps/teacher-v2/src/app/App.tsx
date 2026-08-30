@@ -10,6 +10,8 @@ import { AttendancePage } from '../features/attendance/AttendancePage';
 import { ClassroomPage } from '../features/classroom/ClassroomPage';
 import { BankPage } from '../features/bank/BankPage';
 import { ExamsPage } from '../features/exams/ExamsPage';
+import { OmrPage, OmrPrintPage } from '../features/omr/OmrPage';
+import { ExamOmrBridge } from '../features/omr/ExamOmrBridge';
 import { MigrationPage } from '../features/migration/MigrationPage';
 import { LoadingScreen } from '../shared/components';
 
@@ -20,10 +22,18 @@ function ProtectedShell() {
   return <AppShell />;
 }
 
+function ProtectedPrint() {
+  const auth = useAuth();
+  if (auth.status === 'loading') return <LoadingScreen label="Preparando impresión OMR…" />;
+  if (auth.status !== 'authenticated') return <Navigate to="/login" replace />;
+  return <OmrPrintPage />;
+}
+
 export function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/omr/:examId/print" element={<ProtectedPrint />} />
       <Route element={<ProtectedShell />}>
         <Route index element={<DashboardPage />} />
         <Route path="agenda" element={<AgendaPage />} />
@@ -36,7 +46,9 @@ export function App() {
         <Route path="bank" element={<BankPage />} />
         <Route path="exams" element={<ExamsPage />} />
         <Route path="exams/new" element={<ExamsPage />} />
-        <Route path="exams/:examId" element={<ExamsPage />} />
+        <Route path="exams/:examId" element={<><ExamsPage /><ExamOmrBridge /></>} />
+        <Route path="omr" element={<OmrPage />} />
+        <Route path="omr/:examId" element={<OmrPage />} />
         <Route path="gradebook" element={<MigrationPage module="gradebook" />} />
         <Route path="periods" element={<MigrationPage module="periods" />} />
         <Route path="reports" element={<MigrationPage module="reports" />} />
