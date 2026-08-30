@@ -7,6 +7,7 @@ import { AuthProvider } from './features/auth/AuthProvider';
 import './styles/index.css';
 import './styles/phase-two.css';
 import './styles/phase-three.css';
+import './styles/phase-four.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
