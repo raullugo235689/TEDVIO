@@ -38,12 +38,26 @@ La reconstrucción se realiza en paralelo y conserva producción en `/teacher`. 
 - Supabase Realtime en lugar de polling permanente.
 - Sin IA generativa ni costos de inferencia.
 
-## Próximas fases
+## Fase 4A · Evaluaciones
 
-1. Evaluaciones, OMR, Libro y Alumno 360°.
-2. Periodos, cierre académico, Reportes y Configuración.
-3. Pruebas integrales con cuenta demo y sustitución controlada de `/teacher`.
+- Ruta React nativa para listado, creación, edición y consulta de evaluaciones.
+- Composición desde Question Studio con reactivos objetivos compatibles con OMR.
+- Orden, puntaje, materia, grupo, periodo, fecha e instrucciones.
+- Versiones A, B y C con estrategia de orden común o balanceado.
+- Fotografía normalizada de cada reactivo y clave por versión.
+- Estados protegidos: borrador, lista, cerrada y archivada.
+- Duplicación sin copiar resultados ni eliminar evidencia histórica.
+- Resumen académico, resultados existentes y lectura descriptiva por reactivo y versión.
+- Compatibilidad conservada con las tablas y flujos OMR anteriores.
+
+## Próximos bloques
+
+1. Fase 4B · OMR: impresión, cámara, revisión de marcas dudosas y confirmación.
+2. Fase 4C · Libro de calificaciones: categorías, evidencias, ponderaciones y publicación.
+3. Fase 4D · Alumno 360°: expediente consolidado y trayectoria por periodo.
+4. Fase 5 · Periodos, cierre académico, Reportes y Configuración.
+5. Pruebas integrales con cuenta demo y sustitución controlada de `/teacher`.
 
 ## Condiciones de salida
 
-La plataforma actual no se retira hasta que los recorridos docentes reales estén migrados y validados en escritorio, iPad e iPhone. Cada fase debe pasar TypeScript, auditoría arquitectónica y build reproducible antes de fusionarse.
+La plataforma actual no se retira hasta que los recorridos docentes reales estén migrados y validados en escritorio, iPad e iPhone. Cada bloque debe pasar TypeScript, auditoría arquitectónica, seguridad de base de datos y build reproducible antes de fusionarse.

@@ -9,6 +9,7 @@ import { GroupDetailPage } from '../features/groups/GroupDetailPage';
 import { AttendancePage } from '../features/attendance/AttendancePage';
 import { ClassroomPage } from '../features/classroom/ClassroomPage';
 import { BankPage } from '../features/bank/BankPage';
+import { ExamsPage } from '../features/exams/ExamsPage';
 import { MigrationPage } from '../features/migration/MigrationPage';
 import { LoadingScreen } from '../shared/components';
 
@@ -33,7 +34,9 @@ export function App() {
         <Route path="classroom" element={<ClassroomPage />} />
         <Route path="classroom/:sessionId" element={<ClassroomPage />} />
         <Route path="bank" element={<BankPage />} />
-        <Route path="exams" element={<MigrationPage module="exams" />} />
+        <Route path="exams" element={<ExamsPage />} />
+        <Route path="exams/new" element={<ExamsPage />} />
+        <Route path="exams/:examId" element={<ExamsPage />} />
         <Route path="gradebook" element={<MigrationPage module="gradebook" />} />
         <Route path="periods" element={<MigrationPage module="periods" />} />
         <Route path="reports" element={<MigrationPage module="reports" />} />
