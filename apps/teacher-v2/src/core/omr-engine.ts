@@ -213,7 +213,10 @@ function darknessAt(
       const dy = y - centerY;
       if (dx * dx + dy * dy > radius * radius) continue;
       const pixel = (y * width + x) * 4;
-      const luminance = 0.299 * data[pixel] + 0.587 * data[pixel + 1] + 0.114 * data[pixel + 2];
+      const red = data[pixel] ?? 255;
+      const green = data[pixel + 1] ?? 255;
+      const blue = data[pixel + 2] ?? 255;
+      const luminance = 0.299 * red + 0.587 * green + 0.114 * blue;
       darkness += 1 - luminance / 255;
       samples += 1;
     }
