@@ -9,6 +9,7 @@ import './styles/phase-two.css';
 import './styles/phase-three.css';
 import './styles/phase-four.css';
 import './styles/phase-four-omr.css';
+import './styles/phase-four-gradebook.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {

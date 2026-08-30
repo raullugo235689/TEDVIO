@@ -64,15 +64,33 @@ La reconstrucción se realiza en paralelo y conserva producción en `/teacher`. 
 - Resultados confirmados o pendientes de revisión.
 - Archivo sin eliminación física y revisiones históricas automáticas.
 - Exportación CSV bajo demanda.
-- Preparación explícita para publicar evidencias en el Libro durante la Fase 4C.
 - Sin IA generativa ni costos de inferencia.
+
+## Fase 4C · Libro de calificaciones
+
+- Rutas React nativas para catálogo de grupos y Libro por grupo.
+- Selección de curso completo o periodo académico.
+- Configuración ponderada con suma obligatoria de 100%.
+- Estructura inicial 40/30/20/10 para grupos sin categorías.
+- Categorías manuales, OMR, Asistencia y Participación Live.
+- Actividades manuales con fecha, puntaje máximo y periodo protegido.
+- Captura masiva por padrón, notas y validación del rango de cada evidencia.
+- Normalización de cada actividad a escala 0–10 antes de entrar en su categoría.
+- Promedio ponderado únicamente con categorías que ya contienen evidencia, mostrando el porcentaje que respalda cada resultado.
+- Vinculación explícita de evaluaciones OMR con el Libro.
+- Solo resultados OMR confirmados y activos se publican como calificación.
+- Actualización automática del Libro cuando cambia un resultado OMR ya vinculado.
+- Matriz de evidencias, cobertura, pendientes, promedio y aprobación.
+- Snapshots de periodos cerrados como resultado oficial de solo lectura.
+- Bitácora inmutable para categorías, actividades y calificaciones.
+- Exportación CSV bajo demanda.
+- Sin eliminación física, IA generativa ni costos de inferencia.
 
 ## Próximos bloques
 
-1. Fase 4C · Libro de calificaciones: categorías, evidencias, ponderaciones y publicación.
-2. Fase 4D · Alumno 360°: expediente consolidado y trayectoria por periodo.
-3. Fase 5 · Periodos, cierre académico, Reportes y Configuración.
-4. Pruebas integrales con cuenta demo y sustitución controlada de `/teacher`.
+1. Fase 4D · Alumno 360°: expediente consolidado y trayectoria por periodo.
+2. Fase 5 · Periodos, cierre académico, Reportes y Configuración.
+3. Pruebas integrales con cuenta demo y sustitución controlada de `/teacher`.
 
 ## Condiciones de salida
 
