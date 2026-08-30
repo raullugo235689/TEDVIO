@@ -86,11 +86,26 @@ La reconstrucción se realiza en paralelo y conserva producción en `/teacher`. 
 - Exportación CSV bajo demanda.
 - Sin eliminación física, IA generativa ni costos de inferencia.
 
+## Fase 4D · Alumno 360°
+
+- Directorio global de alumnos con búsqueda por matrícula, nombre, asignatura y grupo.
+- Ruta React propia para cada expediente académico.
+- Resumen actual mediante la misma fuente de cálculo del Libro.
+- Promedio provisional u oficial, asistencia, OMR y peso respaldado por evidencia.
+- Alertas deterministas por promedio, asistencia, pendientes y descenso entre periodos.
+- Siguiente acción explicable y enlazada al módulo correspondiente.
+- Trayectoria por periodos con cambio, asistencia, OMR, evidencia y estado académico.
+- Evidencias manuales, evaluaciones OMR, asistencia, tareas digitales y sesiones Live.
+- Observaciones docentes con motivo de actualización e historial protegido.
+- Trazabilidad de cambios en calificaciones y correcciones OMR.
+- Exportación CSV individual bajo demanda.
+- RLS por docente, escritura mediante RPC y bloqueo de eliminación de observaciones.
+- Sin IA generativa ni costos de inferencia.
+
 ## Próximos bloques
 
-1. Fase 4D · Alumno 360°: expediente consolidado y trayectoria por periodo.
-2. Fase 5 · Periodos, cierre académico, Reportes y Configuración.
-3. Pruebas integrales con cuenta demo y sustitución controlada de `/teacher`.
+1. Fase 5 · Periodos, cierre académico, Reportes y Configuración.
+2. Pruebas integrales con cuenta demo y sustitución controlada de `/teacher`.
 
 ## Condiciones de salida
 
