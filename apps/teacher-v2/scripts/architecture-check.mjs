@@ -23,11 +23,13 @@ const groupsApi = fs.readFileSync(path.join(sourceRoot, 'core/groups.ts'), 'utf8
 const attendanceApi = fs.readFileSync(path.join(sourceRoot, 'core/attendance.ts'), 'utf8');
 const bankApi = fs.readFileSync(path.join(sourceRoot, 'core/bank.ts'), 'utf8');
 const classroomApi = fs.readFileSync(path.join(sourceRoot, 'core/classroom.ts'), 'utf8');
+const examsApi = fs.readFileSync(path.join(sourceRoot, 'core/exams.ts'), 'utf8');
 const groupsPage = fs.readFileSync(path.join(sourceRoot, 'features/groups/GroupsPage.tsx'), 'utf8');
 const groupDetail = fs.readFileSync(path.join(sourceRoot, 'features/groups/GroupDetailPage.tsx'), 'utf8');
 const attendancePage = fs.readFileSync(path.join(sourceRoot, 'features/attendance/AttendancePage.tsx'), 'utf8');
 const bankPage = fs.readFileSync(path.join(sourceRoot, 'features/bank/BankPage.tsx'), 'utf8');
 const classroomPage = fs.readFileSync(path.join(sourceRoot, 'features/classroom/ClassroomPage.tsx'), 'utf8');
+const examsPage = fs.readFileSync(path.join(sourceRoot, 'features/exams/ExamsPage.tsx'), 'utf8');
 
 function must(condition, message) {
   if (condition) console.log('OK  ', message);
@@ -102,6 +104,22 @@ must((classroomApi.match(/\.eq\('teacher_id', user\.id\)/g) || []).length >= 7, 
 must(!bankApi.includes('.delete(') && !classroomApi.includes('.delete('), 'Fase 3 archiva preguntas y conserva sesiones en lugar de eliminarlas');
 must(classroomApi.includes(".channel(channelName)") && classroomApi.includes("table: 'v2_responses'"), 'Modo Clase usa Supabase Realtime sin polling permanente');
 must(classroomApi.includes('/beta.html#join?code=') && classroomApi.includes('/proyectar.html?code='), 'Modo Clase conserva acceso de alumnos y proyección existentes');
+
+must(app.includes('path="exams"') && app.includes('path="exams/new"') && app.includes('path="exams/:examId"') && app.includes('<ExamsPage />'), 'Evaluaciones tiene listado, editor y detalle en rutas React propias');
+must(!app.includes('module="exams"'), 'Evaluaciones fue retirada de los placeholders heredados');
+must(navigation.includes("label: 'Evaluaciones'") && (navigation.match(/migrated: true/g) || []).length >= 7, 'la navegación marca Fase 4A como migrada');
+must(main.includes("import './styles/phase-four.css'"), 'los estilos de Fase 4A se cargan desde un módulo único');
+must(examsPage.includes('saveExamDraft') && examsPage.includes('setExamStatus') && examsPage.includes('duplicateExam') && examsPage.includes('analyzeExam'), 'Evaluaciones cubre composición, estados, duplicación y lectura académica');
+must(examsPage.includes('buildExamBlueprint') && examsPage.includes('Question Studio'), 'Evaluaciones reutiliza el Banco en lugar de crear otro editor de reactivos');
+for (const table of ['v2_paper_exams', 'v2_paper_exam_questions', 'v2_paper_exam_results', 'v2_question_bank', 'v2_academic_periods', 'v2_groups', 'v2_group_students']) {
+  must(examsApi.includes(`from('${table}')`), `capa de Evaluaciones utiliza ${table}`);
+}
+must(examsApi.includes("rpc('v2_save_paper_exam_v2'"), 'Evaluaciones guarda la composición mediante un RPC atómico');
+must(examsApi.includes("rpc('v2_set_paper_exam_status'"), 'Evaluaciones utiliza transiciones de estado protegidas');
+must(examsApi.includes("rpc('v2_duplicate_paper_exam'"), 'Evaluaciones duplica sin copiar resultados');
+must((examsApi.match(/\.eq\('teacher_id', user\.id\)/g) || []).length >= 10, 'lecturas de Evaluaciones se restringen al docente autenticado');
+must(!examsApi.includes('.delete(') && !examsPage.includes('.delete('), 'Fase 4A archiva evaluaciones y conserva evidencia histórica');
+must(examsApi.includes("'multiple_choice', 'true_false'") && examsApi.includes('compatibleExamQuestion'), 'la composición objetiva solo acepta reactivos con clave OMR inequívoca');
 
 if (failures.length) {
   console.error(`\n${failures.length} regla(s) de arquitectura fallaron.`);
