@@ -43,7 +43,6 @@ jobs:
             for part in .phase4a-patch.part*; do
               tr -d '\r\n' < "$part"
             done > /tmp/phase4a-patch.b64
-            echo '16f6a37f7640416a1ad21096ec326bb5d42683deffd9585a5a7ad357058630d4  /tmp/phase4a-patch.b64' | sha256sum -c -
             base64 -d /tmp/phase4a-patch.b64 > /tmp/phase4a-patch.tar.gz
             echo '99595f5bfb39d85d8bc141d23490140a00f6b9852a1fdec1aad96f6a262a0e3a  /tmp/phase4a-patch.tar.gz' | sha256sum -c -
             tar -xzf /tmp/phase4a-patch.tar.gz
