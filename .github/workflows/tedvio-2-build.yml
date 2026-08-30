@@ -41,7 +41,7 @@ jobs:
         run: |
           if compgen -G '.phase4a-patch.part*' > /dev/null; then
             for part in .phase4a-patch.part*; do
-              tr -d '[:space:]' < "$part"
+              LC_ALL=C tr -cd 'A-Za-z0-9+/=' < "$part"
             done > /tmp/phase4a-patch.b64
             base64 -d /tmp/phase4a-patch.b64 > /tmp/phase4a-patch.tar.gz
             echo '99595f5bfb39d85d8bc141d23490140a00f6b9852a1fdec1aad96f6a262a0e3a  /tmp/phase4a-patch.tar.gz' | sha256sum -c -
