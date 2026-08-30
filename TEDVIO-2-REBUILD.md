@@ -50,13 +50,29 @@ La reconstrucción se realiza en paralelo y conserva producción en `/teacher`. 
 - Resumen académico, resultados existentes y lectura descriptiva por reactivo y versión.
 - Compatibilidad conservada con las tablas y flujos OMR anteriores.
 
+## Fase 4B · OMR
+
+- Rutas React nativas para catálogo OMR, evaluación, captura y hojas imprimibles.
+- Hojas A4 genéricas o personalizadas con nombre, matrícula, versión, QR y cuatro marcas negras.
+- Distribución de versiones A, B y C para el padrón.
+- Cámara trasera o selección de imagen desde iPhone, iPad y escritorio.
+- Detección local de perspectiva, marcas y burbujas; la fotografía no se guarda en Supabase.
+- QR opcional para reconocer evaluación, versión y alumno.
+- Revisión obligatoria de respuestas ambiguas o en blanco antes de confirmar.
+- Captura manual y corrección de resultados existentes.
+- Calificación recalculada en PostgreSQL mediante un RPC atómico; el navegador no decide la nota definitiva.
+- Resultados confirmados o pendientes de revisión.
+- Archivo sin eliminación física y revisiones históricas automáticas.
+- Exportación CSV bajo demanda.
+- Preparación explícita para publicar evidencias en el Libro durante la Fase 4C.
+- Sin IA generativa ni costos de inferencia.
+
 ## Próximos bloques
 
-1. Fase 4B · OMR: impresión, cámara, revisión de marcas dudosas y confirmación.
-2. Fase 4C · Libro de calificaciones: categorías, evidencias, ponderaciones y publicación.
-3. Fase 4D · Alumno 360°: expediente consolidado y trayectoria por periodo.
-4. Fase 5 · Periodos, cierre académico, Reportes y Configuración.
-5. Pruebas integrales con cuenta demo y sustitución controlada de `/teacher`.
+1. Fase 4C · Libro de calificaciones: categorías, evidencias, ponderaciones y publicación.
+2. Fase 4D · Alumno 360°: expediente consolidado y trayectoria por periodo.
+3. Fase 5 · Periodos, cierre académico, Reportes y Configuración.
+4. Pruebas integrales con cuenta demo y sustitución controlada de `/teacher`.
 
 ## Condiciones de salida
 
