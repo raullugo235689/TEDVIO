@@ -1,6 +1,7 @@
 {
   "app": "TEDVIO",
-  "version": "2.0.0",
+  "version": "2026.08.28.76",
+  "product_version": "2.0.0",
   "revision": "phase6-production-cutover",
   "channel": "production",
   "audit": "integral-cutover",
