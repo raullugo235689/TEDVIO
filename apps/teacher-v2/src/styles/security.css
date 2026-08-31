@@ -1,0 +1,402 @@
+.auth-access-card {
+  position: relative;
+}
+
+.auth-help-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 18px;
+  margin-top: 18px;
+}
+
+.auth-text-button {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--accent, #2f69db);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 30%, transparent);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.auth-text-button:hover,
+.auth-text-button:focus-visible {
+  text-decoration-color: currentColor;
+}
+
+.auth-honeypot {
+  position: fixed !important;
+  left: -200vw !important;
+  top: 0 !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.password-policy {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px 10px;
+  margin: 4px 0 14px;
+  padding: 0;
+  list-style: none;
+  color: var(--muted, #65758a);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.password-policy li {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+}
+
+.password-policy li span {
+  display: grid;
+  place-items: center;
+  flex: 0 0 17px;
+  width: 17px;
+  height: 17px;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.password-policy li.complete {
+  color: #16865b;
+}
+
+.legal-consent-list {
+  display: grid;
+  gap: 10px;
+  margin: 6px 0 15px;
+  padding: 13px;
+  border: 1px solid color-mix(in srgb, var(--border, #ccd5e3) 78%, transparent);
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--surface, #fff) 94%, #e8f0ff);
+}
+
+.legal-consent-heading {
+  display: grid;
+  gap: 3px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border, #ccd5e3) 68%, transparent);
+}
+
+.legal-consent-heading span,
+.legal-consent-list article > button,
+.legal-consent-list article label span {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.legal-consent-list article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.legal-consent-list article label {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  min-width: 0;
+}
+
+.legal-consent-list input[type="checkbox"],
+.legal-gate-documents input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  margin-top: 1px;
+  accent-color: var(--accent, #2f69db);
+}
+
+.auth-inline-loading {
+  padding: 8px 0;
+  color: var(--muted, #65758a);
+  font-size: 13px;
+}
+
+.auth-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(3, 13, 32, .72);
+  backdrop-filter: blur(8px);
+}
+
+.auth-modal {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(760px, 100%);
+  max-height: min(84svh, 850px);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 24px;
+  background: var(--surface, #fff);
+  color: var(--text, #10233f);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, .32);
+}
+
+.auth-modal > header,
+.auth-modal > footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px 22px;
+}
+
+.auth-modal > header {
+  border-bottom: 1px solid var(--border, #d9e0eb);
+}
+
+.auth-modal > header h2 {
+  margin: 4px 0;
+  font-size: clamp(21px, 3vw, 30px);
+}
+
+.auth-modal > header p,
+.auth-modal > footer span {
+  margin: 0;
+  color: var(--muted, #65758a);
+  font-size: 13px;
+}
+
+.auth-modal > footer {
+  border-top: 1px solid var(--border, #d9e0eb);
+}
+
+.legal-document-scroll {
+  overflow: auto;
+  padding: 22px;
+  line-height: 1.65;
+  overscroll-behavior: contain;
+}
+
+.legal-document-scroll p {
+  margin: 0 0 1em;
+  white-space: pre-line;
+}
+
+.auth-callback-page,
+.legal-gate-page {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: max(24px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+  background:
+    radial-gradient(circle at 15% 10%, rgba(53, 112, 225, .20), transparent 34%),
+    linear-gradient(145deg, #071a3b 0%, #0b2349 54%, #102f5f 100%);
+}
+
+.auth-callback-card,
+.legal-gate-card {
+  width: min(620px, 100%);
+  border: 1px solid rgba(255, 255, 255, .13);
+  border-radius: 26px;
+  background: var(--surface, #fff);
+  color: var(--text, #10233f);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, .32);
+}
+
+.auth-callback-card {
+  display: grid;
+  gap: 16px;
+  padding: clamp(24px, 5vw, 42px);
+}
+
+.auth-callback-card .login-brand {
+  width: min(190px, 58%);
+  margin-bottom: 6px;
+}
+
+.auth-callback-card h1 {
+  margin: 0;
+  font-size: clamp(28px, 5vw, 42px);
+  line-height: 1.08;
+}
+
+.auth-callback-card > p,
+.auth-callback-card > small {
+  margin: 0;
+  color: var(--muted, #65758a);
+  line-height: 1.6;
+}
+
+.auth-callback-card form {
+  display: grid;
+  gap: 13px;
+}
+
+.auth-callback-card form label {
+  display: grid;
+  gap: 7px;
+  font-weight: 750;
+}
+
+.auth-callback-card input {
+  min-height: 48px;
+  padding: 0 13px;
+  border: 1px solid var(--border, #cfd8e6);
+  border-radius: 12px;
+  background: var(--surface, #fff);
+  color: inherit;
+  font: inherit;
+}
+
+.auth-anchor-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.legal-gate-page.compact {
+  align-content: center;
+  gap: 16px;
+}
+
+.legal-gate-card {
+  width: min(930px, 100%);
+  padding: clamp(22px, 4vw, 38px);
+}
+
+.legal-gate-card > header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--border, #d9e0eb);
+}
+
+.legal-gate-icon {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 17px;
+  background: rgba(47, 105, 219, .12);
+  color: #2f69db;
+}
+
+.legal-gate-icon svg {
+  width: 27px;
+  height: 27px;
+}
+
+.legal-gate-card h1 {
+  margin: 4px 0 8px;
+  font-size: clamp(27px, 4vw, 42px);
+}
+
+.legal-gate-card header p,
+.legal-gate-documents article p {
+  margin: 0;
+  color: var(--muted, #65758a);
+  line-height: 1.6;
+}
+
+.legal-gate-documents {
+  display: grid;
+  gap: 13px;
+  margin: 22px 0;
+}
+
+.legal-gate-documents article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(210px, auto);
+  gap: 20px;
+  align-items: center;
+  padding: 18px;
+  border: 1px solid var(--border, #d9e0eb);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface, #fff) 94%, #eef4ff);
+}
+
+.legal-gate-documents article h2 {
+  margin: 4px 0 6px;
+  font-size: 20px;
+}
+
+.legal-gate-documents article label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 13px;
+  border-radius: 13px;
+  background: color-mix(in srgb, #2f69db 8%, transparent);
+  font-weight: 760;
+}
+
+.legal-gate-card > footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border, #d9e0eb);
+}
+
+@media (max-width: 720px) {
+  .password-policy {
+    grid-template-columns: 1fr;
+  }
+
+  .legal-consent-list article,
+  .legal-gate-documents article {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-modal > footer,
+  .legal-gate-card > footer {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .auth-modal > footer .button,
+  .legal-gate-card > footer .button {
+    width: 100%;
+  }
+
+  .auth-modal > footer span {
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-modal-backdrop {
+    padding: 0;
+  }
+
+  .auth-modal {
+    width: 100%;
+    max-height: 100svh;
+    min-height: 100svh;
+    border-radius: 0;
+  }
+
+  .auth-modal > header,
+  .auth-modal > footer,
+  .legal-document-scroll {
+    padding-left: 17px;
+    padding-right: 17px;
+  }
+
+  .legal-gate-card > header {
+    grid-template-columns: 1fr;
+  }
+}
