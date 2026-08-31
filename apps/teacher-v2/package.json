@@ -11,8 +11,9 @@
     "typecheck": "tsc --noEmit --pretty false",
     "test:architecture": "node scripts/architecture-check.mjs && node scripts/omr-check.mjs && node scripts/gradebook-check.mjs && node scripts/student360-check.mjs && node scripts/phase5-check.mjs && node scripts/phase6-check.mjs && node scripts/launch-truth-check.mjs && node scripts/reliability-check.mjs",
     "test:security": "node scripts/security-check.mjs",
+    "test:launch": "node scripts/launch-readiness-check.mjs",
     "build": "vite build",
-    "quality": "npm run typecheck && npm run test:architecture && npm run test:security && npm run build"
+    "quality": "npm run typecheck && npm run test:architecture && npm run test:security && npm run test:launch && npm run build"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.112.4",

@@ -24,6 +24,7 @@ import './styles/phase-five.css';
 import './styles/phase-six.css';
 import './styles/reliability.css';
 import './styles/security.css';
+import './styles/onboarding.css';
 
 const queryClient = new QueryClient({
   queryCache: new QueryCache({

@@ -5,6 +5,7 @@ import { useAuth } from '../features/auth/AuthProvider';
 import { AuthCallbackPage } from '../features/auth/AuthCallbackPage';
 import { LegalConsentGate } from '../features/auth/LegalConsentGate';
 import { LoginPage } from '../features/auth/LoginPage';
+import { OnboardingExperience } from '../features/onboarding/OnboardingExperience';
 import { LoadingScreen } from '../shared/components';
 
 const DashboardPage = lazy(() => import('../features/dashboard/DashboardPage').then((module) => ({ default: module.DashboardPage })));
@@ -30,7 +31,9 @@ function ProtectedShell() {
   if (auth.status !== 'authenticated') return <Navigate to="/login" replace />;
   return (
     <LegalConsentGate>
-      <AppShell />
+      <OnboardingExperience>
+        <AppShell />
+      </OnboardingExperience>
     </LegalConsentGate>
   );
 }

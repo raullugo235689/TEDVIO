@@ -1,0 +1,9 @@
+# TEDVIO production ownership
+* @raullugo235689
+
+# High-risk surfaces
+/.github/ @raullugo235689
+/supabase/ @raullugo235689
+/apps/teacher-v2/src/core/ @raullugo235689
+/apps/teacher-v2/src/features/auth/ @raullugo235689
+/vercel.json @raullugo235689

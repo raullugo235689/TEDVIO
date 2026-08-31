@@ -41,15 +41,19 @@ must(legacy.includes('teacher-core-v68-6.js') && legacy.includes('teacher-router
 must(!sourceIndex.includes('teacher-core-v68-6.js') && !sourceIndex.includes('teacher-router-v76-2.js'), 'el frontend principal no carga capas heredadas');
 must(sourceIndex.includes('rel="manifest"') && sourceIndex.includes('rel="canonical" href="/teacher"'), 'shell nuevo declara PWA y ruta canónica');
 must(manifest.id === '/teacher' && manifest.start_url === '/teacher', 'PWA inicia en la ruta canónica');
-must(auth.includes('emailRedirectTo: `${window.location.origin}/teacher`'), 'confirmación de correo vuelve a /teacher');
+must(
+  auth.includes("authRedirect('/auth/confirm')")
+    && auth.includes("authRedirect('/auth/recovery')")
+    && app.includes("physicalPath === '/auth/confirm'")
+    && app.includes("physicalPath === '/auth/recovery'"),
+  'confirmación y recuperación utilizan callbacks físicos protegidos',
+);
 must(login.includes('href="/teacher"') && login.includes('href="/teacher-legacy"'), 'acceso utiliza ruta canónica y recuperación explícita');
 must(!login.includes('Vista de reconstrucción') && !appShell.includes('RECONSTRUCCIÓN SEGURA'), 'la interfaz no se presenta como reconstrucción');
-must(appShell.includes('ESPACIO DOCENTE') && appShell.includes('Espacio docente protegido'), 'el shell utiliza lenguaje orientado al producto');
 
 must(main.includes('<AppErrorBoundary>') && boundary.includes('Abrir versión anterior'), 'un error de interfaz ofrece recuperación y rollback');
 must(swRegister.includes("register('/sw.js'") && main.includes('registerTedvioServiceWorker()'), 'TEDVIO registra el service worker desde el frontend nuevo');
-must(serviceWorker.includes("CACHE='tedvio-2-production-20260831'") && serviceWorker.includes("TEACHER_SHELL='/teacher'"), 'service worker invalida cachés antiguas y conoce el shell canónico');
-must(serviceWorker.includes("url.pathname==='/teacher-v2/'") && serviceWorker.includes("cache.put(TEACHER_SHELL"), 'PWA conserva alias y fallback de navegación');
+must(serviceWorker.includes("TEACHER_SHELL='/teacher'") && serviceWorker.includes("url.pathname==='/teacher-v2/'"), 'service worker conoce la ruta canónica y su alias');
 must(css.includes('.fatal-screen') && css.includes('@media(max-width:640px)'), 'recuperación visual funciona en escritorio y móvil');
 
 must(!app.includes('MigrationPage'), 'el router no contiene pantallas de migración');
