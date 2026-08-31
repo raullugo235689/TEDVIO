@@ -50,15 +50,15 @@ jobs:
           test -f teacher-v2/index.html
           test -d teacher-v2/assets
           ! grep -R "OPENAI\|AI_GATEWAY\|service_role" teacher-v2 apps/teacher-v2/src
-      - name: Commit reproducible lockfile and preview artifact
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/rebuild/tedvio-2')
+      - name: Commit reproducible lockfile and production artifact
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/rebuild/tedvio-2')) && github.actor != 'github-actions[bot]'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add apps/teacher-v2/package-lock.json teacher-v2
           if git diff --cached --quiet; then
-            echo "Preview artifact already current."
+            echo "Production artifact already current."
           else
-            git commit -m "build(teacher-v2): refresh preview artifact [skip ci]"
+            git commit -m "build(teacher-v2): refresh production artifact"
             git push origin HEAD:${GITHUB_REF_NAME}
           fi
