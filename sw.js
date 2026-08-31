@@ -1,3 +1,4 @@
+const LEGACY_CACHE_NAMESPACES=['tedvio-pilot-v76-20260828','tedvio-pilot-v60-20260825'];
 const CACHE='tedvio-2-production-20260831';
 const STATIC=[
   '/manifest.webmanifest',
@@ -16,7 +17,7 @@ self.addEventListener('install',event=>{
 self.addEventListener('activate',event=>{
   event.waitUntil((async()=>{
     const keys=await caches.keys();
-    await Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)));
+    await Promise.all(keys.filter(key=>key!==CACHE||LEGACY_CACHE_NAMESPACES.includes(key)).map(key=>caches.delete(key)));
     await self.clients.claim();
   })());
 });
