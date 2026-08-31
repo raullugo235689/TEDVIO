@@ -62,7 +62,10 @@ function AgendaFocus({ occurrence, label }: { occurrence: AgendaOccurrence | nul
       <h3>{groupSubject(occurrence.group)}</h3>
       <p>{groupName(occurrence.group)} · {formatTime(occurrence.slot.start_time)}–{formatTime(occurrence.slot.end_time)}</p>
       <small>{[occurrence.slot.room, occurrence.slot.modality].filter(Boolean).join(' · ') || 'Ubicación sin especificar'}</small>
-      <Link className="button ghost compact" to={`/attendance/${occurrence.slot.group_id}`}>Preparar asistencia</Link>
+      <div className="hero-actions">
+        <Link className="button primary compact" to={`/classroom?group=${encodeURIComponent(occurrence.slot.group_id)}`}>Iniciar Modo Clase</Link>
+        <Link className="button ghost compact" to={`/attendance/${occurrence.slot.group_id}`}>Preparar asistencia</Link>
+      </div>
     </article>
   );
 }
@@ -79,7 +82,7 @@ function GroupCard({ group }: { group: DashboardGroup }) {
         <span><small>Asistencia</small><b>{formatPercent(group.attendance_rate)}</b></span>
         <span><small>Promedio</small><b>{formatGrade(group.grade_avg)}</b></span>
       </div>
-      <footer><small>Última actividad: {formatActivity(group.last_activity)}</small><div><Link className="button ghost compact" to={`/groups/${group.id}`}>Abrir grupo</Link><Link className="button primary compact" to={`/attendance/${group.id}`}>Asistencia</Link></div></footer>
+      <footer><small>Última actividad: {formatActivity(group.last_activity)}</small><div><Link className="button ghost compact" to={`/groups/${group.id}`}>Abrir grupo</Link><Link className="button ghost compact" to={`/attendance/${group.id}`}>Asistencia</Link><Link className="button primary compact" to={`/classroom?group=${encodeURIComponent(group.id)}`}>Modo Clase</Link></div></footer>
     </article>
   );
 }
@@ -114,9 +117,14 @@ export function DashboardPage() {
         title={`${greeting()}, ${firstName(data.user.email)}.`}
         detail="Organiza tu jornada, atiende pendientes y continúa el trabajo de tus grupos desde un solo lugar."
         actions={
-          <button className="button secondary" type="button" onClick={() => queryClient.invalidateQueries({ queryKey: ['teacher-home'] })}>
-            <Icon name="refresh" />Actualizar
-          </button>
+          <div className="hero-actions">
+            <button className="button primary" type="button" onClick={() => navigate(currentOrNext ? `/classroom?group=${encodeURIComponent(currentOrNext.slot.group_id)}` : '/classroom')}>
+              <Icon name="classroom" />Iniciar clase
+            </button>
+            <button className="button secondary" type="button" onClick={() => queryClient.invalidateQueries({ queryKey: ['teacher-home'] })}>
+              <Icon name="refresh" />Actualizar
+            </button>
+          </div>
         }
       />
 
@@ -131,6 +139,7 @@ export function DashboardPage() {
           <p>{action.detail}</p>
           <div className="hero-actions">
             {action.groupId ? <button className="button primary" type="button" onClick={() => navigate(`/attendance/${action.groupId}`)}>Abrir siguiente acción</button> : <button className="button primary" type="button" onClick={() => navigate('/groups')}>Ver grupos</button>}
+            <button className="button ghost" type="button" onClick={() => navigate(currentOrNext ? `/classroom?group=${encodeURIComponent(currentOrNext.slot.group_id)}` : '/classroom')}>Modo Clase</button>
             <button className="button ghost" type="button" onClick={() => navigate('/agenda')}>Abrir agenda</button>
           </div>
         </div>
@@ -154,7 +163,7 @@ export function DashboardPage() {
 
       <div className="dashboard-columns">
         <SectionCard>
-          <div className="section-heading"><div><span className="eyebrow">OPERACIÓN ACADÉMICA</span><h2>Tus grupos</h2><p>Resumen y acceso directo al padrón y la asistencia.</p></div><button className="button ghost" type="button" onClick={() => navigate('/groups')}>Ver todos</button></div>
+          <div className="section-heading"><div><span className="eyebrow">OPERACIÓN ACADÉMICA</span><h2>Tus grupos</h2><p>Resumen y acceso directo al padrón, asistencia y Modo Clase.</p></div><button className="button ghost" type="button" onClick={() => navigate('/groups')}>Ver todos</button></div>
           <div className="groups-grid-v2">
             {groups.length ? groups.slice(0, 4).map((group) => <GroupCard group={group} key={group.id} />) : <div className="empty-inline"><Icon name="groups" /><div><b>Aún no hay grupos</b><span>Crea la estructura y el primer grupo para comenzar.</span></div><button className="button primary compact" type="button" onClick={() => navigate('/groups')}>Crear grupo</button></div>}
           </div>
