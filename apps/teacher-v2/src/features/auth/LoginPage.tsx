@@ -1,49 +1,175 @@
-import { useState, type FormEvent } from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAuth } from './AuthProvider';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
+import {
+  authErrorMessage,
+  fetchRequiredLegalDocuments,
+  isValidEmail,
+  legalAcceptancePayload,
+  legalVersionKey,
+  passwordPolicy,
+  remainingAuthCooldown,
+  startAuthCooldown,
+  type AuthCooldownAction,
+  type RequiredLegalDocument,
+} from '../../core/auth-security';
 import { LoadingScreen } from '../../shared/components';
 import { Icon } from '../../shared/icons';
+import { LegalDocumentModal } from './LegalDocumentModal';
+import { PasswordChecklist } from './PasswordChecklist';
+import { useAuth } from './AuthProvider';
 
-function errorMessage(error: unknown): string {
-  if (error && typeof error === 'object' && 'message' in error) {
-    return String((error as { message?: unknown }).message || 'No se pudo completar la operación.');
-  }
-  return 'No se pudo completar la operación.';
+type AccessMode = 'signin' | 'signup' | 'recover' | 'resend';
+
+function modeTitle(mode: AccessMode): string {
+  if (mode === 'signup') return 'Crear cuenta';
+  if (mode === 'recover') return 'Recuperar contraseña';
+  if (mode === 'resend') return 'Reenviar confirmación';
+  return 'Bienvenido de nuevo';
+}
+
+function modeDetail(mode: AccessMode): string {
+  if (mode === 'signup') return 'Crea tu espacio docente y revisa las condiciones vigentes.';
+  if (mode === 'recover') return 'Te enviaremos un enlace de un solo uso para crear una nueva contraseña.';
+  if (mode === 'resend') return 'Solicita otro enlace para confirmar tu correo.';
+  return 'Ingresa con tus credenciales de TEDVIO.';
 }
 
 export function LoginPage() {
   const auth = useAuth();
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const location = useLocation();
+  const [mode, setMode] = useState<AccessMode>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [honeypot, setHoneypot] = useState('');
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
+  const [documents, setDocuments] = useState<RequiredLegalDocument[]>([]);
+  const [accepted, setAccepted] = useState<Record<string, boolean>>({});
+  const [openDocument, setOpenDocument] = useState<RequiredLegalDocument | null>(null);
+  const [legalLoading, setLegalLoading] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  const policy = useMemo(() => passwordPolicy(password, email), [email, password]);
+  const allLegalAccepted = documents.length > 0
+    && documents.every((document) => accepted[legalVersionKey(document)]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('reset') === '1') setNotice('Contraseña actualizada. Ingresa nuevamente con tu nueva contraseña.');
+    if (params.get('confirmed') === '1') setNotice('Correo confirmado. Ya puedes ingresar a TEDVIO.');
+  }, [location.search]);
+
+  useEffect(() => {
+    if (mode !== 'signup' || documents.length || legalLoading) return;
+    let active = true;
+    setLegalLoading(true);
+    fetchRequiredLegalDocuments()
+      .then((nextDocuments) => {
+        if (!active) return;
+        setDocuments(nextDocuments);
+        setAccepted(Object.fromEntries(nextDocuments.map((document) => [legalVersionKey(document), false])));
+      })
+      .catch((caught) => {
+        if (!active) return;
+        setError(caught instanceof Error ? caught.message : 'No se pudieron cargar los documentos legales.');
+      })
+      .finally(() => {
+        if (active) setLegalLoading(false);
+      });
+    return () => { active = false; };
+  }, [documents.length, legalLoading, mode]);
+
+  useEffect(() => {
+    if (mode !== 'recover' && mode !== 'resend') {
+      setCooldown(0);
+      return undefined;
+    }
+    const action = mode as AuthCooldownAction;
+    const update = () => setCooldown(remainingAuthCooldown(action));
+    update();
+    const timer = window.setInterval(update, 1000);
+    return () => window.clearInterval(timer);
+  }, [mode]);
 
   if (auth.status === 'loading') return <LoadingScreen label="Recuperando tu sesión…" />;
   if (auth.status === 'authenticated') return <Navigate to="/" replace />;
+
+  function changeMode(nextMode: AccessMode) {
+    setMode(nextMode);
+    setPassword('');
+    setError('');
+    setNotice('');
+    if (nextMode === 'recover' || nextMode === 'resend') {
+      setCooldown(remainingAuthCooldown(nextMode));
+    }
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError('');
     setNotice('');
-    if (!email.trim() || password.length < 6) {
-      setError('Escribe un correo válido y una contraseña de al menos 6 caracteres.');
+
+    if (honeypot) {
+      setNotice('Si el correo puede recibir este mensaje, llegará en unos minutos.');
       return;
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!isValidEmail(normalizedEmail)) {
+      setError('Escribe un correo válido.');
+      return;
+    }
+
+    if ((mode === 'recover' || mode === 'resend') && cooldown > 0) {
+      setError(`Espera ${cooldown} segundo${cooldown === 1 ? '' : 's'} antes de solicitar otro correo.`);
+      return;
+    }
+
+    if (mode === 'signin' && !password) {
+      setError('Escribe tu contraseña.');
+      return;
+    }
+
+    if (mode === 'signup') {
+      if (!policy.valid) {
+        setError('La contraseña todavía no cumple todos los requisitos de seguridad.');
+        return;
+      }
+      if (!allLegalAccepted) {
+        setError('Abre y acepta cada documento vigente para crear la cuenta.');
+        return;
+      }
     }
 
     setBusy(true);
     try {
       if (mode === 'signin') {
-        await auth.signIn(email.trim(), password);
-      } else {
-        const result = await auth.signUp(email.trim(), password);
+        await auth.signIn(normalizedEmail, password);
+      } else if (mode === 'signup') {
+        const result = await auth.signUp(
+          normalizedEmail,
+          password,
+          legalAcceptancePayload(documents),
+        );
         if (result === 'confirmation-required') {
-          setNotice('Cuenta creada. Revisa tu correo para confirmar el acceso.');
+          setNotice('Cuenta creada. Revisa tu correo y confirma el acceso antes de ingresar.');
+          setMode('signin');
+          setPassword('');
         }
+      } else if (mode === 'recover') {
+        await auth.requestPasswordReset(normalizedEmail);
+        const seconds = startAuthCooldown('recover', 60);
+        setCooldown(seconds);
+        setNotice('Si existe una cuenta asociada, recibirás un enlace de recuperación en unos minutos.');
+      } else {
+        await auth.resendConfirmation(normalizedEmail);
+        const seconds = startAuthCooldown('resend', 60);
+        setCooldown(seconds);
+        setNotice('Si el correo requiere confirmación, recibirás un nuevo enlace en unos minutos.');
       }
     } catch (caught) {
-      setError(errorMessage(caught));
+      setError(authErrorMessage(caught, mode === 'recover' ? 'recover' : mode === 'resend' ? 'resend' : mode));
     } finally {
       setBusy(false);
     }
@@ -71,18 +197,24 @@ export function LoginPage() {
       </section>
 
       <section className="login-panel">
-        <div className="login-card">
+        <div className="login-card auth-access-card">
           <div className="login-mark"><img src="/assets/tedvio_official_isotipo.svg" alt="" /></div>
           <span className="eyebrow">ACCESO DOCENTE</span>
-          <h2>{mode === 'signin' ? 'Bienvenido de nuevo' : 'Crear cuenta'}</h2>
-          <p>{mode === 'signin' ? 'Ingresa con tus credenciales de TEDVIO.' : 'Registra tu acceso para comenzar.'}</p>
+          <h2>{modeTitle(mode)}</h2>
+          <p>{modeDetail(mode)}</p>
 
-          <div className="segmented" aria-label="Tipo de acceso">
-            <button type="button" className={mode === 'signin' ? 'active' : ''} onClick={() => setMode('signin')}>Ingresar</button>
-            <button type="button" className={mode === 'signup' ? 'active' : ''} onClick={() => setMode('signup')}>Crear cuenta</button>
-          </div>
+          {(mode === 'signin' || mode === 'signup') ? (
+            <div className="segmented" aria-label="Tipo de acceso">
+              <button type="button" className={mode === 'signin' ? 'active' : ''} onClick={() => changeMode('signin')}>Ingresar</button>
+              <button type="button" className={mode === 'signup' ? 'active' : ''} onClick={() => changeMode('signup')}>Crear cuenta</button>
+            </div>
+          ) : null}
 
           <form onSubmit={submit}>
+            <label className="auth-honeypot" aria-hidden="true">
+              Sitio web
+              <input tabIndex={-1} autoComplete="off" value={honeypot} onChange={(event) => setHoneypot(event.target.value)} />
+            </label>
             <label>
               Correo
               <input
@@ -92,33 +224,88 @@ export function LoginPage() {
                 autoComplete="email"
                 inputMode="email"
                 placeholder="tu@correo.com"
+                maxLength={254}
                 required
               />
             </label>
-            <label>
-              Contraseña
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-                placeholder="Mínimo 6 caracteres"
-                minLength={6}
-                required
-              />
-            </label>
+
+            {(mode === 'signin' || mode === 'signup') ? (
+              <label>
+                Contraseña
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                  placeholder={mode === 'signup' ? '12 caracteres o más' : 'Tu contraseña'}
+                  minLength={mode === 'signup' ? 12 : 1}
+                  maxLength={128}
+                  required
+                />
+              </label>
+            ) : null}
+
+            {mode === 'signup' ? <PasswordChecklist policy={policy} /> : null}
+
+            {mode === 'signup' ? (
+              legalLoading ? <div className="auth-inline-loading">Cargando documentos vigentes…</div> : (
+                <div className="legal-consent-list">
+                  <div className="legal-consent-heading"><b>Condiciones de uso</b><span>Debes revisar y aceptar cada versión para continuar.</span></div>
+                  {documents.map((document) => {
+                    const key = legalVersionKey(document);
+                    return (
+                      <article key={key}>
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={Boolean(accepted[key])}
+                            onChange={(event) => setAccepted((current) => ({ ...current, [key]: event.target.checked }))}
+                          />
+                          <span>Acepto {document.title} · v{document.version}</span>
+                        </label>
+                        <button className="auth-text-button" type="button" onClick={() => setOpenDocument(document)}>Leer</button>
+                      </article>
+                    );
+                  })}
+                </div>
+              )
+            ) : null}
+
             {error ? <div className="form-message error" role="alert">{error}</div> : null}
             {notice ? <div className="form-message success" role="status">{notice}</div> : null}
-            <button className="button primary wide" type="submit" disabled={busy}>
-              {busy ? 'Procesando…' : mode === 'signin' ? 'Entrar a TEDVIO' : 'Crear cuenta'}
+
+            <button
+              className="button primary wide"
+              type="submit"
+              disabled={busy || legalLoading || ((mode === 'recover' || mode === 'resend') && cooldown > 0)}
+            >
+              {busy
+                ? 'Procesando…'
+                : mode === 'signin'
+                  ? 'Entrar a TEDVIO'
+                  : mode === 'signup'
+                    ? 'Crear cuenta'
+                    : mode === 'recover'
+                      ? cooldown > 0 ? `Reintentar en ${cooldown}s` : 'Enviar enlace de recuperación'
+                      : cooldown > 0 ? `Reintentar en ${cooldown}s` : 'Reenviar confirmación'}
             </button>
           </form>
 
-          <a className="legacy-link" href="/teacher-legacy">
-            Acceso de recuperación
-          </a>
+          <div className="auth-help-actions">
+            {mode === 'signin' ? (
+              <>
+                <button className="auth-text-button" type="button" onClick={() => changeMode('recover')}>Olvidé mi contraseña</button>
+                <button className="auth-text-button" type="button" onClick={() => changeMode('resend')}>Reenviar confirmación</button>
+              </>
+            ) : null}
+            {(mode === 'recover' || mode === 'resend') ? <button className="auth-text-button" type="button" onClick={() => changeMode('signin')}>Volver al acceso</button> : null}
+          </div>
+
+          <a className="legacy-link" href="/teacher-legacy">Acceso de recuperación</a>
         </div>
       </section>
+
+      {openDocument ? <LegalDocumentModal document={openDocument} onClose={() => setOpenDocument(null)} /> : null}
     </main>
   );
 }
