@@ -54,21 +54,20 @@ export function LoginPage() {
       <section className="login-story" aria-labelledby="login-title">
         <a className="login-brand" href="/teacher" aria-label="TEDVIO Inicio">
           <img src="/assets/tedvio_official_horizontal.svg" alt="TEDVIO" />
-          <span>2.0</span>
         </a>
         <div className="login-story-copy">
-          <span className="eyebrow">PLATAFORMA DOCENTE UNIFICADA</span>
-          <h1 id="login-title">Tu clase, sin capas ni parpadeos.</h1>
+          <span className="eyebrow">PLATAFORMA PARA LA GESTIÓN DOCENTE</span>
+          <h1 id="login-title">Todo tu trabajo docente, en un solo lugar.</h1>
           <p>
-            Organiza grupos, asistencia, evaluaciones, calificaciones, reportes y seguimiento académico desde una sola aplicación.
+            Organiza grupos, asistencia, clases, evaluaciones, calificaciones y seguimiento académico con una experiencia clara y continua.
           </p>
           <div className="login-benefits">
-            <article><Icon name="layout" /><div><b>Un solo shell</b><span>La navegación permanece estable.</span></div></article>
-            <article><Icon name="route" /><div><b>Un solo flujo</b><span>Del grupo al cierre académico.</span></div></article>
-            <article><Icon name="shield" /><div><b>Datos protegidos</b><span>Supabase, RLS y trazabilidad.</span></div></article>
+            <article><Icon name="calendar" /><div><b>Organiza tu jornada</b><span>Agenda, grupos y asistencia siempre a la mano.</span></div></article>
+            <article><Icon name="exam" /><div><b>Evalúa con claridad</b><span>Banco, evaluaciones, OMR y libro conectados.</span></div></article>
+            <article><Icon name="shield" /><div><b>Da seguimiento</b><span>Periodos, reportes y Alumno 360° con trazabilidad.</span></div></article>
           </div>
         </div>
-        <small>TEDVIO 2.0 · Plataforma docente principal</small>
+        <small>TEDVIO · Gestión docente y evaluación académica</small>
       </section>
 
       <section className="login-panel">
@@ -116,7 +115,7 @@ export function LoginPage() {
           </form>
 
           <a className="legacy-link" href="/teacher-legacy">
-            Abrir versión anterior temporalmente
+            Acceso de recuperación
           </a>
         </div>
       </section>

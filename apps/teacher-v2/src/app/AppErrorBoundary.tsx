@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { recordClientEvent } from '../core/reliability';
 
 interface Props {
   children: ReactNode;
@@ -6,27 +7,35 @@ interface Props {
 
 interface State {
   error: Error | null;
+  reference: string | null;
 }
 
-const DIAGNOSTIC_KEY = 'tedvio.phase6.last_error';
+const DIAGNOSTIC_KEY = 'tedvio.reliability.last_fatal_error';
 
 export class AppErrorBoundary extends Component<Props, State> {
-  state: State = { error: null };
+  state: State = { error: null, reference: null };
 
   static getDerivedStateFromError(error: Error): State {
-    return { error };
+    return { error, reference: null };
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('TEDVIO application boundary', error, info);
+    const reference = recordClientEvent({
+      eventType: 'application_boundary_error',
+      error,
+      context: { component_stack: info.componentStack },
+    });
+    this.setState({ reference });
+
     try {
       localStorage.setItem(
         DIAGNOSTIC_KEY,
         JSON.stringify({
+          reference,
           at: new Date().toISOString(),
           path: `${window.location.pathname}${window.location.hash}`,
           message: String(error.message || 'Error de aplicación').slice(0, 500),
-          componentStack: String(info.componentStack || '').slice(0, 2500),
         }),
       );
     } catch {
@@ -44,8 +53,9 @@ export class AppErrorBoundary extends Component<Props, State> {
           <span>RECUPERACIÓN SEGURA</span>
           <h1>TEDVIO no pudo completar esta pantalla.</h1>
           <p>
-            Tus datos no se eliminaron. Recarga la aplicación para intentar nuevamente o utiliza temporalmente la versión anterior.
+            Tus datos no se eliminaron. El incidente quedó registrado o se enviará al recuperar la conexión.
           </p>
+          <strong className="fatal-reference">{this.state.reference || 'Generando referencia…'}</strong>
           <div className="fatal-actions">
             <button type="button" className="button primary" onClick={() => window.location.reload()}>
               Recargar TEDVIO
@@ -54,7 +64,7 @@ export class AppErrorBoundary extends Component<Props, State> {
               Abrir versión anterior
             </a>
           </div>
-          <small>El diagnóstico técnico se guardó únicamente en este dispositivo.</small>
+          <small>Comparte la referencia con soporte si el problema vuelve a aparecer.</small>
         </section>
       </main>
     );

@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../features/auth/AuthProvider';
+import { useReliability } from '../features/reliability/ReliabilityProvider';
 import { navigation, navigationTitle, type NavigationItem } from './navigation';
+import { RouteErrorBoundary } from './RouteErrorBoundary';
 import { Icon } from '../shared/icons';
 
 const THEME_KEY = 'tedvio.teacher-v2.theme';
@@ -21,13 +23,13 @@ function NavItem({ item, mobile = false }: { item: NavigationItem; mobile?: bool
     >
       <Icon name={item.icon} />
       <span>{mobile ? item.shortLabel : item.label}</span>
-      {!item.migrated && !mobile ? <small>EN MIGRACIÓN</small> : null}
     </NavLink>
   );
 }
 
 export function AppShell() {
   const auth = useAuth();
+  const reliability = useReliability();
   const location = useLocation();
   const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light'));
   const [moreOpen, setMoreOpen] = useState(false);
@@ -54,6 +56,14 @@ export function AppShell() {
   const close = navigation.filter((item) => item.section === 'close');
   const mobileItems = [navigation[0], navigation[2], navigation[3], navigation[4]].filter(Boolean) as NavigationItem[];
   const moreItems = navigation.filter((item) => !mobileItems.some((mobileItem) => mobileItem.to === item.to));
+  const connectionLabel = reliability.syncing
+    ? 'Sincronizando'
+    : reliability.online
+      ? reliability.pendingCount
+        ? `${reliability.pendingCount} pendiente(s)`
+        : 'En línea'
+      : 'Sin conexión';
+  const connectionTone = reliability.syncing ? 'syncing' : reliability.online ? (reliability.pendingCount ? 'pending' : 'online') : 'offline';
 
   async function logout() {
     setSigningOut(true);
@@ -69,7 +79,6 @@ export function AppShell() {
       <aside className="sidebar" aria-label="Navegación principal">
         <Link className="sidebar-brand" to="/" aria-label="TEDVIO Inicio">
           <img src="/assets/tedvio_official_horizontal.svg" alt="TEDVIO" />
-          <span>2.0</span>
         </Link>
 
         <nav className="sidebar-nav">
@@ -81,21 +90,36 @@ export function AppShell() {
         </nav>
 
         <div className="sidebar-bottom">
+          <NavLink to="/support" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
+            <Icon name="alert" /><span>Soporte</span>
+          </NavLink>
           <NavLink to="/settings" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
             <Icon name="settings" /><span>Configuración</span>
           </NavLink>
-          <div className="rebuild-badge"><Icon name="shield" /><span><b>TEDVIO 2.0</b><small>Frontend principal</small></span></div>
+          <div className="rebuild-badge"><Icon name="shield" /><span><b>TEDVIO</b><small>Espacio docente protegido</small></span></div>
         </div>
       </aside>
 
       <div className="workspace">
         <header className="topbar">
           <div className="topbar-title">
-            <span>TEDVIO 2.0</span>
+            <span>ESPACIO DOCENTE</span>
             <h1>{routeTitle}</h1>
           </div>
           <div className="topbar-actions">
-            <span className="preview-pill">PRODUCCIÓN UNIFICADA</span>
+            <div className={`reliability-pill ${connectionTone}`} role="status" aria-live="polite" title={connectionLabel}>
+              <i />
+              <span>{connectionLabel}</span>
+            </div>
+            <button
+              className="icon-button support-button"
+              type="button"
+              onClick={() => reliability.openSupport()}
+              aria-label="Reportar un problema"
+              title="Reportar un problema"
+            >
+              <Icon name="alert" />
+            </button>
             <button
               className="icon-button"
               type="button"
@@ -116,7 +140,9 @@ export function AppShell() {
         </header>
 
         <main className="route-container" id="tedvio-main" tabIndex={-1}>
-          <Outlet />
+          <RouteErrorBoundary resetKey={location.pathname}>
+            <Outlet />
+          </RouteErrorBoundary>
         </main>
       </div>
 
@@ -130,10 +156,21 @@ export function AppShell() {
       {moreOpen ? (
         <div className="mobile-more-backdrop" onClick={() => setMoreOpen(false)} role="presentation">
           <section className="mobile-more" role="dialog" aria-modal="true" aria-label="Más opciones" onClick={(event) => event.stopPropagation()}>
-            <header><div><span>TEDVIO 2.0</span><h2>Más opciones</h2></div><button type="button" className="icon-button" onClick={() => setMoreOpen(false)} aria-label="Cerrar">×</button></header>
+            <header><div><span>TEDVIO</span><h2>Más herramientas</h2></div><button type="button" className="icon-button" onClick={() => setMoreOpen(false)} aria-label="Cerrar">×</button></header>
             <div className="mobile-more-grid">
               {moreItems.map((item) => <NavItem item={item} key={item.to} />)}
+              <NavLink to="/support" className="nav-item"><Icon name="alert" /><span>Soporte</span></NavLink>
               <NavLink to="/settings" className="nav-item"><Icon name="settings" /><span>Configuración</span></NavLink>
+              <button
+                className="nav-item"
+                type="button"
+                onClick={() => {
+                  setMoreOpen(false);
+                  reliability.openSupport();
+                }}
+              >
+                <Icon name="alert" /><span>Reportar un problema</span>
+              </button>
             </div>
           </section>
         </div>

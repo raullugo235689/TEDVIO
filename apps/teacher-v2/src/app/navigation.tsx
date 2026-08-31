@@ -34,5 +34,7 @@ export function navigationTitle(pathname: string): string {
   if (pathname.startsWith('/students/')) return 'Alumno 360°';
   if (pathname.startsWith('/periods/')) return 'Periodos académicos';
   if (pathname.startsWith('/reports/')) return 'Centro de reportes';
-  return navigation.find((item) => item.to === pathname)?.label || (pathname === '/settings' ? 'Configuración' : 'TEDVIO 2.0');
+  if (pathname === '/settings') return 'Configuración';
+  if (pathname === '/support') return 'Soporte';
+  return navigation.find((item) => item.to === pathname)?.label || 'TEDVIO';
 }
