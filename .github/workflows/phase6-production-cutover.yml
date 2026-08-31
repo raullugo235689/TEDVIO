@@ -1,0 +1,62 @@
+name: TEDVIO 2.0 Phase 6 Production Cutover
+
+on:
+  push:
+    branches: [main, 'rebuild/tedvio-2-phase6*']
+    paths:
+      - 'apps/teacher-v2/**'
+      - 'teacher-v2/**'
+      - 'teacher.html'
+      - 'vercel.json'
+      - 'manifest.webmanifest'
+      - 'sw.js'
+      - 'version.json'
+      - 'tests/browser/phase6-*'
+      - '.github/workflows/phase6-production-cutover.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  static-cutover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install and build TEDVIO 2.0
+        working-directory: apps/teacher-v2
+        run: |
+          npm ci --no-audit --no-fund
+          npm run quality
+      - name: Verify canonical and rollback shells
+        run: |
+          test -f teacher-v2/index.html
+          grep -q '/teacher-v2/assets/' teacher-v2/index.html
+          grep -q 'teacher-core-v68-6.js' teacher.html
+          node --check tests/browser/phase6-server.mjs
+          node --check tests/browser/phase6-cutover.spec.mjs
+          node --check tests/browser/phase6-playwright.config.mjs
+          git diff --check
+
+  browser-cutover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build the unified frontend
+        working-directory: apps/teacher-v2
+        run: |
+          npm ci --no-audit --no-fund
+          npm run quality
+      - name: Install browser runner
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save --no-package-lock --no-audit --no-fund @playwright/test@1.55.0
+          npx playwright install --with-deps chromium webkit
+      - name: Canonical, mobile and rollback browser audit
+        run: npx playwright test --config=tests/browser/phase6-playwright.config.mjs

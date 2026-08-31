@@ -1,7 +1,8 @@
 {
+  "id": "/teacher",
   "name": "TEDVIO",
   "short_name": "TEDVIO",
-  "description": "Interacción educativa en tiempo real",
+  "description": "Plataforma docente unificada para organizar grupos, clases, asistencia y evaluación.",
   "start_url": "/teacher",
   "scope": "/",
   "display": "standalone",
@@ -9,7 +10,17 @@
   "theme_color": "#071a3b",
   "orientation": "any",
   "icons": [
-    {"src":"/assets/tedvio_icono_app_192.png","sizes":"192x192","type":"image/png","purpose":"any"},
-    {"src":"/assets/tedvio_icono_app_512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+    {
+      "src": "/assets/tedvio_icono_app_192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/tedvio_icono_app_512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
   ]
 }

@@ -1,9 +1,12 @@
 {
   "app": "TEDVIO",
-  "version": "2026.08.28.76",
-  "revision": "76.2-quality-core",
-  "channel": "pilot-ready",
-  "audit": "academic-periods",
+  "version": "2.0.0",
+  "revision": "phase6-production-cutover",
+  "channel": "production",
+  "audit": "integral-cutover",
   "source": "main",
-  "generated_at": "2026-08-28"
+  "canonical_path": "/teacher",
+  "preview_alias": "/teacher-v2/",
+  "legacy_fallback": "/teacher-legacy",
+  "generated_at": "2026-08-31"
 }
