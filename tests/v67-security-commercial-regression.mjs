@@ -21,7 +21,8 @@ must(!statusHtml.includes('beta.js')&&!statusHtml.includes('student-v60.js')&&!s
 must(statusJs.includes("rpc('tedvio_public_health_v67'")&&statusJs.includes("fetch('./version.json'"),'status page probes backend/version');
 must(css.includes('#tv67Support')&&css.includes('@media(max-width:560px)'),'support CSS remains phone-ready');
 must(statusCss.includes('.ts67-state')&&statusCss.includes('.ts67-grid'),'status CSS remains intact');
-for(const h of['X-Content-Type-Options','Strict-Transport-Security','Referrer-Policy','X-Frame-Options','Permissions-Policy','Content-Security-Policy-Report-Only'])must(vercel.includes(h),`Vercel config keeps ${h}`);
+for(const h of['X-Content-Type-Options','Strict-Transport-Security','Referrer-Policy','X-Frame-Options','Permissions-Policy','Content-Security-Policy'])must(vercel.includes(h),`Vercel config keeps ${h}`);
+must(!vercel.includes('Content-Security-Policy-Report-Only'),'launch configuration promotes CSP from report-only to enforced');
 for(const asset of['/student-security-v67.js','/security-commercial-v67.js','/security-commercial-v67.css','/status.html','/status-v67.js','/status-v67.css'])must(vercel.includes(asset),`v67 no-store config includes ${asset}`);
 const cacheMajor=Number(sw.match(/tedvio-pilot-v(\d+)/)?.[1]||0);must(cacheMajor>=68,'service worker remains on audited v68+ namespace');const globalV=Number(String(version.version).split('.').pop());must(version.channel==='pilot-ready'&&globalV>=67,'global Pilot Ready version remains v67 or newer');must(core.includes("const VERSION='2026.08.26.64'"),'v64 runtime version remains compatible');
-if(failed){console.error(`\n${failed} v67 regression check(s) failed.`);process.exit(1)}console.log('\nTEDVIO v67 Security/Support passes under v68+ split core.');
+if(failed){console.error(`\n${failed} v67 regression check(s) failed.`);process.exit(1)}console.log('\nTEDVIO v67 Security/Support passes under v68+ split core with enforced CSP.');
