@@ -42,9 +42,9 @@ must(!sourceIndex.includes('teacher-core-v68-6.js') && !sourceIndex.includes('te
 must(sourceIndex.includes('rel="manifest"') && sourceIndex.includes('rel="canonical" href="/teacher"'), 'shell nuevo declara PWA y ruta canónica');
 must(manifest.id === '/teacher' && manifest.start_url === '/teacher', 'PWA inicia en la ruta canónica');
 must(auth.includes('emailRedirectTo: `${window.location.origin}/teacher`'), 'confirmación de correo vuelve a /teacher');
-must(login.includes('href="/teacher"') && login.includes('href="/teacher-legacy"'), 'acceso utiliza ruta canónica y rollback explícito');
-must(!login.includes('Vista de reconstrucción') && !appShell.includes('RECONSTRUCCIÓN SEGURA'), 'la interfaz ya no se presenta como reconstrucción');
-must(appShell.includes('PRODUCCIÓN UNIFICADA') && appShell.includes('Frontend principal'), 'el shell identifica el corte de producción');
+must(login.includes('href="/teacher"') && login.includes('href="/teacher-legacy"'), 'acceso utiliza ruta canónica y recuperación explícita');
+must(!login.includes('Vista de reconstrucción') && !appShell.includes('RECONSTRUCCIÓN SEGURA'), 'la interfaz no se presenta como reconstrucción');
+must(appShell.includes('ESPACIO DOCENTE') && appShell.includes('Espacio docente protegido'), 'el shell utiliza lenguaje orientado al producto');
 
 must(main.includes('<AppErrorBoundary>') && boundary.includes('Abrir versión anterior'), 'un error de interfaz ofrece recuperación y rollback');
 must(swRegister.includes("register('/sw.js'") && main.includes('registerTedvioServiceWorker()'), 'TEDVIO registra el service worker desde el frontend nuevo');
