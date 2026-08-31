@@ -1,0 +1,74 @@
+name: TEDVIO Authenticated Launch E2E
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tests/browser/launch-authenticated*'
+      - '.github/workflows/launch-authenticated-e2e.yml'
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'URL base de TEDVIO'
+        required: false
+        default: 'https://tedvio.vercel.app'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tedvio-launch-authenticated-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate authenticated E2E contract
+        run: |
+          node --check tests/browser/launch-authenticated.config.mjs
+          node --check tests/browser/launch-authenticated.spec.mjs
+          grep -q 'TEDVIO_E2E_EMAIL' tests/browser/launch-authenticated.spec.mjs
+          grep -q 'TEDVIO_E2E_PASSWORD' tests/browser/launch-authenticated.spec.mjs
+          grep -q 'webkit-iphone' tests/browser/launch-authenticated.config.mjs
+          git diff --check
+
+  authenticated-browser:
+    if: github.event_name == 'workflow_dispatch'
+    needs: static-contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      TEDVIO_E2E_EMAIL: ${{ secrets.TEDVIO_E2E_EMAIL }}
+      TEDVIO_E2E_PASSWORD: ${{ secrets.TEDVIO_E2E_PASSWORD }}
+      TEDVIO_E2E_BASE_URL: ${{ inputs.base_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Require isolated synthetic credentials
+        run: |
+          test -n "$TEDVIO_E2E_EMAIL" || { echo 'Missing TEDVIO_E2E_EMAIL'; exit 1; }
+          test -n "$TEDVIO_E2E_PASSWORD" || { echo 'Missing TEDVIO_E2E_PASSWORD'; exit 1; }
+      - name: Install browser runner
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save --no-package-lock --no-audit --no-fund @playwright/test@1.55.0
+          npx playwright install --with-deps chromium webkit
+      - name: Run authenticated launch smoke
+        run: npx playwright test --config=tests/browser/launch-authenticated.config.mjs
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tedvio-authenticated-launch-evidence
+          path: |
+            playwright-report-launch
+            test-results
+          if-no-files-found: ignore
+          retention-days: 14
