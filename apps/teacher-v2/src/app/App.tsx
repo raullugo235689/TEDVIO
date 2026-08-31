@@ -14,7 +14,9 @@ import { OmrPage } from '../features/omr/OmrPage';
 import { OmrSheetsPage } from '../features/omr/OmrSheetsPage';
 import { GradebookPage } from '../features/gradebook/GradebookPage';
 import { Student360Page } from '../features/students/Student360Page';
-import { MigrationPage } from '../features/migration/MigrationPage';
+import { PeriodsPage } from '../features/periods/PeriodsPage';
+import { ReportsPage } from '../features/reports/ReportsPage';
+import { SettingsPage } from '../features/settings/SettingsPage';
 import { LoadingScreen } from '../shared/components';
 
 function ProtectedShell() {
@@ -48,9 +50,11 @@ export function App() {
         <Route path="gradebook/:groupId" element={<GradebookPage />} />
         <Route path="students" element={<Student360Page />} />
         <Route path="students/:groupId/:studentId" element={<Student360Page />} />
-        <Route path="periods" element={<MigrationPage module="periods" />} />
-        <Route path="reports" element={<MigrationPage module="reports" />} />
-        <Route path="settings" element={<MigrationPage module="settings" />} />
+        <Route path="periods" element={<PeriodsPage />} />
+        <Route path="periods/:groupId" element={<PeriodsPage />} />
+        <Route path="reports" element={<ReportsPage />} />
+        <Route path="reports/:groupId" element={<ReportsPage />} />
+        <Route path="settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
