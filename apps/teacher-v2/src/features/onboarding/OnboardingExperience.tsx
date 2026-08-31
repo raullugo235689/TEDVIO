@@ -129,6 +129,8 @@ export function OnboardingExperience({ children }: PropsWithChildren) {
   const operationError = snapshotQuery.error || progressMutation.error || demoMutation.error;
   const score = snapshot?.score || 0;
   const progressStyle = { '--onboarding-progress': `${Math.max(0, Math.min(100, score * 20))}%` } as CSSProperties;
+  const demoSessionId = snapshot?.demo_session_id || '';
+  const demoReady = Boolean(snapshot?.demo_ready && demoSessionId);
 
   return (
     <>
@@ -195,9 +197,9 @@ export function OnboardingExperience({ children }: PropsWithChildren) {
                   <li>Excluido de tus reportes ordinarios</li>
                   <li>Puede reiniciarse cuando lo necesites</li>
                 </ul>
-                {snapshot.demo_ready && snapshot.demo_session_id ? (
+                {demoReady ? (
                   <div className="onboarding-demo-actions">
-                    <button className="button primary" type="button" onClick={() => { setOpen(false); navigate(`/classroom/${snapshot.demo_session_id}`); }}>Abrir demo</button>
+                    <button className="button primary" type="button" onClick={() => { setOpen(false); navigate(`/classroom/${demoSessionId}`); }}>Abrir demo</button>
                     <button className="button secondary" type="button" disabled={demoMutation.isPending} onClick={() => demoMutation.mutate(true)}>{demoMutation.isPending ? 'Reiniciando…' : 'Reiniciar demo'}</button>
                   </div>
                 ) : (
