@@ -21,7 +21,6 @@ function NavItem({ item, mobile = false }: { item: NavigationItem; mobile?: bool
     >
       <Icon name={item.icon} />
       <span>{mobile ? item.shortLabel : item.label}</span>
-      {!item.migrated && !mobile ? <small>EN MIGRACIÓN</small> : null}
     </NavLink>
   );
 }
@@ -69,7 +68,6 @@ export function AppShell() {
       <aside className="sidebar" aria-label="Navegación principal">
         <Link className="sidebar-brand" to="/" aria-label="TEDVIO Inicio">
           <img src="/assets/tedvio_official_horizontal.svg" alt="TEDVIO" />
-          <span>2.0</span>
         </Link>
 
         <nav className="sidebar-nav">
@@ -84,18 +82,17 @@ export function AppShell() {
           <NavLink to="/settings" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
             <Icon name="settings" /><span>Configuración</span>
           </NavLink>
-          <div className="rebuild-badge"><Icon name="shield" /><span><b>TEDVIO 2.0</b><small>Frontend principal</small></span></div>
+          <div className="rebuild-badge"><Icon name="shield" /><span><b>TEDVIO</b><small>Espacio docente protegido</small></span></div>
         </div>
       </aside>
 
       <div className="workspace">
         <header className="topbar">
           <div className="topbar-title">
-            <span>TEDVIO 2.0</span>
+            <span>ESPACIO DOCENTE</span>
             <h1>{routeTitle}</h1>
           </div>
           <div className="topbar-actions">
-            <span className="preview-pill">PRODUCCIÓN UNIFICADA</span>
             <button
               className="icon-button"
               type="button"
@@ -130,7 +127,7 @@ export function AppShell() {
       {moreOpen ? (
         <div className="mobile-more-backdrop" onClick={() => setMoreOpen(false)} role="presentation">
           <section className="mobile-more" role="dialog" aria-modal="true" aria-label="Más opciones" onClick={(event) => event.stopPropagation()}>
-            <header><div><span>TEDVIO 2.0</span><h2>Más opciones</h2></div><button type="button" className="icon-button" onClick={() => setMoreOpen(false)} aria-label="Cerrar">×</button></header>
+            <header><div><span>TEDVIO</span><h2>Más herramientas</h2></div><button type="button" className="icon-button" onClick={() => setMoreOpen(false)} aria-label="Cerrar">×</button></header>
             <div className="mobile-more-grid">
               {moreItems.map((item) => <NavItem item={item} key={item.to} />)}
               <NavLink to="/settings" className="nav-item"><Icon name="settings" /><span>Configuración</span></NavLink>
