@@ -61,7 +61,7 @@ export class AppErrorBoundary extends Component<Props, State> {
               Recargar TEDVIO
             </button>
             <a className="button secondary" href="/teacher-legacy">
-              Abrir respaldo temporal
+              Abrir versión anterior
             </a>
           </div>
           <small>Comparte la referencia con soporte si el problema vuelve a aparecer.</small>
