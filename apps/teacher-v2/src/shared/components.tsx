@@ -62,10 +62,10 @@ export function ErrorPanel({ title, detail, onRetry }: { title: string; detail: 
   );
 }
 
-export function LegacyBridge({ groupId, label = 'Continuar en TEDVIO actual', compact = false }: { groupId?: string; label?: string; compact?: boolean }) {
+export function LegacyBridge({ groupId, label = 'Abrir acceso de recuperación', compact = false }: { groupId?: string; label?: string; compact?: boolean }) {
   function openLegacy() {
     if (groupId) sessionStorage.setItem('tedvio.currentGroupId', groupId);
-    window.location.assign('/teacher');
+    window.location.assign('/teacher-legacy');
   }
 
   return (
