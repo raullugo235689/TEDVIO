@@ -67,7 +67,7 @@ export function AppShell() {
   return (
     <div className="app-shell">
       <aside className="sidebar" aria-label="Navegación principal">
-        <Link className="sidebar-brand" to="/" aria-label="TEDVIO 2.0 Inicio">
+        <Link className="sidebar-brand" to="/" aria-label="TEDVIO Inicio">
           <img src="/assets/tedvio_official_horizontal.svg" alt="TEDVIO" />
           <span>2.0</span>
         </Link>
@@ -84,7 +84,7 @@ export function AppShell() {
           <NavLink to="/settings" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
             <Icon name="settings" /><span>Configuración</span>
           </NavLink>
-          <div className="rebuild-badge"><Icon name="shield" /><span><b>Frontend nuevo</b><small>Sin capas heredadas</small></span></div>
+          <div className="rebuild-badge"><Icon name="shield" /><span><b>TEDVIO 2.0</b><small>Frontend principal</small></span></div>
         </div>
       </aside>
 
@@ -95,7 +95,7 @@ export function AppShell() {
             <h1>{routeTitle}</h1>
           </div>
           <div className="topbar-actions">
-            <span className="preview-pill">RECONSTRUCCIÓN SEGURA</span>
+            <span className="preview-pill">PRODUCCIÓN UNIFICADA</span>
             <button
               className="icon-button"
               type="button"

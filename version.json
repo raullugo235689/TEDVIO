@@ -5,5 +5,13 @@
   "channel": "pilot-ready",
   "audit": "academic-periods",
   "source": "main",
-  "generated_at": "2026-08-28"
+  "generated_at": "2026-08-28",
+  "product_version": "2.0.0",
+  "product_revision": "phase6-production-cutover",
+  "product_channel": "production",
+  "product_audit": "integral-cutover",
+  "canonical_path": "/teacher",
+  "preview_alias": "/teacher-v2/",
+  "legacy_fallback": "/teacher-legacy",
+  "cutover_at": "2026-08-31"
 }

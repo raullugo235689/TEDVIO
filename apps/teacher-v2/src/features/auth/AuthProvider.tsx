@@ -34,7 +34,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     supabase.auth.getSession().then(({ data, error }) => {
       if (!active) return;
-      if (error) console.error('TEDVIO 2.0 initial session', error);
+      if (error) console.error('TEDVIO initial session', error);
       setSession(data.session ?? null);
       setStatus(data.session ? 'authenticated' : 'anonymous');
     });
@@ -62,7 +62,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/teacher-v2/`,
+        emailRedirectTo: `${window.location.origin}/teacher`,
       },
     });
     if (error) throw error;

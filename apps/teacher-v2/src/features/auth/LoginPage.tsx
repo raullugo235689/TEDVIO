@@ -52,23 +52,23 @@ export function LoginPage() {
   return (
     <main className="login-page">
       <section className="login-story" aria-labelledby="login-title">
-        <a className="login-brand" href="/teacher-v2/" aria-label="TEDVIO 2.0">
+        <a className="login-brand" href="/teacher" aria-label="TEDVIO Inicio">
           <img src="/assets/tedvio_official_horizontal.svg" alt="TEDVIO" />
           <span>2.0</span>
         </a>
         <div className="login-story-copy">
-          <span className="eyebrow">FRONTEND DOCENTE UNIFICADO</span>
+          <span className="eyebrow">PLATAFORMA DOCENTE UNIFICADA</span>
           <h1 id="login-title">Tu clase, sin capas ni parpadeos.</h1>
           <p>
-            Una sola aplicación para organizar la jornada, consultar grupos y continuar la migración de todas las funciones docentes.
+            Organiza grupos, asistencia, evaluaciones, calificaciones, reportes y seguimiento académico desde una sola aplicación.
           </p>
           <div className="login-benefits">
             <article><Icon name="layout" /><div><b>Un solo shell</b><span>La navegación permanece estable.</span></div></article>
-            <article><Icon name="route" /><div><b>Un solo router</b><span>Estado y rutas centralizados.</span></div></article>
-            <article><Icon name="shield" /><div><b>Mismo backend seguro</b><span>Conserva Supabase, RLS y tus datos.</span></div></article>
+            <article><Icon name="route" /><div><b>Un solo flujo</b><span>Del grupo al cierre académico.</span></div></article>
+            <article><Icon name="shield" /><div><b>Datos protegidos</b><span>Supabase, RLS y trazabilidad.</span></div></article>
           </div>
         </div>
-        <small>Vista de reconstrucción · La plataforma actual permanece disponible.</small>
+        <small>TEDVIO 2.0 · Plataforma docente principal</small>
       </section>
 
       <section className="login-panel">
@@ -76,7 +76,7 @@ export function LoginPage() {
           <div className="login-mark"><img src="/assets/tedvio_official_isotipo.svg" alt="" /></div>
           <span className="eyebrow">ACCESO DOCENTE</span>
           <h2>{mode === 'signin' ? 'Bienvenido de nuevo' : 'Crear cuenta'}</h2>
-          <p>{mode === 'signin' ? 'Usa las mismas credenciales de TEDVIO.' : 'Registra tu acceso para comenzar.'}</p>
+          <p>{mode === 'signin' ? 'Ingresa con tus credenciales de TEDVIO.' : 'Registra tu acceso para comenzar.'}</p>
 
           <div className="segmented" aria-label="Tipo de acceso">
             <button type="button" className={mode === 'signin' ? 'active' : ''} onClick={() => setMode('signin')}>Ingresar</button>
@@ -111,11 +111,13 @@ export function LoginPage() {
             {error ? <div className="form-message error" role="alert">{error}</div> : null}
             {notice ? <div className="form-message success" role="status">{notice}</div> : null}
             <button className="button primary wide" type="submit" disabled={busy}>
-              {busy ? 'Procesando…' : mode === 'signin' ? 'Entrar a TEDVIO 2.0' : 'Crear cuenta'}
+              {busy ? 'Procesando…' : mode === 'signin' ? 'Entrar a TEDVIO' : 'Crear cuenta'}
             </button>
           </form>
 
-          <a className="legacy-link" href="/teacher">Volver a TEDVIO actual</a>
+          <a className="legacy-link" href="/teacher-legacy">
+            Abrir versión anterior temporalmente
+          </a>
         </div>
       </section>
     </main>
