@@ -23,6 +23,7 @@ import './styles/student360.css';
 import './styles/phase-five.css';
 import './styles/phase-six.css';
 import './styles/reliability.css';
+import './styles/security.css';
 
 const queryClient = new QueryClient({
   queryCache: new QueryCache({

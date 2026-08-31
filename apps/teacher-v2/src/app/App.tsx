@@ -2,6 +2,8 @@ import { lazy, Suspense, type ReactElement } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppShell } from './AppShell';
 import { useAuth } from '../features/auth/AuthProvider';
+import { AuthCallbackPage } from '../features/auth/AuthCallbackPage';
+import { LegalConsentGate } from '../features/auth/LegalConsentGate';
 import { LoginPage } from '../features/auth/LoginPage';
 import { LoadingScreen } from '../shared/components';
 
@@ -26,7 +28,11 @@ function ProtectedShell() {
   const auth = useAuth();
   if (auth.status === 'loading') return <LoadingScreen />;
   if (auth.status !== 'authenticated') return <Navigate to="/login" replace />;
-  return <AppShell />;
+  return (
+    <LegalConsentGate>
+      <AppShell />
+    </LegalConsentGate>
+  );
 }
 
 function tool(element: ReactElement, label: string): ReactElement {
@@ -34,6 +40,10 @@ function tool(element: ReactElement, label: string): ReactElement {
 }
 
 export function App() {
+  const physicalPath = window.location.pathname.replace(/\/+$/, '') || '/';
+  if (physicalPath === '/auth/confirm') return <AuthCallbackPage kind="confirmation" />;
+  if (physicalPath === '/auth/recovery') return <AuthCallbackPage kind="recovery" />;
+
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />

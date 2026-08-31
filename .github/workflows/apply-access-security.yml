@@ -1,0 +1,55 @@
+name: Apply TEDVIO Access Security
+
+on:
+  push:
+    branches: ['security/tedvio-21-access-compliance']
+    paths:
+      - '.github/scripts/apply-access-security.py'
+      - '.github/workflows/apply-access-security.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-tedvio-access-security
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: security/tedvio-21-access-compliance
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/teacher-v2/package-lock.json
+      - name: Apply reviewed access and security files
+        run: |
+          python .github/scripts/apply-access-security.py
+          rm .github/scripts/apply-access-security.py
+          rm .github/workflows/apply-access-security.yml
+      - name: Install pinned dependencies
+        working-directory: apps/teacher-v2
+        run: npm ci --no-audit --no-fund
+      - name: Validate complete frontend and security architecture
+        working-directory: apps/teacher-v2
+        run: npm run quality
+      - name: Audit production dependencies
+        working-directory: apps/teacher-v2
+        run: npm audit --omit=dev --audit-level=high
+      - name: Commit validated rollout
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Access security rollout already current."
+          else
+            git commit -m "feat(security): complete protected access and compliance"
+            git push origin HEAD:security/tedvio-21-access-compliance
+          fi
