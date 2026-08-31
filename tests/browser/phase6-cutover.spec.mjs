@@ -14,7 +14,9 @@ test('la ruta canónica carga TEDVIO 2.0 sin capas heredadas', async ({ page }) 
   await expect(page.locator('.login-page')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Bienvenido de nuevo' })).toBeVisible();
   await expect(page.locator('.login-story h1')).toHaveCount(1);
-  await expect(page.locator('.login-story h1')).toHaveText('Tu clase, sin capas ni parpadeos.');
+  await expect(page.locator('.login-story h1')).toHaveText('Todo tu trabajo docente, en un solo lugar.');
+  await expect(page.locator('.login-story')).not.toContainText('migración');
+  await expect(page.locator('.login-story')).not.toContainText('reconstrucción');
   await expect(page.locator('#root')).not.toBeEmpty();
   expect(legacyRequests).toEqual([]);
 });
