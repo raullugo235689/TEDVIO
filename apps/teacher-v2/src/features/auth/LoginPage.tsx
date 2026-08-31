@@ -86,10 +86,19 @@ export function LoginPage() {
       return undefined;
     }
     const action = mode as AuthCooldownAction;
-    const update = () => setCooldown(remainingAuthCooldown(action));
+    let timer: number | undefined;
+    let active = true;
+    const update = () => {
+      if (!active) return;
+      const remaining = remainingAuthCooldown(action);
+      setCooldown(remaining);
+      if (remaining > 0) timer = window.setTimeout(update, 1000);
+    };
     update();
-    const timer = window.setInterval(update, 1000);
-    return () => window.clearInterval(timer);
+    return () => {
+      active = false;
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
   }, [mode]);
 
   if (auth.status === 'loading') return <LoadingScreen label="Recuperando tu sesión…" />;
