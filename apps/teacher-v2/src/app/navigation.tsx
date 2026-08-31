@@ -19,9 +19,9 @@ export const navigation: NavigationItem[] = [
   { to: '/exams', label: 'Evaluaciones', shortLabel: 'Evaluar', icon: 'exam', section: 'operation', migrated: true },
   { to: '/omr', label: 'OMR', shortLabel: 'OMR', icon: 'exam', section: 'operation', migrated: true },
   { to: '/gradebook', label: 'Calificaciones', shortLabel: 'Libro', icon: 'grades', section: 'operation', migrated: true },
-  { to: '/students', label: 'Alumno 360°', shortLabel: '360°', icon: 'groups', section: 'operation', migrated: true },
-  { to: '/periods', label: 'Periodos', shortLabel: 'Periodos', icon: 'periods', section: 'close', migrated: false },
-  { to: '/reports', label: 'Reportes', shortLabel: 'Reportes', icon: 'reports', section: 'close', migrated: false },
+  { to: '/students', label: 'Alumno 360°', shortLabel: 'Alumnos', icon: 'groups', section: 'operation', migrated: true },
+  { to: '/periods', label: 'Periodos', shortLabel: 'Periodos', icon: 'periods', section: 'close', migrated: true },
+  { to: '/reports', label: 'Reportes', shortLabel: 'Reportes', icon: 'reports', section: 'close', migrated: true },
 ];
 
 export function navigationTitle(pathname: string): string {
@@ -32,5 +32,7 @@ export function navigationTitle(pathname: string): string {
   if (pathname.startsWith('/omr/')) return 'OMR';
   if (pathname.startsWith('/gradebook/')) return 'Libro de calificaciones';
   if (pathname.startsWith('/students/')) return 'Alumno 360°';
+  if (pathname.startsWith('/periods/')) return 'Periodos académicos';
+  if (pathname.startsWith('/reports/')) return 'Centro de reportes';
   return navigation.find((item) => item.to === pathname)?.label || (pathname === '/settings' ? 'Configuración' : 'TEDVIO 2.0');
 }

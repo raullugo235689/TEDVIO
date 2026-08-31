@@ -2,7 +2,7 @@
 
 ## Estrategia
 
-La reconstrucción se realiza en paralelo y conserva producción en `/teacher`. La vista nueva vive en `/teacher-v2/` hasta completar la migración.
+La reconstrucción se realiza en paralelo y conserva producción en `/teacher`. La vista nueva vive en `/teacher-v2/` hasta completar la validación integral.
 
 ## Fase 1 · Base unificada
 
@@ -48,43 +48,31 @@ La reconstrucción se realiza en paralelo y conserva producción en `/teacher`. 
 - Estados protegidos: borrador, lista, cerrada y archivada.
 - Duplicación sin copiar resultados ni eliminar evidencia histórica.
 - Resumen académico, resultados existentes y lectura descriptiva por reactivo y versión.
-- Compatibilidad conservada con las tablas y flujos OMR anteriores.
 
 ## Fase 4B · OMR
 
 - Rutas React nativas para catálogo OMR, evaluación, captura y hojas imprimibles.
 - Hojas A4 genéricas o personalizadas con nombre, matrícula, versión, QR y cuatro marcas negras.
-- Distribución de versiones A, B y C para el padrón.
 - Cámara trasera o selección de imagen desde iPhone, iPad y escritorio.
 - Detección local de perspectiva, marcas y burbujas; la fotografía no se guarda en Supabase.
-- QR opcional para reconocer evaluación, versión y alumno.
 - Revisión obligatoria de respuestas ambiguas o en blanco antes de confirmar.
-- Captura manual y corrección de resultados existentes.
-- Calificación recalculada en PostgreSQL mediante un RPC atómico; el navegador no decide la nota definitiva.
+- Calificación recalculada en PostgreSQL mediante un RPC atómico.
 - Resultados confirmados o pendientes de revisión.
 - Archivo sin eliminación física y revisiones históricas automáticas.
 - Exportación CSV bajo demanda.
-- Sin IA generativa ni costos de inferencia.
 
 ## Fase 4C · Libro de calificaciones
 
 - Rutas React nativas para catálogo de grupos y Libro por grupo.
 - Selección de curso completo o periodo académico.
 - Configuración ponderada con suma obligatoria de 100%.
-- Estructura inicial 40/30/20/10 para grupos sin categorías.
 - Categorías manuales, OMR, Asistencia y Participación Live.
 - Actividades manuales con fecha, puntaje máximo y periodo protegido.
 - Captura masiva por padrón, notas y validación del rango de cada evidencia.
-- Normalización de cada actividad a escala 0–10 antes de entrar en su categoría.
-- Promedio ponderado únicamente con categorías que ya contienen evidencia, mostrando el porcentaje que respalda cada resultado.
+- Promedio ponderado, peso respaldado por evidencia y lectura estricta.
 - Vinculación explícita de evaluaciones OMR con el Libro.
-- Solo resultados OMR confirmados y activos se publican como calificación.
-- Actualización automática del Libro cuando cambia un resultado OMR ya vinculado.
-- Matriz de evidencias, cobertura, pendientes, promedio y aprobación.
 - Snapshots de periodos cerrados como resultado oficial de solo lectura.
 - Bitácora inmutable para categorías, actividades y calificaciones.
-- Exportación CSV bajo demanda.
-- Sin eliminación física, IA generativa ni costos de inferencia.
 
 ## Fase 4D · Alumno 360°
 
@@ -92,21 +80,34 @@ La reconstrucción se realiza en paralelo y conserva producción en `/teacher`. 
 - Ruta React propia para cada expediente académico.
 - Resumen actual mediante la misma fuente de cálculo del Libro.
 - Promedio provisional u oficial, asistencia, OMR y peso respaldado por evidencia.
-- Alertas deterministas por promedio, asistencia, pendientes y descenso entre periodos.
-- Siguiente acción explicable y enlazada al módulo correspondiente.
+- Alertas deterministas y siguiente acción explicable.
 - Trayectoria por periodos con cambio, asistencia, OMR, evidencia y estado académico.
 - Evidencias manuales, evaluaciones OMR, asistencia, tareas digitales y sesiones Live.
 - Observaciones docentes con motivo de actualización e historial protegido.
-- Trazabilidad de cambios en calificaciones y correcciones OMR.
 - Exportación CSV individual bajo demanda.
-- RLS por docente, escritura mediante RPC y bloqueo de eliminación de observaciones.
+
+## Fase 5 · Periodos, Reportes y Configuración
+
+- Catálogo y detalle de periodos académicos dentro del router unificado.
+- Plantilla de 3 parciales + final con 25% cada uno.
+- Creación y edición protegidas por RPC, sin traslapes ni transferencia entre docentes.
+- Resumen de preparación con bloqueos, advertencias, categorías, asistencia, OMR y captura manual.
+- Cierre formal con snapshot oficial por alumno.
+- Reapertura controlada con motivo y bitácora de transiciones.
+- Centro de reportes para padrón, asistencia, calificaciones, evaluaciones, sesiones y resumen del grupo.
+- CSV e impresión/PDF del navegador bajo demanda, sin nuevas librerías pesadas.
+- Identidad institucional, responsable de Vo. Bo. y código documental en reportes.
+- Perfil docente, grupo predeterminado y umbrales académicos por grupo.
+- Centro de privacidad con versiones legales, aceptaciones e historial.
+- Cambio de contraseña, cierre de otras sesiones, exportación de datos y solicitud de eliminación.
+- Configuración institucional para administradores activos.
+- Un solo cliente Supabase, RLS, RPC `SECURITY INVOKER` y ejecución anónima revocada.
 - Sin IA generativa ni costos de inferencia.
 
-## Próximos bloques
+## Siguiente bloque
 
-1. Fase 5 · Periodos, cierre académico, Reportes y Configuración.
-2. Pruebas integrales con cuenta demo y sustitución controlada de `/teacher`.
+1. Fase 6 · Cuenta demo, pruebas integrales en escritorio/iPad/iPhone y sustitución controlada de `/teacher`.
 
 ## Condiciones de salida
 
-La plataforma actual no se retira hasta que los recorridos docentes reales estén migrados y validados en escritorio, iPad e iPhone. Cada bloque debe pasar TypeScript, auditoría arquitectónica, seguridad de base de datos y build reproducible antes de fusionarse.
+La plataforma actual no se retira hasta que los recorridos docentes reales estén validados en escritorio, iPad e iPhone. Cada bloque debe pasar TypeScript, auditoría arquitectónica, seguridad de base de datos, build reproducible y despliegue verificable antes de fusionarse.

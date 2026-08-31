@@ -11,6 +11,7 @@ import './styles/phase-four.css';
 import './styles/phase-four-omr.css';
 import './styles/phase-four-gradebook.css';
 import './styles/student360.css';
+import './styles/phase-five.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
