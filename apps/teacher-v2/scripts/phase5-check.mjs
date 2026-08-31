@@ -36,7 +36,7 @@ must(periodsPage.includes('Parcial listo para cerrar') && periodsPage.includes('
 must(periodsPage.includes('transition_log') && periodsPage.includes('Historial de transiciones'), 'Periodos expone la trazabilidad de cierre y reapertura');
 must(!periodsApi.includes('.delete('), 'Periodos elimina únicamente mediante RPC protegido');
 
-for (const source of ['fetchGradebookDetail','calculateGradebook','v2_attendance_sessions','v2_paper_exam_results','v2_sessions','v2_assignments']) {
+for (const source of ['fetchGradebookDetail','calculateGradebook','attendanceSessions','omrResults','liveSessions','v2_assignments']) {
   must(reportsApi.includes(source), `Reportes reutiliza ${source}`);
 }
 for (const report of ['group','roster','attendance','grades','evaluations','sessions']) {
