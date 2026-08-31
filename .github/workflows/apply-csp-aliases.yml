@@ -1,0 +1,50 @@
+name: Apply TEDVIO CSP Aliases
+
+on:
+  push:
+    branches: ['security/tedvio-21-access-compliance']
+    paths:
+      - '.github/scripts/apply-csp-aliases.py'
+      - '.github/workflows/apply-csp-aliases.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-tedvio-csp-aliases
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: security/tedvio-21-access-compliance
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/teacher-v2/package-lock.json
+      - name: Reset feature branch to current production source
+        run: |
+          cp .github/scripts/apply-csp-aliases.py /tmp/apply-csp-aliases.py
+          git fetch origin main
+          git reset --hard origin/main
+      - name: Apply alias policies
+        run: python /tmp/apply-csp-aliases.py
+      - name: Install pinned dependencies
+        working-directory: apps/teacher-v2
+        run: npm ci --no-audit --no-fund
+      - name: Validate architecture and security
+        working-directory: apps/teacher-v2
+        run: npm run quality
+      - name: Commit clean hardening branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add vercel.json apps/teacher-v2/scripts/security-check.mjs
+          git commit -m "fix(security): apply CSP to all teacher shell aliases"
+          git push --force-with-lease origin HEAD:security/tedvio-21-access-compliance
