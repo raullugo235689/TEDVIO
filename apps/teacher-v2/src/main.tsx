@@ -26,6 +26,7 @@ import './styles/reliability.css';
 import './styles/security.css';
 import './styles/onboarding.css';
 import './styles/analytics.css';
+import './styles/pilot-health.css';
 
 const queryClient = new QueryClient({
   queryCache: new QueryCache({

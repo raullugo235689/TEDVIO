@@ -25,6 +25,7 @@ const ReportsPage = lazy(() => import('../features/reports/ReportsPage').then((m
 const AnalyticsPage = lazy(() => import('../features/analytics/AnalyticsPage').then((module) => ({ default: module.AnalyticsPage })));
 const SettingsPage = lazy(() => import('../features/settings/SettingsPage').then((module) => ({ default: module.SettingsPage })));
 const SupportPage = lazy(() => import('../features/reliability/SupportPage').then((module) => ({ default: module.SupportPage })));
+const PilotHealthPage = lazy(() => import('../features/reliability/PilotHealthPage').then((module) => ({ default: module.PilotHealthPage })));
 
 function ProtectedShell() {
   const auth = useAuth();
@@ -60,6 +61,7 @@ export function App() {
         <Route path="attendance/:groupId" element={tool(<AttendancePage />, 'Abriendo Asistencia…')} />
         <Route path="classroom" element={tool(<ClassroomPage />, 'Preparando Modo Clase…')} />
         <Route path="classroom/:sessionId" element={tool(<ClassroomPage />, 'Abriendo la sesión…')} />
+        <Route path="classroom/:sessionId/health" element={tool(<PilotHealthPage />, 'Calculando salud del piloto…')} />
         <Route path="bank" element={tool(<BankPage />, 'Abriendo Question Studio…')} />
         <Route path="exams" element={tool(<ExamsPage />, 'Abriendo Evaluaciones…')} />
         <Route path="exams/new" element={tool(<ExamsPage />, 'Preparando la evaluación…')} />

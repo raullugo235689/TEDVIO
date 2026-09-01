@@ -73,6 +73,17 @@ function isRetryable(error) {
   );
 }
 
+async function recordHealth(student, eventType, latencyMs = null, details = {}) {
+  if (!student?.sessionId || !student?.participantId || !navigator.onLine) return;
+  await supabase.rpc("v2_record_session_health", {
+    p_session_id: student.sessionId,
+    p_participant_id: student.participantId,
+    p_event_type: eventType,
+    p_latency_ms: latencyMs == null ? null : Math.max(0, Math.round(latencyMs)),
+    p_details: { surface: "student-v2", ...details },
+  });
+}
+
 function friendly(error) {
   const message = String(
     error?.message || error || "No se pudo completar la operación.",
@@ -804,6 +815,8 @@ function App() {
   const [answered, setAnswered] = useState(0);
   const currentIdRef = useRef(null);
   const submitLockRef = useRef(false);
+  const realtimeStatusRef = useRef("");
+  const wasOfflineRef = useRef(false);
 
   const refresh = useCallback(async () => {
     if (!student) return;
@@ -821,6 +834,7 @@ function App() {
           !next.own &&
           navigator.onLine
         ) {
+          void recordHealth(student, "response_queued", null, { question_id: pending.questionId });
           const { error: retryError } = await supabase.rpc(
             "v2_submit_response",
             {
@@ -833,6 +847,7 @@ function App() {
             clearOutbox();
             next = await fetchWorkspace(student);
             setAnswered((value) => value + (retryError ? 0 : 1));
+            void recordHealth(student, "response_recovered", null, { question_id: pending.questionId });
           }
         } else if (
           next.own ||
@@ -871,9 +886,14 @@ function App() {
     const onOnline = () => {
       setOnline(true);
       setConnection("reconnecting");
+      if (wasOfflineRef.current && student) {
+        wasOfflineRef.current = false;
+        void recordHealth(student, "client_offline", null, { reason: "recovered_after_offline" });
+      }
       void refresh();
     };
     const onOffline = () => {
+      wasOfflineRef.current = true;
       setOnline(false);
       setConnection("offline");
     };
@@ -917,9 +937,16 @@ function App() {
         () => void refresh(),
       )
       .subscribe((status) => {
+        if (realtimeStatusRef.current === status) return;
+        realtimeStatusRef.current = status;
         if (!navigator.onLine) setConnection("offline");
-        else if (status === "SUBSCRIBED") setConnection("connected");
-        else setConnection("reconnecting");
+        else if (status === "SUBSCRIBED") {
+          setConnection("connected");
+          void recordHealth(student, "client_connected");
+        } else {
+          setConnection("reconnecting");
+          void recordHealth(student, "client_reconnecting", null, { reason: status });
+        }
       });
     return () => {
       clearInterval(interval);
@@ -955,6 +982,7 @@ function App() {
       saveStudent(next);
       setStudent(next);
       setAnswered(0);
+      void recordHealth(next, "client_connected");
       history.replaceState(
         {},
         "",
@@ -981,6 +1009,7 @@ function App() {
       createdAt: new Date().toISOString(),
     };
     saveOutbox(pending);
+    const submittedAt = performance.now();
     try {
       const { error: submitError } = await supabase.rpc("v2_submit_response", {
         p_question_id: workspace.current.id,
@@ -990,15 +1019,17 @@ function App() {
       if (submitError && !isDuplicate(submitError)) throw submitError;
       clearOutbox();
       if (!submitError) setAnswered((n) => n + 1);
+      void recordHealth(student, "response_confirmed", performance.now() - submittedAt, { question_id: workspace.current.id });
       await refresh();
     } catch (e) {
-      if (isRetryable(e))
+      if (isRetryable(e)) {
         setError(
           "Respuesta guardada en este dispositivo. La enviaremos al recuperar la conexión.",
         );
-      else {
+      } else {
         clearOutbox();
         setError(friendly(e));
+        void recordHealth(student, "response_failed", performance.now() - submittedAt, { question_id: workspace.current.id, reason: friendly(e) });
         await refresh();
       }
     } finally {

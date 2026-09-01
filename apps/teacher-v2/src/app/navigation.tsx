@@ -26,6 +26,7 @@ export const navigation: NavigationItem[] = [
 ];
 
 export function navigationTitle(pathname: string): string {
+  if (/^\/classroom\/[^/]+\/health$/.test(pathname)) return 'Salud del piloto';
   if (pathname.startsWith('/groups/')) return 'Centro de grupo';
   if (pathname.startsWith('/attendance/')) return 'Asistencia';
   if (pathname.startsWith('/classroom/')) return 'Modo Clase';
