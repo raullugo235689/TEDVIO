@@ -100,7 +100,7 @@ must(bankApi.includes("rpc('tedvio_launch_first_session_v68'"), 'Banco lanza ses
 must(bankApi.includes("onConflict: 'group_id,student_id'") === false, 'Banco no mezcla notas de estudiantes');
 must(classroomApi.includes("onConflict: 'group_id,student_id'"), 'Notas docentes respetan la clave única del expediente');
 must((bankApi.match(/\.eq\('teacher_id', user\.id\)/g) || []).length >= 5, 'operaciones del banco restringen datos al docente autenticado');
-must((classroomApi.match(/\.eq\('teacher_id', user\.id\)/g) || []).length >= 7, 'operaciones de Modo Clase restringen datos al docente autenticado');
+must((classroomApi.match(/\.eq\('teacher_id', user\.id\)/g) || []).length >= 5 && classroomApi.includes("supabase.rpc('v2_teacher_classroom_command'"), 'operaciones de Modo Clase restringen datos al docente autenticado');
 must(!bankApi.includes('.delete(') && !classroomApi.includes('.delete('), 'Fase 3 archiva preguntas y conserva sesiones en lugar de eliminarlas');
 must(classroomApi.includes(".channel(channelName)") && classroomApi.includes("table: 'v2_responses'"), 'Modo Clase usa Supabase Realtime sin polling permanente');
 must(classroomApi.includes('/student-v2/?code=') && classroomApi.includes('/projection-v2/?code='), 'Modo Clase abre directamente Student 2.x y Projection 2.x');

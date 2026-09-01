@@ -17,11 +17,11 @@ function must(condition, message) {
 }
 
 must(entry.includes('data-tedvio-surface="student-v2-react"'), 'Student 2.x declara la superficie React nativa');
-must(entry.includes('./app.js?v=220'), 'Student 2.x carga el cliente React dedicado');
+must(entry.includes('./app.js?v=230'), 'Student 2.x carga el cliente React dedicado');
 must(!entry.includes('beta.js') && !entry.includes('student-v60.js'), 'Student 2.x ya no carga el runtime visual heredado');
 must(app.includes("react@19.2.0") && app.includes('createRoot'), 'Student 2.x utiliza React 19');
 must(app.includes("v2_join_session_v3") && app.includes("v2_submit_response"), 'Student 2.x usa las RPC estables de unión y respuesta');
-must(app.includes("postgres_changes") && app.includes('setInterval(refresh, 4000)'), 'Student 2.x combina Realtime con recuperación por sondeo');
+must(app.includes("postgres_changes") && /setInterval\(refresh,\s*4000\)/.test(app), 'Student 2.x combina Realtime con recuperación por sondeo');
 must(app.includes("v2_student_answer_feedback") && app.includes("v2_student_feedback"), 'Student 2.x conserva feedback y ranking académico');
 must(css.includes('.question-card') && css.includes('.entry-card'), 'Student 2.x tiene sistema visual propio');
 must(redirect.includes('/student-v2/'), 'el puente heredado apunta a Student 2.x');
