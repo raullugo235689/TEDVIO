@@ -17,7 +17,7 @@ function must(condition, message) {
 }
 
 must(entry.includes('data-tedvio-surface="student-v2-react"'), 'Student 2.x declara la superficie React nativa');
-must(entry.includes('./app.js?v=230'), 'Student 2.x carga el cliente React dedicado');
+must(entry.includes('./app.js?v=240'), 'Student 2.x carga el cliente React dedicado');
 must(!entry.includes('beta.js') && !entry.includes('student-v60.js'), 'Student 2.x ya no carga el runtime visual heredado');
 must(app.includes("react@19.2.0") && app.includes('createRoot'), 'Student 2.x utiliza React 19');
 must(app.includes("v2_join_session_v3") && app.includes("v2_submit_response"), 'Student 2.x usa las RPC estables de unión y respuesta');

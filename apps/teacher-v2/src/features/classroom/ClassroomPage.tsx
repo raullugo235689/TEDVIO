@@ -22,6 +22,7 @@ import {
   type ClassroomSession,
 } from '../../core/classroom';
 import { useTeacherHome } from '../../core/useTeacherHome';
+import { recordSessionHealth } from '../../core/pilot-health';
 import type { StudentRecord } from '../../core/types';
 import { EmptyState, ErrorPanel, LoadingScreen, MetricCard, PageHeader, SectionCard, StatusPill } from '../../shared/components';
 import { Icon } from '../../shared/icons';
@@ -374,8 +375,18 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
 
   useEffect(() => {
     const refresh = () => void queryClient.invalidateQueries({ queryKey: classroomSessionKey(auth.user?.id, sessionId) });
-    const onOnline = () => { setConnection('reconnecting'); refresh(); };
-    const onOffline = () => setConnection('offline');
+    const onOnline = () => {
+      setConnection('reconnecting');
+      if (sessionStorage.getItem(`tedvio.classroom.offline.${sessionId}`)) {
+        sessionStorage.removeItem(`tedvio.classroom.offline.${sessionId}`);
+        void recordSessionHealth(sessionId, 'client_offline', null, 'recovered_after_offline').catch(() => undefined);
+      }
+      refresh();
+    };
+    const onOffline = () => {
+      sessionStorage.setItem(`tedvio.classroom.offline.${sessionId}`, new Date().toISOString());
+      setConnection('offline');
+    };
     const onVisibility = () => { if (document.visibilityState === 'visible') refresh(); };
     window.addEventListener('online', onOnline);
     window.addEventListener('offline', onOffline);
@@ -386,6 +397,12 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
       document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [auth.user?.id, queryClient, sessionId]);
+
+  useEffect(() => {
+    if (!data || connection === 'offline') return;
+    const eventType = connection === 'connected' ? 'client_connected' : 'client_reconnecting';
+    void recordSessionHealth(sessionId, eventType).catch(() => undefined);
+  }, [connection, data?.session.id, sessionId]);
 
   useEffect(() => {
     if (connection === 'connected' || data?.session.status === 'closed') return;
@@ -473,7 +490,7 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
 
   return (
     <div className="view-stack classroom-control">
-      <PageHeader eyebrow="MODO CLASE" title={session.title || 'Sesión TEDVIO'} detail={`${group?.subject || session.educational_program || 'Clase'} · Código ${session.code}`} actions={<div className="page-actions"><Link className="button ghost" to="/classroom">← Sesiones</Link>{session.group_id ? <Link className="button ghost" to={`/attendance/${session.group_id}`}>Asistencia</Link> : null}<button className="button secondary" type="button" onClick={openProjection}>Proyectar</button></div>} />
+      <PageHeader eyebrow="MODO CLASE" title={session.title || 'Sesión TEDVIO'} detail={`${group?.subject || session.educational_program || 'Clase'} · Código ${session.code}`} actions={<div className="page-actions"><Link className="button ghost" to="/classroom">← Sesiones</Link>{session.group_id ? <Link className="button ghost" to={`/attendance/${session.group_id}`}>Asistencia</Link> : null}<Link className="button secondary" to={`/classroom/${session.id}/health`}><Icon name="shield" />Salud</Link><button className="button secondary" type="button" onClick={openProjection}>Proyectar</button></div>} />
 
       <div className={`classroom-connection ${connection}`} role="status"><i /><span>{connection === 'connected' ? 'Sincronización en vivo activa' : connection === 'offline' ? 'Sin internet · la clase se conserva y se recuperará al volver' : 'Reconectando · comprobando el estado guardado de la clase'}</span></div>
 
