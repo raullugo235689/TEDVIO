@@ -77,6 +77,7 @@ test.describe('TEDVIO authenticated launch smoke', () => {
       ['omr', 'OMR'],
       ['gradebook', 'Calificaciones'],
       ['students', 'Alumno 360°'],
+      ['analytics', 'Analítica'],
       ['periods', 'Periodos'],
       ['reports', 'Reportes'],
       ['settings', 'Configuración'],

@@ -22,6 +22,7 @@ const GradebookPage = lazy(() => import('../features/gradebook/GradebookPage').t
 const Student360Page = lazy(() => import('../features/students/Student360Page').then((module) => ({ default: module.Student360Page })));
 const PeriodsPage = lazy(() => import('../features/periods/PeriodsPage').then((module) => ({ default: module.PeriodsPage })));
 const ReportsPage = lazy(() => import('../features/reports/ReportsPage').then((module) => ({ default: module.ReportsPage })));
+const AnalyticsPage = lazy(() => import('../features/analytics/AnalyticsPage').then((module) => ({ default: module.AnalyticsPage })));
 const SettingsPage = lazy(() => import('../features/settings/SettingsPage').then((module) => ({ default: module.SettingsPage })));
 const SupportPage = lazy(() => import('../features/reliability/SupportPage').then((module) => ({ default: module.SupportPage })));
 
@@ -74,6 +75,8 @@ export function App() {
         <Route path="periods/:groupId" element={tool(<PeriodsPage />, 'Abriendo Periodos…')} />
         <Route path="reports" element={tool(<ReportsPage />, 'Abriendo Reportes…')} />
         <Route path="reports/:groupId" element={tool(<ReportsPage />, 'Preparando el reporte…')} />
+        <Route path="analytics" element={tool(<AnalyticsPage />, 'Calculando analítica…')} />
+        <Route path="analytics/:groupId" element={tool(<AnalyticsPage />, 'Analizando el grupo…')} />
         <Route path="settings" element={tool(<SettingsPage />, 'Abriendo Configuración…')} />
         <Route path="support" element={tool(<SupportPage />, 'Abriendo Soporte…')} />
       </Route>
