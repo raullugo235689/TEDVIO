@@ -103,7 +103,7 @@ must((bankApi.match(/\.eq\('teacher_id', user\.id\)/g) || []).length >= 5, 'oper
 must((classroomApi.match(/\.eq\('teacher_id', user\.id\)/g) || []).length >= 7, 'operaciones de Modo Clase restringen datos al docente autenticado');
 must(!bankApi.includes('.delete(') && !classroomApi.includes('.delete('), 'Fase 3 archiva preguntas y conserva sesiones en lugar de eliminarlas');
 must(classroomApi.includes(".channel(channelName)") && classroomApi.includes("table: 'v2_responses'"), 'Modo Clase usa Supabase Realtime sin polling permanente');
-must(classroomApi.includes('/beta.html#join?code=') && classroomApi.includes('/proyectar.html?code='), 'Modo Clase conserva acceso de alumnos y proyección existentes');
+must(classroomApi.includes('/student-v2/?code=') && classroomApi.includes('/projection-v2/?code='), 'Modo Clase abre directamente Student 2.x y Projection 2.x');
 
 must(app.includes('path="exams"') && app.includes('path="exams/new"') && app.includes('path="exams/:examId"') && app.includes('<ExamsPage />'), 'Evaluaciones tiene listado, editor y detalle en rutas React propias');
 must(!app.includes('module="exams"'), 'Evaluaciones fue retirada de los placeholders heredados');

@@ -11,7 +11,7 @@ const failures = [];
 const must=(condition,message)=>condition?console.log('OK  ',message):(failures.push(message),console.error('FAIL',message));
 
 must(entry.includes('data-tedvio-surface="projection-v2"'),'Projection 2.x declara superficie propia');
-must(entry.includes('react-dom@19.2.0'),'Projection 2.x usa React 19');
+must(app.includes('react-dom@19.2.0'),'Projection 2.x usa React 19');
 must(app.includes("v2_public_session_meta")&&app.includes("v2_public_live_counts"),'Projection 2.x consume las RPC públicas de sesión');
 must(app.includes("v2_public_ranking")&&app.includes("v2_public_question_results"),'Projection 2.x muestra ranking y resultados');
 must(app.includes('/student-v2/?code='),'el QR de Projection 2.x abre Student 2.x');
