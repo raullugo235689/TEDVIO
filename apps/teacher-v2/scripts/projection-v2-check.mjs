@@ -15,7 +15,7 @@ must(app.includes('react-dom@19.2.0'),'Projection 2.x usa React 19');
 must(app.includes("v2_public_session_meta")&&app.includes("v2_public_live_counts"),'Projection 2.x consume las RPC públicas de sesión');
 must(app.includes("v2_public_ranking")&&app.includes("v2_public_question_results"),'Projection 2.x muestra ranking y resultados');
 must(app.includes('/student-v2/?code='),'el QR de Projection 2.x abre Student 2.x');
-must(app.includes("postgres_changes")&&app.includes('setInterval(sync,2500)'),'Projection 2.x combina Realtime y polling de respaldo');
+must(app.includes("postgres_changes")&&/setInterval\(sync,\s*2500\)/.test(app),'Projection 2.x combina Realtime y polling de respaldo');
 must(redirect.includes('/projection-v2/?code='),'el puente heredado apunta a Projection 2.x');
 must(legacy.includes('projection-v2/legacy-redirect.js?v=220'),'proyectar.html entrega sesiones antiguas a Projection 2.x');
 

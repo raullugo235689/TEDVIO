@@ -18,6 +18,7 @@ import {
   type ClassroomParticipant,
   type ClassroomQuestion,
   type ClassroomResponse,
+  type ClassroomConnectionState,
   type ClassroomSession,
 } from '../../core/classroom';
 import { useTeacherHome } from '../../core/useTeacherHome';
@@ -347,6 +348,7 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
   const navigate = useNavigate();
   const [notice, setNotice] = useState('');
   const [showRanking, setShowRanking] = useState(true);
+  const [connection, setConnection] = useState<ClassroomConnectionState>(() => navigator.onLine ? 'connecting' : 'offline');
 
   const workspace = useQuery({
     queryKey: classroomSessionKey(auth.user?.id, sessionId),
@@ -367,8 +369,35 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
     if (!sessionId) return;
     return subscribeClassroom(sessionId, current?.id, () => {
       void queryClient.invalidateQueries({ queryKey: classroomSessionKey(auth.user?.id, sessionId) });
-    });
+    }, setConnection);
   }, [auth.user?.id, current?.id, queryClient, sessionId]);
+
+  useEffect(() => {
+    const refresh = () => void queryClient.invalidateQueries({ queryKey: classroomSessionKey(auth.user?.id, sessionId) });
+    const onOnline = () => { setConnection('reconnecting'); refresh(); };
+    const onOffline = () => setConnection('offline');
+    const onVisibility = () => { if (document.visibilityState === 'visible') refresh(); };
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [auth.user?.id, queryClient, sessionId]);
+
+  useEffect(() => {
+    if (connection === 'connected' || data?.session.status === 'closed') return;
+    let active = true;
+    let fallback = 0;
+    const recover = async () => {
+      await queryClient.invalidateQueries({ queryKey: classroomSessionKey(auth.user?.id, sessionId) });
+      if (active) fallback = window.setTimeout(() => void recover(), 5_000);
+    };
+    fallback = window.setTimeout(() => void recover(), 5_000);
+    return () => { active = false; window.clearTimeout(fallback); };
+  }, [auth.user?.id, connection, data?.session.status, queryClient, sessionId]);
 
   const now = useClock(Boolean(data && (data.session.status === 'live' || current?.status === 'live')));
 
@@ -445,6 +474,8 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
   return (
     <div className="view-stack classroom-control">
       <PageHeader eyebrow="MODO CLASE" title={session.title || 'Sesión TEDVIO'} detail={`${group?.subject || session.educational_program || 'Clase'} · Código ${session.code}`} actions={<div className="page-actions"><Link className="button ghost" to="/classroom">← Sesiones</Link>{session.group_id ? <Link className="button ghost" to={`/attendance/${session.group_id}`}>Asistencia</Link> : null}<button className="button secondary" type="button" onClick={openProjection}>Proyectar</button></div>} />
+
+      <div className={`classroom-connection ${connection}`} role="status"><i /><span>{connection === 'connected' ? 'Sincronización en vivo activa' : connection === 'offline' ? 'Sin internet · la clase se conserva y se recuperará al volver' : 'Reconectando · comprobando el estado guardado de la clase'}</span></div>
 
       {notice ? <div className="success-strip"><Icon name="check" /><span>{notice}</span><button type="button" onClick={() => setNotice('')}>×</button></div> : null}
       {actionError ? <ErrorPanel title="No se pudo completar la acción" detail={(actionError as Error).message || 'Intenta nuevamente.'} /> : null}

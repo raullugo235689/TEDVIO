@@ -206,98 +206,34 @@ export async function fetchClassroomSession(user: User, sessionId: string): Prom
 }
 
 export async function launchClassroomQuestion(user: User, sessionId: string, questionId: string): Promise<void> {
-  const [sessionResult, questionResult] = await Promise.all([
-    supabase
-      .from('v2_sessions')
-      .select('id,status,started_at')
-      .eq('id', sessionId)
-      .eq('teacher_id', user.id)
-      .single(),
-    supabase
-      .from('v2_questions')
-      .select('id,session_id,status')
-      .eq('id', questionId)
-      .eq('session_id', sessionId)
-      .single(),
-  ]);
-  if (sessionResult.error) throw new Error(`No se pudo validar la sesión: ${errorMessage(sessionResult.error)}`);
-  if (questionResult.error) throw new Error(`No se pudo validar la pregunta: ${errorMessage(questionResult.error)}`);
-  if (sessionResult.data.status === 'closed') throw new Error('La sesión está cerrada.');
-
-  const now = new Date().toISOString();
-  const { error: closeError } = await supabase
-    .from('v2_questions')
-    .update({ status: 'closed', closed_at: now })
-    .eq('session_id', sessionId)
-    .in('status', ['live', 'revealed'])
-    .neq('id', questionId);
-  if (closeError) throw new Error(`No se pudo cerrar la pregunta anterior: ${errorMessage(closeError)}`);
-
-  const { error: questionError } = await supabase
-    .from('v2_questions')
-    .update({ status: 'live', launched_at: now, closed_at: null })
-    .eq('id', questionId)
-    .eq('session_id', sessionId);
-  if (questionError) throw new Error(`No se pudo iniciar la pregunta: ${errorMessage(questionError)}`);
-
-  const { error: sessionError } = await supabase
-    .from('v2_sessions')
-    .update({
-      status: 'live',
-      current_question_id: questionId,
-      started_at: sessionResult.data.started_at || now,
-      closed_at: null,
-    })
-    .eq('id', sessionId)
-    .eq('teacher_id', user.id);
-  if (sessionError) throw new Error(`No se pudo actualizar la sesión: ${errorMessage(sessionError)}`);
+  await runClassroomCommand(user, sessionId, 'launch', questionId);
 }
 
 export async function revealClassroomQuestion(user: User, sessionId: string, questionId: string): Promise<void> {
-  await verifySessionOwnership(user, sessionId);
-  const { error } = await supabase
-    .from('v2_questions')
-    .update({ status: 'revealed', closed_at: new Date().toISOString() })
-    .eq('id', questionId)
-    .eq('session_id', sessionId);
-  if (error) throw new Error(`No se pudo revelar la respuesta: ${errorMessage(error)}`);
+  await runClassroomCommand(user, sessionId, 'reveal', questionId);
 }
 
 export async function closeClassroomQuestion(user: User, sessionId: string, questionId: string): Promise<void> {
-  await verifySessionOwnership(user, sessionId);
-  const now = new Date().toISOString();
-  const { error: questionError } = await supabase
-    .from('v2_questions')
-    .update({ status: 'closed', closed_at: now })
-    .eq('id', questionId)
-    .eq('session_id', sessionId);
-  if (questionError) throw new Error(`No se pudo cerrar la pregunta: ${errorMessage(questionError)}`);
-
-  const { error: sessionError } = await supabase
-    .from('v2_sessions')
-    .update({ current_question_id: null })
-    .eq('id', sessionId)
-    .eq('teacher_id', user.id)
-    .eq('current_question_id', questionId);
-  if (sessionError) throw new Error(`No se pudo actualizar la sesión: ${errorMessage(sessionError)}`);
+  await runClassroomCommand(user, sessionId, 'close_question', questionId);
 }
 
 export async function closeClassroomSession(user: User, sessionId: string): Promise<void> {
-  await verifySessionOwnership(user, sessionId);
-  const now = new Date().toISOString();
-  const { error: questionsError } = await supabase
-    .from('v2_questions')
-    .update({ status: 'closed', closed_at: now })
-    .eq('session_id', sessionId)
-    .in('status', ['live', 'revealed']);
-  if (questionsError) throw new Error(`No se pudieron cerrar las preguntas: ${errorMessage(questionsError)}`);
+  await runClassroomCommand(user, sessionId, 'close_session');
+}
 
-  const { error } = await supabase
-    .from('v2_sessions')
-    .update({ status: 'closed', current_question_id: null, closed_at: now })
-    .eq('id', sessionId)
-    .eq('teacher_id', user.id);
-  if (error) throw new Error(`No se pudo finalizar la sesión: ${errorMessage(error)}`);
+async function runClassroomCommand(
+  user: User,
+  sessionId: string,
+  action: 'launch' | 'reveal' | 'close_question' | 'close_session',
+  questionId?: string,
+): Promise<void> {
+  if (!user.id) throw new Error('Tu sesión expiró.');
+  const { error } = await supabase.rpc('v2_teacher_classroom_command', {
+    p_session_id: sessionId,
+    p_action: action,
+    p_question_id: questionId || null,
+  });
+  if (error) throw new Error(`No se pudo actualizar la clase: ${errorMessage(error)}`);
 }
 
 export async function saveClassroomStudentNote(
@@ -321,20 +257,11 @@ export async function saveClassroomStudentNote(
   if (error) throw new Error(`No se pudo guardar la nota: ${errorMessage(error)}`);
 }
 
-async function verifySessionOwnership(user: User, sessionId: string): Promise<void> {
-  const { error } = await supabase
-    .from('v2_sessions')
-    .select('id')
-    .eq('id', sessionId)
-    .eq('teacher_id', user.id)
-    .single();
-  if (error) throw new Error(`No se pudo validar la sesión: ${errorMessage(error)}`);
-}
-
 export function subscribeClassroom(
   sessionId: string,
   currentQuestionId: string | null | undefined,
   onChange: () => void,
+  onStatus: (status: ClassroomConnectionState) => void = () => undefined,
 ): () => void {
   const channelName = `teacher-classroom-${sessionId}-${currentQuestionId || 'lobby'}`;
   let channel: RealtimeChannel = supabase
@@ -350,11 +277,18 @@ export function subscribeClassroom(
       onChange,
     );
   }
-  channel.subscribe();
+  onStatus(navigator.onLine ? 'connecting' : 'offline');
+  channel.subscribe((status) => {
+    if (!navigator.onLine) onStatus('offline');
+    else if (status === 'SUBSCRIBED') onStatus('connected');
+    else onStatus('reconnecting');
+  });
   return () => {
     void supabase.removeChannel(channel);
   };
 }
+
+export type ClassroomConnectionState = 'connecting' | 'connected' | 'reconnecting' | 'offline';
 
 export function studentJoinUrl(code: string): string {
   return `${window.location.origin}/student-v2/?code=${encodeURIComponent(code)}`;

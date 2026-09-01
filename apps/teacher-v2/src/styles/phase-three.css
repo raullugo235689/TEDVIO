@@ -84,6 +84,11 @@
 .classroom-session-card footer { display: flex; justify-content: flex-end; }
 
 .classroom-status-bar { display: grid; grid-template-columns: 1.1fr repeat(3,.55fr) 1.2fr; gap: 10px; align-items: stretch; padding: 12px; border: 1px solid var(--border); border-radius: 20px; background: var(--surface); box-shadow: var(--shadow-soft); }
+.classroom-connection { display: flex; align-items: center; gap: 8px; width: fit-content; margin-left: auto; padding: 7px 11px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--muted); font-size: 10px; font-weight: 850; }
+.classroom-connection i { width: 8px; height: 8px; border-radius: 50%; background: var(--amber); }
+.classroom-connection.connected i { background: var(--green); }
+.classroom-connection.offline { border-color: color-mix(in srgb, var(--red) 28%, var(--border)); color: var(--red); }
+.classroom-connection.offline i { background: var(--red); }
 .classroom-status-bar > div { min-height: 58px; display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 13px; background: var(--surface-soft); }
 .classroom-status-bar > div:not(:first-child) { display: grid; align-content: center; gap: 2px; }
 .classroom-status-bar small { color: var(--muted); font-size: 8px; font-weight: 900; letter-spacing: .08em; }
