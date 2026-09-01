@@ -64,6 +64,13 @@ test.describe('TEDVIO authenticated launch smoke', () => {
       else if (await reset.isVisible().catch(() => false)) await reset.click();
       await expect(page).toHaveURL(/#\/classroom\//);
       await expect(page.locator('.route-container')).not.toBeEmpty();
+
+      await page.getByRole('link', { name: /Salud/ }).click();
+      await expect(page.getByRole('button', { name: 'Comprobar sesión' })).toBeVisible();
+      await page.getByRole('button', { name: 'Comprobar sesión' }).click();
+      await expect(page.locator('.session-check-grid article')).toHaveCount(14, { timeout: 60_000 });
+      await expect(page.getByText('TEDVIO está listo para recibir alumnos')).toBeVisible({ timeout: 60_000 });
+      await expect(page.getByText(/sala temporal eliminada/)).toBeVisible();
     } else {
       await closeOnboardingIfOpen(page);
     }

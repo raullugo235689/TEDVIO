@@ -17,3 +17,22 @@ export const supabase = createClient(
     },
   },
 );
+
+export function createIsolatedSupabaseClient(surface: string) {
+  return createClient(
+    config.SUPABASE_URL,
+    config.SUPABASE_PUBLISHABLE_KEY,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+      global: {
+        headers: {
+          'x-tedvio-client': surface,
+        },
+      },
+    },
+  );
+}

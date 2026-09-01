@@ -11,6 +11,7 @@ import {
 import { EmptyState, ErrorPanel, LoadingScreen, MetricCard, PageHeader, SectionCard, StatusPill } from '../../shared/components';
 import { Icon } from '../../shared/icons';
 import { useAuth } from '../auth/AuthProvider';
+import { SessionPreflightPanel } from './SessionPreflightPanel';
 
 type ClientCount = 30 | 50 | 100;
 
@@ -122,6 +123,8 @@ export function PilotHealthPage() {
         <div><span className="eyebrow">DIAGNÓSTICO ACTUAL</span><h2>{summary.status === 'healthy' ? 'La sesión responde con normalidad' : summary.status === 'degraded' ? 'Se detectaron reconexiones frecuentes' : 'La sesión requiere revisión'}</h2><p>El diagnóstico utiliza conexión, recuperación y latencia; nunca inspecciona el contenido de las respuestas.</p></div>
         <StatusPill tone={loadTone(summary.status)}>{session.status === 'closed' ? 'Sesión cerrada' : 'Sesión activa'}</StatusPill>
       </section>
+
+      <SessionPreflightPanel sessionId={session.id} />
 
       <section className="metric-grid four">
         <MetricCard icon="groups" label="Clientes observados" value={String(summary.activeClients)} detail={`${participantCount} participantes registrados`} tone="blue" />

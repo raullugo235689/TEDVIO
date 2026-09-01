@@ -23,6 +23,7 @@ const groupsApi = fs.readFileSync(path.join(sourceRoot, 'core/groups.ts'), 'utf8
 const attendanceApi = fs.readFileSync(path.join(sourceRoot, 'core/attendance.ts'), 'utf8');
 const bankApi = fs.readFileSync(path.join(sourceRoot, 'core/bank.ts'), 'utf8');
 const classroomApi = fs.readFileSync(path.join(sourceRoot, 'core/classroom.ts'), 'utf8');
+const supabaseApi = fs.readFileSync(path.join(sourceRoot, 'core/supabase.ts'), 'utf8');
 const examsApi = fs.readFileSync(path.join(sourceRoot, 'core/exams.ts'), 'utf8');
 const groupsPage = fs.readFileSync(path.join(sourceRoot, 'features/groups/GroupsPage.tsx'), 'utf8');
 const groupDetail = fs.readFileSync(path.join(sourceRoot, 'features/groups/GroupDetailPage.tsx'), 'utf8');
@@ -52,7 +53,10 @@ for (const [pattern, label] of [
 must(!/<[^>]+\sonclick=/.test(joined), 'no existen handlers onclick incrustados en HTML');
 must(!/window\.beta|__TEDVIO_TEACHER686__|teacher-command-center-v\d/i.test(joined), 'el nuevo frontend no depende del runtime global heredado');
 must(!/OPENAI|AI_GATEWAY|gpt-/i.test(joined), 'la reconstrucción no introduce IA generativa ni costos de inferencia');
-must((joined.match(/createClient\(/g) || []).length === 1, 'existe exactamente un cliente Supabase');
+must(source.filter((entry) => entry.text.includes("import { createClient } from '@supabase/supabase-js'")).length === 1
+  && (supabaseApi.match(/createClient\(/g) || []).length === 2
+  && supabaseApi.includes('createIsolatedSupabaseClient')
+  && supabaseApi.includes('persistSession: false'), 'la creación de clientes Supabase está centralizada y el cliente de prueba no persiste sesión');
 must(shell.includes('<Outlet />'), 'AppShell es persistente y contiene un único Outlet');
 must(main.includes('<HashRouter>'), 'React Router controla toda la navegación');
 must(fs.readFileSync(path.join(sourceRoot, 'core/api.ts'), 'utf8').includes("rpc('v2_teacher_today_dashboard')"), 'Inicio reutiliza el RPC académico existente');
