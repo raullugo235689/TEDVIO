@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "typecheck": "tsc --noEmit --pretty false",
-    "test:architecture": "node scripts/architecture-check.mjs && node scripts/omr-check.mjs && node scripts/gradebook-check.mjs && node scripts/student360-check.mjs && node scripts/phase5-check.mjs && node scripts/phase6-check.mjs && node scripts/launch-truth-check.mjs && node scripts/reliability-check.mjs && node scripts/classroom-entry-check.mjs && node scripts/student-v2-entry-check.mjs",
+    "test:architecture": "node scripts/architecture-check.mjs && node scripts/omr-check.mjs && node scripts/gradebook-check.mjs && node scripts/student360-check.mjs && node scripts/phase5-check.mjs && node scripts/phase6-check.mjs && node scripts/launch-truth-check.mjs && node scripts/reliability-check.mjs && node scripts/classroom-entry-check.mjs && node scripts/student-v2-entry-check.mjs && node scripts/projection-v2-check.mjs",
     "test:security": "node scripts/security-check.mjs",
     "test:launch": "node scripts/launch-readiness-check.mjs",
     "build": "vite build",
