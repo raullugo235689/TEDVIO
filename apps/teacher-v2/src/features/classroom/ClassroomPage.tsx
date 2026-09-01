@@ -36,6 +36,19 @@ interface ScoreRow {
   streak: number;
 }
 
+interface QuestionInsight {
+  question: ClassroomQuestion;
+  responses: number;
+  correct: number;
+  accuracy: number | null;
+}
+
+interface StudentInsight extends ScoreRow {
+  accuracy: number | null;
+  participation: number;
+  needsFollowUp: boolean;
+}
+
 type ParticipationKind = 'question' | 'contribution' | 'support';
 type ParticipationState = Record<string, Record<ParticipationKind, number>>;
 
@@ -117,6 +130,58 @@ function scoreRows(participants: ClassroomParticipant[], responses: ClassroomRes
     teams.set(key, current);
   }
   return [...teams.values()].sort((a, b) => b.points - a.points || b.correct - a.correct || a.name.localeCompare(b.name));
+}
+
+function questionInsights(questions: ClassroomQuestion[], responses: ClassroomResponse[]): QuestionInsight[] {
+  return questions.map((question) => {
+    const rows = responses.filter((response) => response.question_id === question.id);
+    const scored = rows.filter((response) => response.is_correct != null);
+    const correct = scored.filter((response) => response.is_correct).length;
+    return {
+      question,
+      responses: rows.length,
+      correct,
+      accuracy: scored.length ? Math.round(100 * correct / scored.length) : null,
+    };
+  });
+}
+
+function studentInsights(participants: ClassroomParticipant[], responses: ClassroomResponse[], scoredQuestions: number): StudentInsight[] {
+  return scoreRows(participants, responses, false).map((row) => {
+    const accuracy = row.answered ? Math.round(100 * row.correct / row.answered) : null;
+    const participation = scoredQuestions ? Math.round(100 * row.answered / scoredQuestions) : 0;
+    return { ...row, accuracy, participation, needsFollowUp: row.answered === 0 || participation < 60 || (accuracy != null && accuracy < 60) };
+  });
+}
+
+function csvCell(value: unknown): string {
+  return `"${String(value ?? '').replaceAll('"', '""')}"`;
+}
+
+function downloadSessionSummary(session: ClassroomSession, questions: QuestionInsight[], students: StudentInsight[]): void {
+  const lines = [
+    ['TEDVIO', 'Resumen postclase'],
+    ['Sesión', session.title || 'Sesión TEDVIO'],
+    ['Código', session.code],
+    ['Fecha de cierre', session.closed_at ? new Date(session.closed_at).toLocaleString('es-MX') : '—'],
+    [],
+    ['ANÁLISIS POR REACTIVO'],
+    ['N.º', 'Reactivo', 'Respuestas', 'Correctas', 'Acierto'],
+    ...questions.map((row) => [row.question.position, row.question.prompt, row.responses, row.correct, row.accuracy == null ? 'No calificable' : `${row.accuracy}%`]),
+    [],
+    ['DESEMPEÑO POR PARTICIPANTE'],
+    ['Posición', 'Nombre', 'Matrícula', 'Respuestas', 'Correctas', 'Acierto', 'Participación', 'Puntos', 'Seguimiento'],
+    ...students.map((row, index) => [index + 1, row.name, row.team, row.answered, row.correct, row.accuracy == null ? '—' : `${row.accuracy}%`, `${row.participation}%`, row.points, row.needsFollowUp ? 'Revisar' : 'En orden']),
+  ];
+  const blob = new Blob([`\ufeff${lines.map((row) => row.map(csvCell).join(',')).join('\r\n')}`], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = `TEDVIO_Resumen_${session.code}_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
 }
 
 function useClock(active: boolean) {
@@ -350,6 +415,13 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
   const completed = questions.filter((question) => question.status === 'closed' || question.status === 'revealed').length;
   const nextQuestion = queued[0] || null;
   const ranking = scoreRows(participants, responses, session.team_mode);
+  const perQuestion = questionInsights(questions, responses);
+  const scoredQuestionCount = perQuestion.filter((row) => row.accuracy != null).length;
+  const perStudent = studentInsights(participants, responses, Math.max(questions.length, scoredQuestionCount));
+  const difficultQuestions = perQuestion.filter((row) => row.accuracy != null).sort((a, b) => (a.accuracy ?? 101) - (b.accuracy ?? 101));
+  const followUpStudents = perStudent.filter((row) => row.needsFollowUp).sort((a, b) => a.participation - b.participation || (a.accuracy ?? -1) - (b.accuracy ?? -1));
+  const activeParticipants = perStudent.filter((row) => row.answered > 0).length;
+  const participationRate = participants.length ? Math.round(100 * activeParticipants / participants.length) : 0;
   const notes = new Map(data.notes.map((item) => [item.student_id, item.note || '']));
   const elapsedFrom = session.started_at || session.created_at;
   const elapsed = now - new Date(elapsedFrom).getTime();
@@ -389,12 +461,20 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
         <>
           <section className="metrics-grid">
             <MetricCard icon="groups" label="Participantes" value={String(participants.length)} detail="Ingresaron a la sesión" tone="blue" />
-            <MetricCard icon="bank" label="Preguntas" value={String(questions.length)} detail={`${completed} completadas`} tone="violet" />
-            <MetricCard icon="attendance" label="Respuestas" value={String(responses.length)} detail="Evidencias recibidas" tone="green" />
+            <MetricCard icon="attendance" label="Participación" value={`${participationRate}%`} detail={`${activeParticipants} de ${participants.length} respondieron`} tone={participationRate < 70 ? 'amber' : 'green'} />
+            <MetricCard icon="bank" label="Preguntas" value={String(questions.length)} detail={`${completed} completadas · ${responses.length} respuestas`} tone="violet" />
             <MetricCard icon="check" label="Acierto" value={accuracyRate == null ? '—' : `${accuracyRate}%`} detail="En reactivos calificables" tone={accuracyRate != null && accuracyRate < 60 ? 'amber' : 'green'} />
           </section>
+          <section className="postclass-hero">
+            <div><span className="eyebrow">INTELIGENCIA POSTCLASE</span><h2>Resumen listo para tomar decisiones</h2><p>{followUpStudents.length ? `${followUpStudents.length} participante${followUpStudents.length === 1 ? '' : 's'} requiere${followUpStudents.length === 1 ? '' : 'n'} revisión; ` : 'No hay alertas críticas; '}{difficultQuestions[0]?.accuracy != null ? `el reactivo más difícil tuvo ${difficultQuestions[0].accuracy}% de acierto.` : 'la sesión no incluyó reactivos calificables.'}</p></div>
+            <button className="button primary" type="button" onClick={() => downloadSessionSummary(session, perQuestion, perStudent)}>Exportar resumen CSV</button>
+          </section>
+          <div className="classroom-summary-grid postclass-grid">
+            <SectionCard><div className="section-heading compact"><div><span className="eyebrow">REACTIVOS DIFÍCILES</span><h2>Dónde necesita refuerzo el grupo</h2><p>Ordenados por menor porcentaje de acierto.</p></div><StatusPill tone={difficultQuestions[0]?.accuracy != null && difficultQuestions[0].accuracy < 60 ? 'amber' : 'green'}>{difficultQuestions.filter((row) => row.accuracy != null && row.accuracy < 60).length} bajo 60%</StatusPill></div><div className="insight-list">{difficultQuestions.length ? difficultQuestions.slice(0, 6).map((row) => <article key={row.question.id}><span className={row.accuracy != null && row.accuracy < 60 ? 'risk' : 'ok'}>{row.accuracy == null ? '—' : `${row.accuracy}%`}</span><div><b>{row.question.prompt}</b><small>{row.correct} correctas de {row.responses} respuestas</small></div></article>) : <p className="muted-copy">No hay reactivos para analizar.</p>}</div></SectionCard>
+            <SectionCard><div className="section-heading compact"><div><span className="eyebrow">SEGUIMIENTO SUGERIDO</span><h2>Alumnos que conviene revisar</h2><p>Se señalan por baja participación, bajo acierto o ausencia de respuestas.</p></div><StatusPill tone={followUpStudents.length ? 'amber' : 'green'}>{followUpStudents.length} alertas</StatusPill></div><div className="insight-list student-insights">{followUpStudents.length ? followUpStudents.slice(0, 8).map((row) => <article key={row.id}><span className="risk">{row.accuracy == null ? '—' : `${row.accuracy}%`}</span><div><b>{row.name}</b><small>{row.participation}% participación · {row.answered} respuestas · {row.points} pts</small></div>{row.id && participants.find((participant) => participant.id === row.id)?.roster_student_id && session.group_id ? <Link className="button ghost compact" to={`/students/${session.group_id}/${participants.find((participant) => participant.id === row.id)?.roster_student_id}`}>Alumno 360°</Link> : null}</article>) : <div className="positive-insight"><Icon name="check" /><span><b>Grupo sin alertas críticas</b><small>Todos alcanzaron los umbrales de participación y acierto.</small></span></div>}</div></SectionCard>
+          </div>
           <div className="classroom-summary-grid">
-            <SectionCard><div className="section-heading compact"><div><span className="eyebrow">RESUMEN</span><h2>Clase finalizada</h2><p>Cerrada {dateTime(session.closed_at)} · duración {durationLabel((session.closed_at ? new Date(session.closed_at).getTime() : now) - new Date(elapsedFrom).getTime())}</p></div></div><div className="closed-question-list">{questions.map((question) => { const rows = responses.filter((response) => response.question_id === question.id); return <article key={question.id}><span>{question.position}</span><div><b>{question.prompt}</b><small>{rows.length} respuestas · {questionLabel(question.status)}</small></div></article>; })}</div></SectionCard>
+            <SectionCard><div className="section-heading compact"><div><span className="eyebrow">EVIDENCIA POR REACTIVO</span><h2>Clase finalizada</h2><p>Cerrada {dateTime(session.closed_at)} · duración {durationLabel((session.closed_at ? new Date(session.closed_at).getTime() : now) - new Date(elapsedFrom).getTime())}</p></div></div><div className="closed-question-list">{perQuestion.map((row) => <article key={row.question.id}><span>{row.question.position}</span><div><b>{row.question.prompt}</b><small>{row.responses} respuestas · {row.accuracy == null ? 'No calificable' : `${row.accuracy}% de acierto`}</small></div></article>)}</div></SectionCard>
             <SectionCard><div className="section-heading compact"><div><span className="eyebrow">RANKING FINAL</span><h2>{session.team_mode ? 'Equipos' : 'Participantes'}</h2></div></div><div className="ranking-list">{ranking.length ? ranking.slice(0, 15).map((row, index) => <article key={row.id}><span>{index + 1}</span><div><b>{row.name}</b><small>{row.correct} correctas · {row.answered} respuestas</small></div><strong>{row.points} pts</strong></article>) : <p className="muted-copy">No hubo puntuación registrada.</p>}</div></SectionCard>
           </div>
           <section className="classroom-next-actions"><div><span className="eyebrow">SIGUIENTE ACCIÓN</span><h2>La evidencia quedó guardada</h2><p>Puedes revisar otra sesión o preparar una nueva clase desde el banco.</p></div><Link className="button secondary" to="/classroom">Historial</Link><Link className="button primary" to={session.group_id ? `/bank?group=${session.group_id}&launch=1` : '/bank'}>Preparar otra clase</Link></section>

@@ -357,9 +357,9 @@ export function subscribeClassroom(
 }
 
 export function studentJoinUrl(code: string): string {
-  return `${window.location.origin}/beta.html#join?code=${encodeURIComponent(code)}`;
+  return `${window.location.origin}/student-v2/?code=${encodeURIComponent(code)}`;
 }
 
 export function projectionUrl(code: string): string {
-  return `${window.location.origin}/proyectar.html?code=${encodeURIComponent(code)}`;
+  return `${window.location.origin}/projection-v2/?code=${encodeURIComponent(code)}`;
 }
