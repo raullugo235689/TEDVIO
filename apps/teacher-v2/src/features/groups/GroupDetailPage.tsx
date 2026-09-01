@@ -165,6 +165,7 @@ export function GroupDetailPage() {
         actions={
           <div className="page-actions">
             <Link className="button ghost" to="/groups">← Grupos</Link>
+            <Link className="button secondary" to={`/analytics/${groupId}`}><Icon name="analytics" /> Analítica</Link>
             <Link className="button primary" to={`/attendance/${groupId}`}>✓ Tomar asistencia</Link>
           </div>
         }

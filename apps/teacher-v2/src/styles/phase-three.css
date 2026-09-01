@@ -198,7 +198,7 @@
 .closed-question-list > article > span { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; background: var(--surface-strong); color: var(--brand); font-size: 11px; font-weight: 900; }
 .closed-question-list b { display: block; color: var(--text-strong); font-size: 12px; }
 .closed-question-list small { color: var(--muted); font-size: 9px; }
-.classroom-next-actions { display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: 12px; align-items: center; padding: 22px; border: 1px solid color-mix(in srgb, var(--green) 24%, var(--border)); border-radius: 22px; background: linear-gradient(135deg,color-mix(in srgb,var(--green) 8%,var(--surface)),var(--surface)); }
+.classroom-next-actions { display: grid; grid-template-columns: minmax(0,1fr) repeat(3,auto); gap: 12px; align-items: center; padding: 22px; border: 1px solid color-mix(in srgb, var(--green) 24%, var(--border)); border-radius: 22px; background: linear-gradient(135deg,color-mix(in srgb,var(--green) 8%,var(--surface)),var(--surface)); }
 .classroom-next-actions h2 { margin: 5px 0 4px; color: var(--text-strong); font-size: 20px; }
 .classroom-next-actions p { margin: 0; color: var(--muted); font-size: 12px; }
 .postclass-hero { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 18px; align-items: center; padding: 22px; border: 1px solid color-mix(in srgb,var(--brand) 24%,var(--border)); border-radius: 22px; background: linear-gradient(135deg,color-mix(in srgb,var(--brand) 10%,var(--surface)),var(--surface)); }
