@@ -7,25 +7,45 @@ import { LegalConsentGate } from '../features/auth/LegalConsentGate';
 import { LoginPage } from '../features/auth/LoginPage';
 import { OnboardingExperience } from '../features/onboarding/OnboardingExperience';
 import { LoadingScreen } from '../shared/components';
+import {
+  loadAgendaPage,
+  loadAnalyticsPage,
+  loadAttendancePage,
+  loadBankPage,
+  loadClassroomPage,
+  loadDashboardPage,
+  loadExamsPage,
+  loadGradebookPage,
+  loadGroupDetailPage,
+  loadGroupsPage,
+  loadOmrPage,
+  loadOmrSheetsPage,
+  loadPeriodsPage,
+  loadPilotHealthPage,
+  loadReportsPage,
+  loadSettingsPage,
+  loadStudent360Page,
+  loadSupportPage,
+} from './route-loaders';
 
-const DashboardPage = lazy(() => import('../features/dashboard/DashboardPage').then((module) => ({ default: module.DashboardPage })));
-const AgendaPage = lazy(() => import('../features/agenda/AgendaPage').then((module) => ({ default: module.AgendaPage })));
-const GroupsPage = lazy(() => import('../features/groups/GroupsPage').then((module) => ({ default: module.GroupsPage })));
-const GroupDetailPage = lazy(() => import('../features/groups/GroupDetailPage').then((module) => ({ default: module.GroupDetailPage })));
-const AttendancePage = lazy(() => import('../features/attendance/AttendancePage').then((module) => ({ default: module.AttendancePage })));
-const ClassroomPage = lazy(() => import('../features/classroom/ClassroomPage').then((module) => ({ default: module.ClassroomPage })));
-const BankPage = lazy(() => import('../features/bank/BankPage').then((module) => ({ default: module.BankPage })));
-const ExamsPage = lazy(() => import('../features/exams/ExamsPage').then((module) => ({ default: module.ExamsPage })));
-const OmrPage = lazy(() => import('../features/omr/OmrPage').then((module) => ({ default: module.OmrPage })));
-const OmrSheetsPage = lazy(() => import('../features/omr/OmrSheetsPage').then((module) => ({ default: module.OmrSheetsPage })));
-const GradebookPage = lazy(() => import('../features/gradebook/GradebookPage').then((module) => ({ default: module.GradebookPage })));
-const Student360Page = lazy(() => import('../features/students/Student360Page').then((module) => ({ default: module.Student360Page })));
-const PeriodsPage = lazy(() => import('../features/periods/PeriodsPage').then((module) => ({ default: module.PeriodsPage })));
-const ReportsPage = lazy(() => import('../features/reports/ReportsPage').then((module) => ({ default: module.ReportsPage })));
-const AnalyticsPage = lazy(() => import('../features/analytics/AnalyticsPage').then((module) => ({ default: module.AnalyticsPage })));
-const SettingsPage = lazy(() => import('../features/settings/SettingsPage').then((module) => ({ default: module.SettingsPage })));
-const SupportPage = lazy(() => import('../features/reliability/SupportPage').then((module) => ({ default: module.SupportPage })));
-const PilotHealthPage = lazy(() => import('../features/reliability/PilotHealthPage').then((module) => ({ default: module.PilotHealthPage })));
+const DashboardPage = lazy(() => loadDashboardPage().then((module) => ({ default: module.DashboardPage })));
+const AgendaPage = lazy(() => loadAgendaPage().then((module) => ({ default: module.AgendaPage })));
+const GroupsPage = lazy(() => loadGroupsPage().then((module) => ({ default: module.GroupsPage })));
+const GroupDetailPage = lazy(() => loadGroupDetailPage().then((module) => ({ default: module.GroupDetailPage })));
+const AttendancePage = lazy(() => loadAttendancePage().then((module) => ({ default: module.AttendancePage })));
+const ClassroomPage = lazy(() => loadClassroomPage().then((module) => ({ default: module.ClassroomPage })));
+const BankPage = lazy(() => loadBankPage().then((module) => ({ default: module.BankPage })));
+const ExamsPage = lazy(() => loadExamsPage().then((module) => ({ default: module.ExamsPage })));
+const OmrPage = lazy(() => loadOmrPage().then((module) => ({ default: module.OmrPage })));
+const OmrSheetsPage = lazy(() => loadOmrSheetsPage().then((module) => ({ default: module.OmrSheetsPage })));
+const GradebookPage = lazy(() => loadGradebookPage().then((module) => ({ default: module.GradebookPage })));
+const Student360Page = lazy(() => loadStudent360Page().then((module) => ({ default: module.Student360Page })));
+const PeriodsPage = lazy(() => loadPeriodsPage().then((module) => ({ default: module.PeriodsPage })));
+const ReportsPage = lazy(() => loadReportsPage().then((module) => ({ default: module.ReportsPage })));
+const AnalyticsPage = lazy(() => loadAnalyticsPage().then((module) => ({ default: module.AnalyticsPage })));
+const SettingsPage = lazy(() => loadSettingsPage().then((module) => ({ default: module.SettingsPage })));
+const SupportPage = lazy(() => loadSupportPage().then((module) => ({ default: module.SupportPage })));
+const PilotHealthPage = lazy(() => loadPilotHealthPage().then((module) => ({ default: module.PilotHealthPage })));
 
 function ProtectedShell() {
   const auth = useAuth();

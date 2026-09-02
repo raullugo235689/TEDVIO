@@ -55,8 +55,12 @@ test('el shell no queda en blanco durante el arranque móvil', async ({ page }) 
 test('Student 2.x carga su cliente local y permite preparar el acceso', async ({ page }) => {
   const failedRequests = [];
   const pageErrors = [];
+  const scriptRequests = [];
   page.on('requestfailed', (request) => failedRequests.push(request.url()));
   page.on('pageerror', (error) => pageErrors.push(error.message));
+  page.on('request', (request) => {
+    if (request.resourceType() === 'script') scriptRequests.push(request.url());
+  });
 
   await page.goto('/student-v2/', { waitUntil: 'networkidle' });
 
@@ -66,6 +70,7 @@ test('Student 2.x carga su cliente local y permite preparar el acceso', async ({
   await expect(page.getByLabel('Código de clase')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Entrar a clase' })).toBeDisabled();
   await expect(page.locator('#studentApp')).not.toBeEmpty();
+  expect(scriptRequests.some((url) => /\/student-v2\/assets\/dist-[^/]+\.js$/.test(url))).toBeFalsy();
   expect(failedRequests).toEqual([]);
   expect(pageErrors).toEqual([]);
 });
@@ -73,8 +78,12 @@ test('Student 2.x carga su cliente local y permite preparar el acceso', async ({
 test('Projection 2.x carga su cliente local sin dejar una pantalla vacía', async ({ page }) => {
   const failedRequests = [];
   const pageErrors = [];
+  const scriptRequests = [];
   page.on('requestfailed', (request) => failedRequests.push(request.url()));
   page.on('pageerror', (error) => pageErrors.push(error.message));
+  page.on('request', (request) => {
+    if (request.resourceType() === 'script') scriptRequests.push(request.url());
+  });
 
   await page.goto('/projection-v2/', { waitUntil: 'networkidle' });
 
@@ -84,6 +93,7 @@ test('Projection 2.x carga su cliente local sin dejar una pantalla vacía', asyn
   await expect(page.getByPlaceholder('000000')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Abrir proyección' })).toBeDisabled();
   await expect(page.locator('#projectionApp')).not.toBeEmpty();
+  expect(scriptRequests.some((url) => /\/projection-v2\/assets\/(?:dist|browser)-[^/]+\.js$/.test(url))).toBeFalsy();
   expect(failedRequests).toEqual([]);
   expect(pageErrors).toEqual([]);
 });

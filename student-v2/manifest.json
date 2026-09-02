@@ -1,11 +1,20 @@
 {
+  "../../node_modules/@supabase/supabase-js/dist/index.mjs": {
+    "file": "assets/dist-CATZ1QFq.js",
+    "name": "dist",
+    "src": "../../node_modules/@supabase/supabase-js/dist/index.mjs",
+    "isDynamicEntry": true
+  },
   "index.html": {
-    "file": "assets/app-CVWjuRJ6.js",
+    "file": "assets/app-B1px1ZiT.js",
     "name": "index",
     "src": "index.html",
     "isEntry": true,
+    "dynamicImports": [
+      "../../node_modules/@supabase/supabase-js/dist/index.mjs"
+    ],
     "css": [
-      "assets/index-BuPE2Hz7.css"
+      "assets/index-DFuDWiEK.css"
     ]
   }
 }

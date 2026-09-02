@@ -5,6 +5,7 @@ import { useReliability } from '../features/reliability/ReliabilityProvider';
 import { navigation, navigationTitle, type NavigationItem } from './navigation';
 import { RouteErrorBoundary } from './RouteErrorBoundary';
 import { Icon } from '../shared/icons';
+import { prefetchTeacherRoute } from './route-loaders';
 
 const THEME_KEY = 'tedvio.teacher-v2.theme';
 
@@ -20,6 +21,9 @@ function NavItem({ item, mobile = false }: { item: NavigationItem; mobile?: bool
       to={item.to}
       end={item.to === '/'}
       className={({ isActive }) => `nav-item${isActive ? ' active' : ''}${mobile ? ' mobile' : ''}`}
+      onPointerEnter={() => prefetchTeacherRoute(item.to)}
+      onFocus={() => prefetchTeacherRoute(item.to)}
+      onTouchStart={() => prefetchTeacherRoute(item.to)}
     >
       <Icon name={item.icon} />
       <span>{mobile ? item.shortLabel : item.label}</span>
