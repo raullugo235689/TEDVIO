@@ -1,5 +1,5 @@
 const LEGACY_CACHE_NAMESPACES=['tedvio-pilot-v76-20260828','tedvio-pilot-v60-20260825'];
-const CACHE='tedvio-2-production-20260902-core-2';
+const CACHE='tedvio-2-production-20260902-core-3';
 const STATIC=[
   '/manifest.webmanifest',
   '/assets/tedvio_icono_app_192.png',

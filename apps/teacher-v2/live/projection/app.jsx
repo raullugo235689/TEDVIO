@@ -5,17 +5,45 @@ import React, {
   useState,
 } from "react";
 import { createRoot } from "react-dom/client";
-import { createClient } from "@supabase/supabase-js";
-import QRCode from "qrcode";
+import { LiveSurfaceErrorBoundary } from "../shared/LiveSurfaceErrorBoundary.jsx";
 import "./base.css";
 import "./premium.css";
 
 const h = React.createElement;
 const cfg = window.TEDVIO_CONFIG || {};
 const configReady = Boolean(cfg.SUPABASE_URL && cfg.SUPABASE_PUBLISHABLE_KEY);
-const sb = configReady
-  ? createClient(cfg.SUPABASE_URL, cfg.SUPABASE_PUBLISHABLE_KEY)
-  : null;
+let projectionClient;
+let projectionClientPromise;
+let qrRendererPromise;
+
+async function getProjectionClient() {
+  if (!configReady) throw new Error("TEDVIO no pudo cargar su configuración.");
+  if (projectionClient) return projectionClient;
+  if (!projectionClientPromise) {
+    projectionClientPromise = import("@supabase/supabase-js")
+      .then(({ createClient }) => {
+        projectionClient = createClient(cfg.SUPABASE_URL, cfg.SUPABASE_PUBLISHABLE_KEY);
+        return projectionClient;
+      })
+      .catch((error) => {
+        projectionClientPromise = undefined;
+        throw error;
+      });
+  }
+  return projectionClientPromise;
+}
+
+function getQrRenderer() {
+  if (!qrRendererPromise) {
+    qrRendererPromise = import("qrcode")
+      .then((module) => module.default || module)
+      .catch((error) => {
+        qrRendererPromise = undefined;
+        throw error;
+      });
+  }
+  return qrRendererPromise;
+}
 const typeLabel = {
   multiple_choice: "Opción múltiple",
   multiple_select: "Selección múltiple",
@@ -32,7 +60,8 @@ function useCode() {
   const initial = new URLSearchParams(location.search).get("code") || "";
   return useState(initial.trim());
 }
-async function loadProjection(code, previous = null) {
+async function loadProjection(client, code, previous = null) {
+  const sb = client;
   const { data: meta, error: me } = await sb.rpc("v2_public_session_meta", {
     p_code: code,
   });
@@ -132,14 +161,16 @@ function QR({ code }) {
     const canvas = ref.current;
     canvas.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
     setFailed(false);
-    void QRCode.toCanvas(canvas, `${location.origin}/student-v2/?code=${encodeURIComponent(code)}`, {
-      width: 230,
-      margin: 1,
-      errorCorrectionLevel: "M",
-      color: { dark: "#0c2853", light: "#ffffff" },
-    }).catch(() => {
-      if (!cancelled) setFailed(true);
-    });
+    void getQrRenderer()
+      .then((QRCode) => QRCode.toCanvas(canvas, `${location.origin}/student-v2/?code=${encodeURIComponent(code)}`, {
+        width: 230,
+        margin: 1,
+        errorCorrectionLevel: "M",
+        color: { dark: "#0c2853", light: "#ffffff" },
+      }))
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
     return () => {
       cancelled = true;
     };
@@ -341,8 +372,14 @@ function Entry({ code, setCode, onOpen, error }) {
       "main",
       { className: "p2-main" },
       h(
-        "section",
-        { className: "p2-panel p2-entry" },
+        "form",
+        {
+          className: "p2-panel p2-entry",
+          onSubmit: (event) => {
+            event.preventDefault();
+            onOpen();
+          },
+        },
         logo(),
         h("span", { className: "p2-kicker" }, "Projection 2.x"),
         h("h1", null, "Pantalla de proyección"),
@@ -355,11 +392,14 @@ function Entry({ code, setCode, onOpen, error }) {
           inputMode: "numeric",
           maxLength: 6,
           placeholder: "000000",
+          "aria-label": "Código de sesión",
+          autoComplete: "one-time-code",
+          autoFocus: true,
         }),
-        error ? h("p", { style: { color: "#ff9b9b" } }, error) : null,
+        error ? h("p", { style: { color: "#ff9b9b" }, role: "alert" }, error) : null,
         h(
           "button",
-          { className: "p2-btn", onClick: onOpen, disabled: code.length !== 6 },
+          { className: "p2-btn", type: "submit", disabled: code.length !== 6 },
           "Abrir proyección",
         ),
       ),
@@ -585,8 +625,9 @@ function App() {
       navigator.onLine ? "connecting" : "offline",
     );
   useEffect(() => {
-    if (!active || !sb) return;
+    if (!active || !configReady) return;
     let disposed = false,
+      client = null,
       channel = null,
       channelKey = "",
       syncing = false,
@@ -611,11 +652,11 @@ function App() {
     };
     const connect = (x) => {
       const nextKey = `${x.s.session_id}:${x.s.current_question_id || "lobby"}`;
-      if (channelKey === nextKey) return;
-      if (channel) void sb.removeChannel(channel);
+      if (!client || channelKey === nextKey) return;
+      if (channel) void client.removeChannel(channel);
       channelKey = nextKey;
       setConnection(navigator.onLine ? "connecting" : "offline");
-      const ownedChannel = sb
+      const ownedChannel = client
         .channel(`projection-v2-${nextKey}`)
         .on(
           "postgres_changes",
@@ -684,7 +725,8 @@ function App() {
       }
       syncing = true;
       try {
-        const x = await loadProjection(code, lastState);
+        client ||= await getProjectionClient();
+        const x = await loadProjection(client, code, lastState);
         if (disposed) return;
         if (!x) {
           missingCount += 1;
@@ -765,7 +807,7 @@ function App() {
       removeEventListener("online", onOnline);
       removeEventListener("offline", onOffline);
       document.removeEventListener("visibilitychange", onVisibility);
-      if (channel) void sb.removeChannel(channel);
+      if (client && channel) void client.removeChannel(channel);
     };
   }, [active, code]);
   const open = () => {
@@ -809,4 +851,12 @@ function App() {
   return h(Live, { x: state, code, tick, connection, warning });
 }
 
-createRoot(document.getElementById("projectionApp")).render(h(App));
+const projectionRoot = document.getElementById("projectionApp");
+if (!projectionRoot) throw new Error("TEDVIO no encontró la superficie de proyección.");
+createRoot(projectionRoot).render(
+  h(
+    LiveSurfaceErrorBoundary,
+    { surface: "projection-v2", homeHref: "/projection-v2/" },
+    h(App),
+  ),
+);

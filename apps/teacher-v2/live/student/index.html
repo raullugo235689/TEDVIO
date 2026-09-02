@@ -10,7 +10,13 @@
   <link rel="icon" href="/assets/tedvio_icono_app_192.png">
 </head>
 <body>
-  <div id="studentApp"><div class="boot-screen"><div class="boot-mark">T</div><p>Preparando TEDVIO…</p></div></div>
+  <div id="studentApp">
+    <main class="boot-screen" role="status" aria-live="polite" aria-label="Preparando TEDVIO">
+      <div class="boot-mark">T</div>
+      <div class="boot-copy"><b>Preparando tu clase</b><p>Conectando la experiencia en vivo…</p></div>
+      <div class="boot-progress"><i></i></div>
+    </main>
+  </div>
   <script src="/config.js?v=56"></script>
   <script type="module" src="./app.jsx"></script>
 </body>

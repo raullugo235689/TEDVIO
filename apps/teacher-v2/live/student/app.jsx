@@ -6,16 +6,32 @@ import React, {
   useState,
 } from "react";
 import { createRoot } from "react-dom/client";
-import { createClient } from "@supabase/supabase-js";
+import { LiveSurfaceErrorBoundary } from "../shared/LiveSurfaceErrorBoundary.jsx";
 import "./base.css";
 import "./premium.css";
 
 const h = React.createElement;
 const cfg = window.TEDVIO_CONFIG || {};
 const configReady = Boolean(cfg.SUPABASE_URL && cfg.SUPABASE_PUBLISHABLE_KEY);
-const supabase = configReady
-  ? createClient(cfg.SUPABASE_URL, cfg.SUPABASE_PUBLISHABLE_KEY)
-  : null;
+let supabaseClient;
+let supabaseClientPromise;
+
+async function getSupabase() {
+  if (!configReady) throw new Error("TEDVIO no pudo cargar su configuración.");
+  if (supabaseClient) return supabaseClient;
+  if (!supabaseClientPromise) {
+    supabaseClientPromise = import("@supabase/supabase-js")
+      .then(({ createClient }) => {
+        supabaseClient = createClient(cfg.SUPABASE_URL, cfg.SUPABASE_PUBLISHABLE_KEY);
+        return supabaseClient;
+      })
+      .catch((error) => {
+        supabaseClientPromise = undefined;
+        throw error;
+      });
+  }
+  return supabaseClientPromise;
+}
 const STORAGE_KEY = "tedvio.student.v2.native";
 const LEGACY_KEY = "tedvio_v2_student";
 const OUTBOX_KEY = "tedvio.student.v2.outbox";
@@ -321,7 +337,8 @@ function createRequestId() {
 }
 
 async function submitWithReceipt(pending) {
-  const { data, error } = await supabase.rpc("v2_submit_response_v2", {
+  const client = await getSupabase();
+  const { data, error } = await client.rpc("v2_submit_response_v2", {
     p_question_id: pending.questionId,
     p_participant_id: pending.participantId,
     p_answer: pending.answer,
@@ -344,7 +361,8 @@ async function submitWithReceipt(pending) {
 }
 
 async function fetchAnswerReceipt(pending) {
-  const { data, error } = await supabase.rpc("v2_student_answer_result", {
+  const client = await getSupabase();
+  const { data, error } = await client.rpc("v2_student_answer_result", {
     p_question_id: pending.questionId,
     p_participant_id: pending.participantId,
   });
@@ -353,14 +371,19 @@ async function fetchAnswerReceipt(pending) {
 }
 
 async function recordHealth(student, eventType, latencyMs = null, details = {}) {
-  if (!supabase || !student?.sessionId || !student?.participantId || !navigator.onLine) return;
-  await supabase.rpc("v2_record_session_health", {
-    p_session_id: student.sessionId,
-    p_participant_id: student.participantId,
-    p_event_type: eventType,
-    p_latency_ms: latencyMs == null ? null : Math.max(0, Math.round(latencyMs)),
-    p_details: { surface: "student-v2", ...details },
-  });
+  if (!configReady || !student?.sessionId || !student?.participantId || !navigator.onLine) return;
+  try {
+    const client = await getSupabase();
+    await client.rpc("v2_record_session_health", {
+      p_session_id: student.sessionId,
+      p_participant_id: student.participantId,
+      p_event_type: eventType,
+      p_latency_ms: latencyMs == null ? null : Math.max(0, Math.round(latencyMs)),
+      p_details: { surface: "student-v2", ...details },
+    });
+  } catch {
+    // La telemetría nunca debe interrumpir la experiencia del alumno.
+  }
 }
 
 function friendly(error) {
@@ -385,7 +408,8 @@ function secondsLeft(question) {
 }
 
 async function fetchWorkspace(student) {
-  const { data: session, error: sessionError } = await supabase
+  const client = await getSupabase();
+  const { data: session, error: sessionError } = await client
     .from("v2_sessions")
     .select(
       "id,code,title,status,current_question_id,competitive,team_mode,started_at,closed_at",
@@ -395,7 +419,7 @@ async function fetchWorkspace(student) {
   if (sessionError) throw sessionError;
   if (!session) throw new Error("SESSION_NOT_FOUND");
 
-  const { data: questions, error: questionError } = await supabase
+  const { data: questions, error: questionError } = await client
     .from("v2_questions")
     .select(
       "id,position,prompt,question_type,options,media_url,media_type,timer_seconds,status,launched_at,closed_at",
@@ -408,7 +432,7 @@ async function fetchWorkspace(student) {
     (questions || []).find((q) => q.id === session.current_question_id) || null;
   let own = null;
   if (current) {
-    const { data, error } = await supabase.rpc("v2_student_answer_result", {
+    const { data, error } = await client.rpc("v2_student_answer_result", {
       p_question_id: current.id,
       p_participant_id: student.participantId,
     });
@@ -419,24 +443,25 @@ async function fetchWorkspace(student) {
 }
 
 async function fetchReveal(student, session, question) {
+  const client = await getSupabase();
   const [own, feedback, rank, group, correct] = await Promise.all([
-    supabase.rpc("v2_student_answer_result", {
+    client.rpc("v2_student_answer_result", {
       p_question_id: question.id,
       p_participant_id: student.participantId,
     }),
-    supabase.rpc("v2_student_answer_feedback", {
+    client.rpc("v2_student_answer_feedback", {
       p_question_id: question.id,
       p_participant_id: student.participantId,
     }),
-    supabase.rpc("v2_student_feedback", {
+    client.rpc("v2_student_feedback", {
       p_session_id: session.id,
       p_participant_id: student.participantId,
     }),
-    supabase.rpc("v2_public_question_results", {
+    client.rpc("v2_public_question_results", {
       p_session_id: session.id,
       p_question_id: question.id,
     }),
-    supabase
+    client
       .from("v2_questions")
       .select("correct_answer")
       .eq("id", question.id)
@@ -529,6 +554,8 @@ function JoinScreen({ initialCode, busy, error, onJoin }) {
             placeholder: "ABC123",
             maxLength: 12,
             autoCapitalize: "characters",
+            autoComplete: "one-time-code",
+            spellCheck: false,
             required: true,
           }),
         ),
@@ -541,6 +568,7 @@ function JoinScreen({ initialCode, busy, error, onJoin }) {
             onChange: (e) => setName(e.target.value),
             placeholder: "Tu nombre completo",
             maxLength: 100,
+            autoComplete: "name",
             required: true,
           }),
         ),
@@ -1177,7 +1205,7 @@ function App() {
   }, []);
 
   const refresh = useCallback(() => {
-    if (!student || !supabase) return Promise.resolve(false);
+    if (!student || !configReady) return Promise.resolve(false);
     const studentKey = `${student.sessionId}:${student.participantId}`;
     if (refreshPromiseRef.current) {
       refreshQueuedRef.current = studentKey;
@@ -1260,7 +1288,8 @@ function App() {
       });
       currentIdRef.current = next.current?.id || null;
       if (next.session.status === "closed") {
-        const { data, error: feedbackError } = await supabase.rpc("v2_student_feedback", {
+        const client = await getSupabase();
+        const { data, error: feedbackError } = await client.rpc("v2_student_feedback", {
           p_session_id: next.session.id,
           p_participant_id: student.participantId,
         });
@@ -1343,8 +1372,10 @@ function App() {
   }, [refresh]);
 
   useEffect(() => {
-    if (!student || !supabase) return;
+    if (!student || !configReady) return;
     let disposed = false;
+    let realtimeClient = null;
+    let channel = null;
     let pollTimer = 0;
     let eventTimer = 0;
     let fetchFailures = 0;
@@ -1401,47 +1432,58 @@ function App() {
     addEventListener("offline", pausePolling);
     document.addEventListener("visibilitychange", handleVisibility);
 
-    const channel = supabase
-      .channel(`student-v2-${student.sessionId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "v2_sessions",
-          filter: `id=eq.${student.sessionId}`,
-        },
-        () => requestSync(),
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "v2_questions",
-          filter: `session_id=eq.${student.sessionId}`,
-        },
-        () => requestSync(),
-      )
-      .subscribe((status) => {
-        if (realtimeStatusRef.current === status) return;
-        realtimeStatusRef.current = status;
-        if (!navigator.onLine) setConnection("offline");
-        else if (status === "SUBSCRIBED") {
-          setConnection("connected");
-          fetchFailures = 0;
-          recoveryStep = 0;
-          void recordHealth(student, "client_connected");
-        } else {
-          setConnection("reconnecting");
-          fetchFailures = Math.min(fetchFailures + 1, 4);
-          recoveryStep = Math.min(recoveryStep + 1, 4);
-          void recordHealth(student, "client_reconnecting", null, { reason: status });
-        }
+    void getSupabase()
+      .then((client) => {
+        if (disposed) return;
+        realtimeClient = client;
+        channel = client
+          .channel(`student-v2-${student.sessionId}`)
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "v2_sessions",
+              filter: `id=eq.${student.sessionId}`,
+            },
+            () => requestSync(),
+          )
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "v2_questions",
+              filter: `session_id=eq.${student.sessionId}`,
+            },
+            () => requestSync(),
+          )
+          .subscribe((status) => {
+            if (disposed || realtimeStatusRef.current === status) return;
+            realtimeStatusRef.current = status;
+            if (!navigator.onLine) setConnection("offline");
+            else if (status === "SUBSCRIBED") {
+              setConnection("connected");
+              fetchFailures = 0;
+              recoveryStep = 0;
+              void recordHealth(student, "client_connected");
+            } else {
+              setConnection("reconnecting");
+              fetchFailures = Math.min(fetchFailures + 1, 4);
+              recoveryStep = Math.min(recoveryStep + 1, 4);
+              void recordHealth(student, "client_reconnecting", null, { reason: status });
+            }
+            schedulePoll();
+          });
+        requestSync(0);
         schedulePoll();
+      })
+      .catch(() => {
+        if (!disposed) {
+          setConnection(navigator.onLine ? "reconnecting" : "offline");
+          schedulePoll();
+        }
       });
-    requestSync(0);
-    schedulePoll();
     return () => {
       disposed = true;
       window.clearTimeout(pollTimer);
@@ -1450,7 +1492,7 @@ function App() {
       removeEventListener("offline", pausePolling);
       document.removeEventListener("visibilitychange", handleVisibility);
       realtimeStatusRef.current = "";
-      void supabase.removeChannel(channel);
+      if (realtimeClient && channel) void realtimeClient.removeChannel(channel);
     };
   }, [student, refresh]);
 
@@ -1459,8 +1501,8 @@ function App() {
     setError("");
     setNotice(null);
     try {
-      if (!supabase) throw new Error("TEDVIO no pudo cargar su configuración. Actualiza la página.");
-      const { data, error: joinError } = await supabase.rpc(
+      const client = await getSupabase();
+      const { data, error: joinError } = await client.rpc(
         "v2_join_session_v3",
         {
           p_code: code.trim().toUpperCase(),
@@ -1552,7 +1594,7 @@ function App() {
     } catch (e) {
       let storedReceipt = null;
       let receiptCheckFailed = false;
-      if (navigator.onLine && supabase) {
+      if (navigator.onLine && configReady) {
         try {
           storedReceipt = await fetchAnswerReceipt(pending);
         } catch {
@@ -1695,4 +1737,12 @@ function App() {
   );
 }
 
-createRoot(document.getElementById("studentApp")).render(h(App));
+const studentRoot = document.getElementById("studentApp");
+if (!studentRoot) throw new Error("TEDVIO no encontró la superficie del alumno.");
+createRoot(studentRoot).render(
+  h(
+    LiveSurfaceErrorBoundary,
+    { surface: "student-v2", homeHref: "/student-v2/" },
+    h(App),
+  ),
+);
