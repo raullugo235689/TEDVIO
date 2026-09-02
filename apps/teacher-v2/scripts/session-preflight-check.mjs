@@ -32,15 +32,14 @@ must(
     && core.includes("anonymousClient('session-preflight-student')"),
   'Student de prueba usa un cliente realmente anónimo y aislado',
 );
-must(core.includes("'/student-v2/app.js'") && core.includes("'/projection-v2/projection-v2.js'") && core.includes('cdnjs.cloudflare.com'), 'se comprueban aplicaciones locales y runtimes externos');
-must(core.includes("link.rel = 'preload'") && core.includes("link.as = 'script'")
-  && !core.includes("document.createElement('script')") && !core.includes('@vite-ignore'),
-  'los runtimes públicos se descargan sin ejecutar código externo en Teacher');
+must(core.includes('fetchBundledSurface') && core.includes('url.origin !== window.location.origin'), 'se comprueban aplicaciones y bundles del mismo origen');
+must(!core.includes('preloadExternalRuntime') && !core.includes('esm.sh') && !core.includes('cdnjs.cloudflare.com'),
+  'el preflight ya no depende de runtimes externos');
 must(core.indexOf('createRealtimeProbe') < core.indexOf("p_action: 'launch'"), 'Realtime se suscribe antes de publicar la pregunta');
-must(core.includes("rpc('v2_join_session_v3'") && core.includes("rpc('v2_submit_response'"), 'el ensayo usa las RPC académicas canónicas');
+must(core.includes("rpc('v2_join_session_v3'") && core.includes("rpc('v2_submit_response_v2'"), 'el ensayo usa unión canónica y recibos idempotentes');
 must(core.includes("p_action: 'launch'") && core.includes("p_action: 'reveal'"), 'Teacher prueba publicación y revelado mediante el comando atómico');
 must(core.includes("select('correct_answer,explanation')") && core.includes('data.correct_answer != null'), 'el preflight impide exponer la respuesta durante la pregunta');
-must(core.includes('duplicate_guard') && core.includes("includes('duplicate')"), 'el doble envío debe quedar bloqueado');
+must(core.includes('duplicate_guard') && core.includes("status !== 'replayed'") && core.includes('receipt_version !== 1') && core.includes('responseReceiptId'), 'el doble envío recupera exactamente el mismo recibo');
 must(core.includes("rpc('v2_student_answer_result'") && core.includes('recoveryClient'), 'la respuesta se recupera desde un cliente reconstruido');
 must(core.includes("rpc('v2_public_live_counts'") && core.includes("rpc('v2_public_question_results'") && core.includes("rpc('v2_public_ranking'"), 'Projection reconstruye todo el estado público');
 must(core.includes("waitForEvents(['session', 'question', 'participant', 'response'])"), 'Realtime debe entregar las cuatro fronteras de la microclase');

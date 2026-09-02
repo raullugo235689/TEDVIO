@@ -6,6 +6,8 @@ on:
     paths:
       - 'apps/teacher-v2/**'
       - 'teacher-v2/**'
+      - 'student-v2/**'
+      - 'projection-v2/**'
       - '.github/workflows/tedvio-2-build.yml'
       - 'TEDVIO-2-REBUILD.md'
   pull_request:
@@ -13,6 +15,8 @@ on:
     paths:
       - 'apps/teacher-v2/**'
       - 'teacher-v2/**'
+      - 'student-v2/**'
+      - 'projection-v2/**'
       - '.github/workflows/tedvio-2-build.yml'
       - 'TEDVIO-2-REBUILD.md'
   workflow_dispatch:
@@ -49,13 +53,17 @@ jobs:
         run: |
           test -f teacher-v2/index.html
           test -d teacher-v2/assets
-          ! grep -R "OPENAI\|AI_GATEWAY\|service_role" teacher-v2 apps/teacher-v2/src
+          test -f student-v2/index.html
+          test -d student-v2/assets
+          test -f projection-v2/index.html
+          test -d projection-v2/assets
+          ! grep -R "OPENAI\|AI_GATEWAY\|service_role" teacher-v2 student-v2 projection-v2 apps/teacher-v2/src
       - name: Commit reproducible lockfile and production artifact
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/rebuild/tedvio-2')) && github.actor != 'github-actions[bot]'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add apps/teacher-v2/package-lock.json teacher-v2
+          git add apps/teacher-v2/package-lock.json teacher-v2 student-v2 projection-v2
           if git diff --cached --quiet; then
             echo "Production artifact already current."
           else

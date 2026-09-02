@@ -30,6 +30,12 @@ function resolveRequest(rawUrl) {
   if (pathname === '/teacher-legacy' || pathname === '/teacher-legacy/') {
     return path.join(repositoryRoot, 'teacher.html');
   }
+  if (pathname === '/student-v2' || pathname === '/student-v2/') {
+    return path.join(repositoryRoot, 'student-v2/index.html');
+  }
+  if (pathname === '/projection-v2' || pathname === '/projection-v2/') {
+    return path.join(repositoryRoot, 'projection-v2/index.html');
+  }
   const relative = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
   return path.join(repositoryRoot, relative);
 }

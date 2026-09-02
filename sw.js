@@ -1,5 +1,5 @@
 const LEGACY_CACHE_NAMESPACES=['tedvio-pilot-v76-20260828','tedvio-pilot-v60-20260825'];
-const CACHE='tedvio-2-production-20260831';
+const CACHE='tedvio-2-production-20260902-core-2';
 const STATIC=[
   '/manifest.webmanifest',
   '/assets/tedvio_icono_app_192.png',
@@ -8,6 +8,12 @@ const STATIC=[
   '/assets/tedvio_official_horizontal.svg'
 ];
 const TEACHER_SHELL='/teacher';
+const LIVE_SHELLS={
+  '/student-v2':'/student-v2/',
+  '/student-v2/':'/student-v2/',
+  '/projection-v2':'/projection-v2/',
+  '/projection-v2/':'/projection-v2/'
+};
 
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(STATIC).catch(()=>{})));
@@ -55,6 +61,35 @@ self.addEventListener('fetch',event=>{
         return (await caches.match(TEACHER_SHELL))||Response.error();
       }
     })());
+    return;
+  }
+
+  const liveShell=LIVE_SHELLS[url.pathname];
+  if(request.mode==='navigate'&&liveShell){
+    event.respondWith((async()=>{
+      try{
+        const response=await fetch(new Request(request,{cache:'no-store'}));
+        if(response.ok){
+          const copy=response.clone();
+          caches.open(CACHE).then(cache=>cache.put(liveShell,copy)).catch(()=>{});
+        }
+        return response;
+      }catch{
+        return (await caches.match(liveShell))||Response.error();
+      }
+    })());
+    return;
+  }
+
+  const immutableAsset=/^\/(?:teacher-v2|student-v2|projection-v2)\/assets\//.test(url.pathname);
+  if(immutableAsset){
+    event.respondWith(caches.match(request).then(cached=>cached||fetch(request).then(response=>{
+      if(response.ok){
+        const copy=response.clone();
+        caches.open(CACHE).then(cache=>cache.put(request,copy)).catch(()=>{});
+      }
+      return response;
+    })));
     return;
   }
 

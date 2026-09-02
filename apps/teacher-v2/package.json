@@ -9,20 +9,26 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "typecheck": "tsc --noEmit --pretty false",
-    "test:architecture": "node scripts/architecture-check.mjs && node scripts/omr-check.mjs && node scripts/gradebook-check.mjs && node scripts/student360-check.mjs && node scripts/phase5-check.mjs && node scripts/phase6-check.mjs && node scripts/launch-truth-check.mjs && node scripts/reliability-check.mjs && node scripts/classroom-entry-check.mjs && node scripts/student-v2-entry-check.mjs && node scripts/projection-v2-check.mjs && node scripts/postclass-intelligence-check.mjs && node scripts/analytics-check.mjs && node scripts/pilot-recovery-check.mjs && node scripts/pilot-health-check.mjs && node scripts/session-preflight-check.mjs",
+    "test:architecture": "node scripts/architecture-check.mjs && node scripts/omr-check.mjs && node scripts/gradebook-check.mjs && node scripts/student360-check.mjs && node scripts/phase5-check.mjs && node scripts/phase6-check.mjs && node scripts/launch-truth-check.mjs && node scripts/reliability-check.mjs && node scripts/classroom-entry-check.mjs && node scripts/student-v2-entry-check.mjs && node scripts/projection-v2-check.mjs && node scripts/postclass-intelligence-check.mjs && node scripts/analytics-check.mjs && node scripts/pilot-recovery-check.mjs && node scripts/pilot-health-check.mjs && node scripts/session-preflight-check.mjs && node scripts/response-receipts-check.mjs && node scripts/live-surfaces-bundle-check.mjs",
     "test:security": "node scripts/security-check.mjs",
     "test:launch": "node scripts/launch-readiness-check.mjs",
-    "build": "vite build",
-    "quality": "npm run typecheck && npm run test:architecture && npm run test:security && npm run test:launch && npm run build"
+    "build:teacher": "vite build",
+    "build:student": "node scripts/clean-live-surface.mjs student-v2 && vite build --config vite.live.config.ts --mode student-v2",
+    "build:projection": "node scripts/clean-live-surface.mjs projection-v2 && vite build --config vite.live.config.ts --mode projection-v2",
+    "build:surfaces": "npm run build:student && npm run build:projection",
+    "build": "npm run build:teacher && npm run build:surfaces",
+    "quality": "npm run typecheck && npm run build && npm run test:architecture && npm run test:security && npm run test:launch"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.112.4",
     "@tanstack/react-query": "5.102.2",
+    "qrcode": "1.5.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-router-dom": "7.18.2"
   },
   "devDependencies": {
+    "@types/node": "22.15.30",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
     "@vitejs/plugin-react": "6.1.0",

@@ -7,7 +7,7 @@ const migration = fs.readFileSync(path.join(root, 'supabase/migrations/202609011
 const core = fs.readFileSync(path.join(appRoot, 'src/core/pilot-health.ts'), 'utf8');
 const page = fs.readFileSync(path.join(appRoot, 'src/features/reliability/PilotHealthPage.tsx'), 'utf8');
 const app = fs.readFileSync(path.join(appRoot, 'src/app/App.tsx'), 'utf8');
-const student = fs.readFileSync(path.join(root, 'student-v2/app.js'), 'utf8');
+const student = fs.readFileSync(path.join(appRoot, 'live/student/app.jsx'), 'utf8');
 const failures = [];
 const must = (condition, message) => condition ? console.log('OK  ', message) : (failures.push(message), console.error('FAIL', message));
 
