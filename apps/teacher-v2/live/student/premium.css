@@ -1,0 +1,38 @@
+.net.pending {
+  background: #fff7e6;
+  color: #936012;
+}
+
+.notice-box {
+  padding: 12px 14px;
+  border: 1px solid #d9e6fb;
+  border-radius: 14px;
+  background: #f1f6ff;
+  color: #24578f;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 8px 24px rgba(16, 47, 88, 0.07);
+}
+
+.notice-box.floating { margin-bottom: 12px; }
+.notice-box.success { border-color: #ccebd9; background: #edfaf2; color: #176b41; }
+.notice-box.warning { border-color: #f2deb0; background: #fff8e8; color: #885d10; }
+.notice-box.info { border-color: #d9e6fb; background: #f1f6ff; color: #24578f; }
+
+.primary-btn:focus-visible,
+.secondary-btn:focus-visible,
+.option:focus-visible,
+.scale button:focus-visible,
+.leave-link:focus-visible {
+  outline: 3px solid rgba(39, 107, 255, 0.4);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

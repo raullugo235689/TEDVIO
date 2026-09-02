@@ -163,42 +163,27 @@ async function fetchSurfaceText(path: string, marker: string): Promise<void> {
   if (!body.includes(marker)) throw new Error(`${path} no publicó su marcador esperado.`);
 }
 
-async function preloadExternalRuntime(url: string): Promise<void> {
-  const link = document.createElement('link');
-  link.rel = 'preload';
-  link.as = 'script';
-  link.href = url;
-  link.crossOrigin = 'anonymous';
-  link.referrerPolicy = 'no-referrer';
-  try {
-    await withTimeout(new Promise<void>((resolve, reject) => {
-      link.addEventListener('load', () => resolve(), { once: true });
-      link.addEventListener('error', () => reject(new Error(`La red bloqueó ${url}`)), { once: true });
-      document.head.append(link);
-    }), 7_000, `La red no respondió al descargar ${url}`);
-  } finally {
-    link.remove();
-  }
+async function fetchBundledSurface(path: string, htmlMarker: string, bundleMarker: string): Promise<void> {
+  const response = await fetch(path, { cache: 'no-store', credentials: 'same-origin' });
+  if (!response.ok) throw new Error(`${path} respondió HTTP ${response.status}`);
+  const html = await response.text();
+  if (!html.includes(htmlMarker)) throw new Error(`${path} no publicó su marcador esperado.`);
+  const source = html.match(/<script[^>]+type=["']module["'][^>]+src=["']([^"']+)["']/i)?.[1]
+    || html.match(/<script[^>]+src=["']([^"']+)["'][^>]+type=["']module["']/i)?.[1];
+  if (!source) throw new Error(`${path} no declaró su aplicación empaquetada.`);
+  const url = new URL(source, window.location.origin);
+  if (url.origin !== window.location.origin) throw new Error(`${path} depende de un runtime externo.`);
+  await fetchSurfaceText(url.pathname, bundleMarker);
 }
 
 async function checkStudentSurface(): Promise<string> {
-  await Promise.all([
-    fetchSurfaceText('/student-v2/', 'data-tedvio-surface="student-v2-react"'),
-    fetchSurfaceText('/student-v2/app.js', 'v2_join_session_v3'),
-    preloadExternalRuntime('https://esm.sh/react@19.2.0'),
-    preloadExternalRuntime('https://esm.sh/@supabase/supabase-js@2.112.4'),
-  ]);
-  return 'HTML, aplicación y runtime de Student disponibles.';
+  await fetchBundledSurface('/student-v2/', 'data-tedvio-surface="student-v2-react"', 'v2_join_session_v3');
+  return 'Student está disponible con su runtime protegido dentro de TEDVIO.';
 }
 
 async function checkProjectionSurface(): Promise<string> {
-  await Promise.all([
-    fetchSurfaceText('/projection-v2/', 'data-tedvio-surface="projection-v2"'),
-    fetchSurfaceText('/projection-v2/projection-v2.js', 'v2_public_live_counts'),
-    preloadExternalRuntime('https://esm.sh/react-dom@19.2.0/client'),
-    preloadExternalRuntime('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'),
-  ]);
-  return 'HTML, aplicación, runtime y generador QR disponibles.';
+  await fetchBundledSurface('/projection-v2/', 'data-tedvio-surface="projection-v2"', 'v2_public_live_counts');
+  return 'Projection y su generador QR están protegidos dentro de TEDVIO.';
 }
 
 export async function fetchSessionPreflightRuns(sessionId: string): Promise<SessionPreflightRun[]> {
@@ -236,6 +221,8 @@ export async function runSessionPreflight(
   const recoveryClient = anonymousClient('session-preflight-recovery');
   const realtime = createRealtimeProbe(studentClient, start.session_id, start.question_id);
   let participantId = '';
+  let responseRequestId = '';
+  let responseReceiptId = '';
   let realtimeSubscribed = false;
   let realtimeSubscriptionError = '';
 
@@ -329,24 +316,68 @@ export async function runSessionPreflight(
 
     await runCheck('response_submit', async () => {
       if (!participantId) throw new Error('No existe un participante de prueba.');
-      const { error } = await studentClient.rpc('v2_submit_response', {
+      responseRequestId = crypto.randomUUID();
+      const { data, error } = await studentClient.rpc('v2_submit_response_v2', {
         p_question_id: start.question_id,
         p_participant_id: participantId,
         p_answer: start.expected_answer,
+        p_request_id: responseRequestId,
       });
       if (error) throw error;
-      return 'La respuesta obtuvo confirmación del motor académico.';
+      const receipt = data as {
+        receipt_version?: number;
+        confirmed?: boolean;
+        response_id?: string;
+        request_id?: string;
+        question_id?: string;
+        submitted_at?: string;
+        status?: string;
+      } | null;
+      responseReceiptId = receipt?.response_id || '';
+      if (
+        receipt?.receipt_version !== 1
+        || !receipt.confirmed
+        || !responseReceiptId
+        || receipt.status !== 'recorded'
+        || receipt.request_id !== responseRequestId
+        || receipt.question_id !== start.question_id
+        || !receipt.submitted_at
+      ) throw new Error('El motor no devolvió un recibo válido.');
+      return 'La respuesta obtuvo un recibo único del motor académico.';
     });
 
     await runCheck('duplicate_guard', async () => {
-      if (!participantId) throw new Error('No existe un participante de prueba.');
-      const { error } = await studentClient.rpc('v2_submit_response', {
+      if (!participantId || !responseRequestId || !responseReceiptId) throw new Error('No existe un recibo de prueba.');
+      const { data, error } = await studentClient.rpc('v2_submit_response_v2', {
         p_question_id: start.question_id,
         p_participant_id: participantId,
         p_answer: start.expected_answer,
+        p_request_id: responseRequestId,
       });
-      if (!error || !message(error).toLowerCase().includes('duplicate')) throw new Error('El segundo envío no fue bloqueado explícitamente.');
-      return 'El motor bloqueó el doble envío.';
+      if (error) throw error;
+      const receipt = data as {
+        receipt_version?: number;
+        confirmed?: boolean;
+        response_id?: string;
+        request_id?: string;
+        question_id?: string;
+        submitted_at?: string;
+        status?: string;
+        duplicate?: boolean;
+      } | null;
+      if (
+        receipt?.receipt_version !== 1
+        || !receipt.confirmed
+        || receipt.status !== 'replayed'
+        || !receipt.duplicate
+        || receipt.response_id !== responseReceiptId
+        || receipt.request_id !== responseRequestId
+        || receipt.question_id !== start.question_id
+        || !receipt.submitted_at
+      ) {
+        throw new Error('El reintento no recuperó el mismo recibo.');
+      }
+      return 'El motor convirtió el doble envío en el mismo recibo, sin duplicar datos.';
     });
 
     await runCheck('recovery_receipt', async () => {

@@ -1,0 +1,54 @@
+.p2-sync-notice {
+  width: min(100%, 1480px);
+  margin: 0 auto 12px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 196, 86, 0.3);
+  border-radius: 14px;
+  background: rgba(255, 190, 69, 0.1);
+  color: #ffe2a5;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.p2-connection.connecting,
+.p2-connection.reconnecting {
+  color: #ffe2a5;
+  border-color: rgba(255, 196, 86, 0.28);
+}
+
+.p2-connection.connecting .p2-dot,
+.p2-connection.reconnecting .p2-dot {
+  background: #ffc45b;
+}
+
+.p2-qr canvas {
+  display: block;
+  width: min(230px, 28vw);
+  height: auto;
+  border-radius: 8px;
+}
+
+.p2-qr-fallback {
+  display: block;
+  padding: 32px 18px;
+  color: #0c2853;
+  font-size: 24px;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+}
+
+.p2-btn:focus-visible,
+.p2-code-input:focus-visible {
+  outline: 3px solid rgba(113, 164, 255, 0.75);
+  outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

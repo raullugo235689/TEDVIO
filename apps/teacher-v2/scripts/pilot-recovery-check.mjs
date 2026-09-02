@@ -6,8 +6,8 @@ const root = path.resolve(appRoot, '../..');
 const migration = fs.readFileSync(path.join(root, 'supabase/migrations/20260901170000_pilot_live_recovery.sql'), 'utf8');
 const classroom = fs.readFileSync(path.join(appRoot, 'src/core/classroom.ts'), 'utf8');
 const page = fs.readFileSync(path.join(appRoot, 'src/features/classroom/ClassroomPage.tsx'), 'utf8');
-const student = fs.readFileSync(path.join(root, 'student-v2/app.js'), 'utf8');
-const projection = fs.readFileSync(path.join(root, 'projection-v2/projection-v2.js'), 'utf8');
+const student = fs.readFileSync(path.join(appRoot, 'live/student/app.jsx'), 'utf8');
+const projection = fs.readFileSync(path.join(appRoot, 'live/projection/app.jsx'), 'utf8');
 const failures = [];
 const must = (condition, message) => condition ? console.log('OK  ', message) : (failures.push(message), console.error('FAIL', message));
 
@@ -18,8 +18,8 @@ must(migration.includes("then r.answer else null") && migration.includes('r.subm
 must(!/realtime\s*\./i.test(migration), 'la migración no modifica el esquema reservado Realtime');
 must(classroom.includes("supabase.rpc('v2_teacher_classroom_command'") && !classroom.includes("update({ status: 'live'"), 'Teacher usa el comando atómico');
 must(classroom.includes("status === 'SUBSCRIBED'") && page.includes("connection === 'connected'") && page.includes('5_000'), 'Teacher muestra conexión y activa respaldo sólo al degradarse');
-must(student.includes('OUTBOX_KEY') && student.includes('submitLockRef') && student.includes('saveOutbox(pending)'), 'Student guarda respuestas pendientes y bloquea dobles toques');
-must(student.includes('isDuplicate(submitError)') && student.includes('document.visibilityState'), 'Student recupera confirmaciones y vuelve a sincronizar al regresar');
+must(student.includes('OUTBOX_KEY') && student.includes('submitLockRef') && student.includes('getOrCreateOutboxEntry(freshPending)') && student.includes('pendingQuestionIds'), 'Student guarda respuestas pendientes y bloquea dobles toques');
+must(student.includes('submitWithReceipt(pending)') && student.includes('document.visibilityState'), 'Student recupera recibos y vuelve a sincronizar al regresar');
 must(projection.includes('channelKey') && projection.includes('question_id=eq.${x.s.current_question_id}'), 'Projection reconstruye y filtra el canal por pregunta');
 must(/status === ["']SUBSCRIBED["']/.test(projection) && projection.includes('visibilitychange'), 'Projection informa y recupera su conexión');
 

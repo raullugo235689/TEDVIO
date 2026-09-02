@@ -51,3 +51,39 @@ test('el shell no queda en blanco durante el arranque móvil', async ({ page }) 
   expect(rect).not.toBeNull();
   expect(rect.width).toBeGreaterThan(250);
 });
+
+test('Student 2.x carga su cliente local y permite preparar el acceso', async ({ page }) => {
+  const failedRequests = [];
+  const pageErrors = [];
+  page.on('requestfailed', (request) => failedRequests.push(request.url()));
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+
+  await page.goto('/student-v2/', { waitUntil: 'networkidle' });
+
+  await expect(page).toHaveTitle('Clase en vivo · TEDVIO');
+  await expect(page.locator('html')).toHaveAttribute('data-tedvio-surface', 'student-v2-react');
+  await expect(page.getByRole('heading', { name: 'Entra a tu sesión' })).toBeVisible();
+  await expect(page.getByLabel('Código de clase')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Entrar a clase' })).toBeDisabled();
+  await expect(page.locator('#studentApp')).not.toBeEmpty();
+  expect(failedRequests).toEqual([]);
+  expect(pageErrors).toEqual([]);
+});
+
+test('Projection 2.x carga su cliente local sin dejar una pantalla vacía', async ({ page }) => {
+  const failedRequests = [];
+  const pageErrors = [];
+  page.on('requestfailed', (request) => failedRequests.push(request.url()));
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+
+  await page.goto('/projection-v2/', { waitUntil: 'networkidle' });
+
+  await expect(page).toHaveTitle('TEDVIO · Projection 2.x');
+  await expect(page.locator('html')).toHaveAttribute('data-tedvio-surface', 'projection-v2');
+  await expect(page.getByRole('heading', { name: 'Pantalla de proyección' })).toBeVisible();
+  await expect(page.getByPlaceholder('000000')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Abrir proyección' })).toBeDisabled();
+  await expect(page.locator('#projectionApp')).not.toBeEmpty();
+  expect(failedRequests).toEqual([]);
+  expect(pageErrors).toEqual([]);
+});
