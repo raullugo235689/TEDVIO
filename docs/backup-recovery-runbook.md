@@ -28,6 +28,10 @@ La antigua inserción de un código estático de demostración fue omitida delib
 
 ## Simulacro trimestral de restauración
 
+La organización actual está en **plan Free**, por lo que Supabase Branching no está disponible. Mientras se mantenga ese plan, el workflow `TEDVIO Isolated Restore Drill` levanta un Supabase local desechable en GitHub Actions, ejecuta **Restore schema from zero**, aplica todas las migraciones y valida tablas académicas, RLS, RPC, Realtime, Auth y la ausencia de códigos docentes estáticos. No usa credenciales, datos ni referencias de producción y destruye el entorno al terminar.
+
+Este ensayo automático se ejecuta trimestralmente y en cada cambio del esquema. Es una prueba real de reconstrucción lógica, pero no sustituye la restauración de un respaldo con filas ni la prueba de archivos de Storage. Cuando se habilite Pro, se debe complementar con una rama efímera y datos sintéticos o anonimizados.
+
 **Nunca restaurar sobre producción.** Crear o seleccionar un entorno aislado dedicado exclusivamente a recuperación y verificar por dos personas que su referencia no corresponde al proyecto productivo.
 
 1. Elegir un respaldo anterior al punto del incidente simulado.
