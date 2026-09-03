@@ -49,6 +49,9 @@ export function LoginPage() {
   const [openDocument, setOpenDocument] = useState<RequiredLegalDocument | null>(null);
   const [legalLoading, setLegalLoading] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const [showPassword, setShowPassword] = useState(false);
+  const [capsLock, setCapsLock] = useState(false);
+  const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
 
   const policy = useMemo(() => passwordPolicy(password, email), [email, password]);
   const allLegalAccepted = documents.length > 0
@@ -100,6 +103,17 @@ export function LoginPage() {
       if (timer !== undefined) window.clearTimeout(timer);
     };
   }, [mode]);
+
+  useEffect(() => {
+    const markOnline = () => setOnline(true);
+    const markOffline = () => setOnline(false);
+    window.addEventListener('online', markOnline);
+    window.addEventListener('offline', markOffline);
+    return () => {
+      window.removeEventListener('online', markOnline);
+      window.removeEventListener('offline', markOffline);
+    };
+  }, []);
 
   if (auth.status === 'loading') return <LoadingScreen label="Recuperando tu sesión…" />;
   if (auth.status === 'authenticated') return <Navigate to="/" replace />;
@@ -212,6 +226,28 @@ export function LoginPage() {
           <h2>{modeTitle(mode)}</h2>
           <p>{modeDetail(mode)}</p>
 
+          {!online ? (
+            <div className="auth-access-status offline" role="status">
+              <Icon name="alert" />
+              <div><b>Sin conexión</b><span>Recupera la señal para ingresar. No necesitas volver a escribir tus datos.</span></div>
+            </div>
+          ) : null}
+
+          {auth.accessIssue ? (
+            <div className="auth-access-status recoverable" role="alert">
+              <Icon name="shield" />
+              <div>
+                <b>La sesión guardada necesita atención</b>
+                <span>{auth.accessIssue.message}</span>
+                <small>Referencia: {auth.accessIssue.code}</small>
+              </div>
+              <div className="auth-access-status-actions">
+                <button type="button" onClick={() => void auth.retrySession()}>Reintentar</button>
+                <button type="button" onClick={() => void auth.clearLocalSession()}>Limpiar sesión</button>
+              </div>
+            </div>
+          ) : null}
+
           {(mode === 'signin' || mode === 'signup') ? (
             <div className="segmented" aria-label="Tipo de acceso">
               <button type="button" className={mode === 'signin' ? 'active' : ''} onClick={() => changeMode('signin')}>Ingresar</button>
@@ -239,19 +275,28 @@ export function LoginPage() {
             </label>
 
             {(mode === 'signin' || mode === 'signup') ? (
-              <label>
-                Contraseña
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-                  placeholder={mode === 'signup' ? '12 caracteres o más' : 'Tu contraseña'}
-                  minLength={mode === 'signup' ? 12 : 1}
-                  maxLength={128}
-                  required
-                />
-              </label>
+              <div className="auth-field">
+                <label htmlFor="tedvio-auth-password">Contraseña</label>
+                <span className="auth-password-field">
+                  <input
+                    id="tedvio-auth-password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    onKeyUp={(event) => setCapsLock(event.getModifierState('CapsLock'))}
+                    onKeyDown={(event) => setCapsLock(event.getModifierState('CapsLock'))}
+                    autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                    placeholder={mode === 'signup' ? '12 caracteres o más' : 'Tu contraseña'}
+                    minLength={mode === 'signup' ? 12 : 1}
+                    maxLength={128}
+                    required
+                  />
+                  <button type="button" onClick={() => setShowPassword((current) => !current)} aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}>
+                    {showPassword ? 'Ocultar' : 'Mostrar'}
+                  </button>
+                </span>
+                {capsLock ? <small className="auth-caps-warning">Bloq Mayús está activado.</small> : null}
+              </div>
             ) : null}
 
             {mode === 'signup' ? <PasswordChecklist policy={policy} /> : null}
@@ -286,7 +331,7 @@ export function LoginPage() {
             <button
               className="button primary wide"
               type="submit"
-              disabled={busy || legalLoading || ((mode === 'recover' || mode === 'resend') && cooldown > 0)}
+              disabled={!online || busy || legalLoading || ((mode === 'recover' || mode === 'resend') && cooldown > 0)}
             >
               {busy
                 ? 'Procesando…'
