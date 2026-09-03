@@ -8,6 +8,7 @@ const repositoryRoot = path.resolve(new URL('../..', import.meta.url).pathname);
 const migrationsDirectory = path.join(repositoryRoot, 'supabase', 'migrations');
 const workflow = fs.readFileSync(path.join(repositoryRoot, '.github/workflows/backup-recovery-readiness.yml'), 'utf8');
 const runbook = fs.readFileSync(path.join(repositoryRoot, 'docs/backup-recovery-runbook.md'), 'utf8');
+const remoteInventory = JSON.parse(fs.readFileSync(path.join(repositoryRoot, 'supabase/recovery/production-migration-inventory.json'), 'utf8'));
 const failures = [];
 
 function must(condition, message) {
@@ -22,6 +23,7 @@ const migrationFiles = fs.readdirSync(migrationsDirectory)
   .filter((file) => /^\d{14}_[a-z0-9_]+\.sql$/.test(file))
   .sort();
 const versions = migrationFiles.map((file) => file.slice(0, 14));
+const migrationKeys = new Set(migrationFiles.map((file) => file.replace(/\.sql$/, '')));
 const migrationText = migrationFiles
   .map((file) => fs.readFileSync(path.join(migrationsDirectory, file), 'utf8'))
   .join('\n');
@@ -55,6 +57,16 @@ for (const object of criticalObjects) {
   must(migrationText.includes(object), `el historial referencia ${object}`);
 }
 must(manifest.split('\n').length === migrationFiles.length, 'cada migración produce una huella SHA-256 reproducible');
+must(remoteInventory.project_ref === 'ggjknixnrjzkzkpwbwsl', 'el inventario corresponde al proyecto productivo TEDVIO');
+must(remoteInventory.migrations.length >= 100, 'el inventario conserva el ledger productivo completo conocido');
+must(new Set(remoteInventory.migrations.map(({ version }) => version)).size === remoteInventory.migrations.length, 'el ledger remoto no contiene versiones duplicadas');
+const foundationalLedger = remoteInventory.migrations.filter(({ version }) => version < '20260828134154');
+must(foundationalLedger.length === 67, 'el inventario identifica las 67 migraciones fundacionales recuperadas');
+for (const { version, name } of foundationalLedger) {
+  must(migrationKeys.has(`${version}_${name}`), `GitHub conserva la migración fundacional ${version}_${name}`);
+}
+must(!migrationText.includes("digest('TEDVIO2026'"), 'el esquema recuperado no conserva el código estático de demostración');
+must(migrationText.includes('Recovery baseline intentionally omits the historical static demo access-code seed.'), 'la omisión del acceso histórico queda documentada');
 
 must(workflow.includes('permissions:\n  contents: read'), 'el control de continuidad usa permisos de solo lectura');
 must(workflow.includes('backup-recovery-check.mjs'), 'CI ejecuta el contrato de recuperación');
@@ -67,6 +79,7 @@ must(runbook.includes('entorno aislado') && runbook.includes('Nunca restaurar so
 must(runbook.includes('Storage') && runbook.includes('no incluye'), 'el alcance distingue base de datos y objetos de Storage');
 must(runbook.includes('auth.users') && runbook.includes('Realtime'), 'la lista de verificación cubre identidad y sesiones en vivo');
 must(runbook.includes('Evidencia mínima'), 'el procedimiento exige evidencia auditable');
+must(runbook.includes('67 migraciones fundacionales') && runbook.includes('111 entradas'), 'el runbook registra la reconciliación del ledger productivo');
 
 if (failures.length) {
   console.error(`\n${failures.length} control(es) de recuperación fallaron.`);

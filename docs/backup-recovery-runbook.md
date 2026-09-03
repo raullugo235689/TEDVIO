@@ -12,6 +12,12 @@ Este procedimiento protege la continuidad de TEDVIO sin utilizar datos académic
 
 El respaldo de PostgreSQL cubre esquema y registros de base de datos. El respaldo de base **no incluye los objetos binarios de Storage**: conserva metadatos, pero las imágenes o archivos deben tener una estrategia separada. Tampoco deben guardarse contraseñas, tokens o exportaciones con datos de estudiantes como artefactos de GitHub Actions.
 
+## Esquema fundacional recuperado
+
+El 3 de septiembre de 2026 se reconciliaron las **111 entradas** del ledger de migraciones de producción. Las **67 migraciones fundacionales** que faltaban en GitHub se recuperaron desde el historial de Supabase y ahora anteceden a las migraciones modernas del repositorio. El inventario remoto se conserva sin sentencias SQL ni datos de filas para detectar desviaciones futuras.
+
+La antigua inserción de un código estático de demostración fue omitida deliberadamente del esquema recuperado. Las funciones que generan tokens efímeros permanecen reproducibles, pero una reconstrucción nueva no nace con una contraseña o código compartido incorporado.
+
 ## Comprobación mensual no destructiva
 
 1. Confirmar que el proyecto TEDVIO aparece `ACTIVE_HEALTHY`.
