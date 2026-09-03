@@ -17,7 +17,8 @@
     "build:projection": "node scripts/clean-live-surface.mjs projection-v2 && vite build --config vite.live.config.ts --mode projection-v2",
     "build:surfaces": "npm run build:student && npm run build:projection",
     "build": "npm run build:teacher && npm run build:surfaces",
-    "quality": "npm run typecheck && npm run build && npm run test:architecture && npm run test:security && npm run test:launch"
+    "quality": "npm run typecheck && npm run build && npm run test:architecture && npm run test:security && npm run test:launch && npm run test:recovery",
+    "test:recovery": "node ../../.github/scripts/backup-recovery-check.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.112.4",
