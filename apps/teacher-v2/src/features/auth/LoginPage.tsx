@@ -275,10 +275,11 @@ export function LoginPage() {
             </label>
 
             {(mode === 'signin' || mode === 'signup') ? (
-              <label>
-                Contraseña
+              <div className="auth-field">
+                <label htmlFor="tedvio-auth-password">Contraseña</label>
                 <span className="auth-password-field">
                   <input
+                    id="tedvio-auth-password"
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
@@ -295,7 +296,7 @@ export function LoginPage() {
                   </button>
                 </span>
                 {capsLock ? <small className="auth-caps-warning">Bloq Mayús está activado.</small> : null}
-              </label>
+              </div>
             ) : null}
 
             {mode === 'signup' ? <PasswordChecklist policy={policy} /> : null}

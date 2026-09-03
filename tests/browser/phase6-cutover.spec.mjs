@@ -54,7 +54,7 @@ test('el shell no queda en blanco durante el arranque móvil', async ({ page }) 
 
 test('el acceso docente reduce errores de contraseña y responde a la conectividad', async ({ page, context }) => {
   await page.goto('/teacher', { waitUntil: 'networkidle' });
-  const password = page.getByLabel('Contraseña');
+  const password = page.getByLabel('Contraseña', { exact: true });
   const reveal = page.getByRole('button', { name: 'Mostrar contraseña' });
   const submit = page.getByRole('button', { name: 'Entrar a TEDVIO' });
 
