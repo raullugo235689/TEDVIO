@@ -8,6 +8,9 @@ on:
       - 'docs/backup-recovery-runbook.md'
       - '.github/scripts/backup-recovery-check.mjs'
       - '.github/workflows/backup-recovery-readiness.yml'
+      - '.github/workflows/isolated-restore-drill.yml'
+      - 'supabase/config.toml'
+      - 'supabase/tests/recovery_contract.sql'
   pull_request:
     branches: [main]
   schedule:

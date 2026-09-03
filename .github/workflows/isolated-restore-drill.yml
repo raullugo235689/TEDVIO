@@ -1,0 +1,84 @@
+name: TEDVIO Isolated Restore Drill
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/config.toml'
+      - 'supabase/migrations/**'
+      - 'supabase/tests/recovery_contract.sql'
+      - '.github/workflows/isolated-restore-drill.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/config.toml'
+      - 'supabase/migrations/**'
+      - 'supabase/tests/recovery_contract.sql'
+      - '.github/workflows/isolated-restore-drill.yml'
+  schedule:
+    - cron: '41 14 7 */3 *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tedvio-isolated-restore-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  restore-from-zero:
+    name: Restore schema from zero
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository without persisted credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install pinned Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.116.0
+
+      - name: Start isolated local Supabase
+        run: supabase start
+
+      - name: Restore every migration from zero
+        run: supabase db reset --local
+
+      - name: Verify academic schema, RLS, RPCs and Realtime
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql \
+            --host 127.0.0.1 \
+            --port 54322 \
+            --username postgres \
+            --dbname postgres \
+            --file supabase/tests/recovery_contract.sql
+
+      - name: Record non-sensitive recovery evidence
+        if: always()
+        run: |
+          {
+            echo "sha=${GITHUB_SHA}"
+            echo "utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "supabase_cli=$(supabase --version)"
+            echo "migration_files=$(find supabase/migrations -maxdepth 1 -name '*.sql' | wc -l)"
+          } > tedvio-isolated-restore-evidence.txt
+
+      - name: Publish recovery evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tedvio-isolated-restore-${{ github.sha }}
+          path: tedvio-isolated-restore-evidence.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Stop isolated stack
+        if: always()
+        run: supabase stop --no-backup
+
