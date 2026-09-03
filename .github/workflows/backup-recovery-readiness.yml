@@ -1,0 +1,54 @@
+name: TEDVIO Backup & Recovery Readiness
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+      - 'docs/backup-recovery-runbook.md'
+      - '.github/scripts/backup-recovery-check.mjs'
+      - '.github/workflows/backup-recovery-readiness.yml'
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '23 15 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tedvio-recovery-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  recovery-contract:
+    name: Recovery contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository without persisted credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up pinned Node runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+
+      - name: Verify migration continuity and recovery controls
+        run: node .github/scripts/backup-recovery-check.mjs
+
+      - name: Build a non-sensitive migration manifest
+        run: |
+          sha256sum supabase/migrations/*.sql > tedvio-migration-manifest.sha256
+          sha256sum --check tedvio-migration-manifest.sha256
+
+      - name: Publish recovery evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: tedvio-recovery-readiness-${{ github.sha }}
+          path: tedvio-migration-manifest.sha256
+          if-no-files-found: error
+          retention-days: 30
