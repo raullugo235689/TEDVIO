@@ -18,6 +18,7 @@ const rules = [
   ['Supabase service role assignment', /SUPABASE_SERVICE_ROLE(?:_KEY)?\s*[:=]\s*['\"]?[A-Za-z0-9._-]{20,}/i],
   ['AWS access key', /AKIA[0-9A-Z]{16}/],
   ['generic committed password', /(?:password|passwd|pwd)\s*[:=]\s*['\"][^'\"\s]{12,}['\"]/i],
+  ['static teacher access-code seed', /teacher_access_codes[\s\S]*digest\(\s*['\"][^'\"]+['\"]\s*,\s*['\"]sha256['\"]/i],
 ];
 
 const trackedFiles = execFileSync('git', ['ls-files', '-z'], { encoding: 'utf8' })

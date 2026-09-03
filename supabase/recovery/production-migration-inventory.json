@@ -1,0 +1,452 @@
+{
+  "generated_at": "2026-09-03T00:00:00Z",
+  "project_ref": "ggjknixnrjzkzkpwbwsl",
+  "purpose": "Non-sensitive production migration ledger inventory for recovery drift detection.",
+  "migrations": [
+    {
+      "version": "20260817091559",
+      "name": "initial_tedvio_live_schema"
+    },
+    {
+      "version": "20260817091629",
+      "name": "tighten_function_privileges"
+    },
+    {
+      "version": "20260817091815",
+      "name": "teacher_demo_access_and_realtime_helpers"
+    },
+    {
+      "version": "20260817103102",
+      "name": "enable_mvp_anon_policies"
+    },
+    {
+      "version": "20260817104345",
+      "name": "add_question_bank"
+    },
+    {
+      "version": "20260817110937",
+      "name": "add_persistent_groups_and_session_history"
+    },
+    {
+      "version": "20260817112045",
+      "name": "add_prepared_quizzes"
+    },
+    {
+      "version": "20260817115042",
+      "name": "expand_question_types"
+    },
+    {
+      "version": "20260817115418",
+      "name": "create_tedvio_v2_beta_platform"
+    },
+    {
+      "version": "20260817115455",
+      "name": "secure_v2_responses_and_scoring"
+    },
+    {
+      "version": "20260817120127",
+      "name": "tighten_v2_live_session_privacy"
+    },
+    {
+      "version": "20260817125338",
+      "name": "add_teacher_academic_context"
+    },
+    {
+      "version": "20260817130351",
+      "name": "add_academic_rosters_scoring_and_hotspot"
+    },
+    {
+      "version": "20260817130441",
+      "name": "add_projection_live_counts"
+    },
+    {
+      "version": "20260817131730",
+      "name": "randomize_quick_questions_and_add_indexes"
+    },
+    {
+      "version": "20260817131915",
+      "name": "add_scoring_limits_and_roster_deduplication"
+    },
+    {
+      "version": "20260817132109",
+      "name": "allow_teacher_participant_moderation"
+    },
+    {
+      "version": "20260817150458",
+      "name": "harden_live_question_secrets_and_scoring"
+    },
+    {
+      "version": "20260817150513",
+      "name": "enforce_roster_identity_and_live_public_scope"
+    },
+    {
+      "version": "20260817151529",
+      "name": "add_secure_student_explanation_feedback"
+    },
+    {
+      "version": "20260817151905",
+      "name": "defer_question_secret_foreign_key"
+    },
+    {
+      "version": "20260817152134",
+      "name": "fix_roster_join_ambiguity"
+    },
+    {
+      "version": "20260817182015",
+      "name": "add_groups_students_attendance"
+    },
+    {
+      "version": "20260818155704",
+      "name": "public_question_results_rpc"
+    },
+    {
+      "version": "20260818165312",
+      "name": "teacher_delete_sessions_rpc"
+    },
+    {
+      "version": "20260818182615",
+      "name": "attendance_observations"
+    },
+    {
+      "version": "20260818185200",
+      "name": "groups_compatibility_columns"
+    },
+    {
+      "version": "20260818200727",
+      "name": "tedvio_admin_roles"
+    },
+    {
+      "version": "20260818200804",
+      "name": "tedvio_admin_access_rpc"
+    },
+    {
+      "version": "20260819032458",
+      "name": "paper_exams_omr"
+    },
+    {
+      "version": "20260820132103",
+      "name": "sync_group_compatibility_fields"
+    },
+    {
+      "version": "20260825151623",
+      "name": "gradebook_student_profiles_and_qr_attendance"
+    },
+    {
+      "version": "20260825154108",
+      "name": "attendance_qr_server_issue"
+    },
+    {
+      "version": "20260825155148",
+      "name": "attendance_pro_lifecycle"
+    },
+    {
+      "version": "20260825170555",
+      "name": "stable_candidate_security_integrity_hardening"
+    },
+    {
+      "version": "20260825171426",
+      "name": "quarantine_legacy_mvp_public_surface"
+    },
+    {
+      "version": "20260825172134",
+      "name": "stable_candidate_rls_performance_cleanup"
+    },
+    {
+      "version": "20260825172351",
+      "name": "stable_candidate_cross_tenant_relation_guards"
+    },
+    {
+      "version": "20260825172827",
+      "name": "stable_candidate_numeric_integrity_guards"
+    },
+    {
+      "version": "20260825173339",
+      "name": "fix_omr_result_upsert_conflict_target"
+    },
+    {
+      "version": "20260825181258",
+      "name": "pilot_ready_dashboard_and_telemetry"
+    },
+    {
+      "version": "20260825181442",
+      "name": "pilot_ready_risk_evidence_threshold"
+    },
+    {
+      "version": "20260825182452",
+      "name": "pilot_ready_alert_minimum_evidence"
+    },
+    {
+      "version": "20260825182553",
+      "name": "pilot_ready_dashboard_security_invoker"
+    },
+    {
+      "version": "20260825184141",
+      "name": "dashboard_executive_v56_counts"
+    },
+    {
+      "version": "20260826141128",
+      "name": "admin_institutional_control_v62"
+    },
+    {
+      "version": "20260826141257",
+      "name": "bootstrap_institutions_from_academic_hierarchy_v62"
+    },
+    {
+      "version": "20260826141316",
+      "name": "link_imported_institutions_v62"
+    },
+    {
+      "version": "20260826142416",
+      "name": "admin_metrics_compatibility_v62"
+    },
+    {
+      "version": "20260826142443",
+      "name": "admin_v62_foreign_key_indexes"
+    },
+    {
+      "version": "20260826145808",
+      "name": "v63_plan_entitlements_enforcement"
+    },
+    {
+      "version": "20260826191144",
+      "name": "reliability_v64_session_broadcast_bus"
+    },
+    {
+      "version": "20260826193732",
+      "name": "tedvio_v65_question_studio_metadata_quality"
+    },
+    {
+      "version": "20260826205955",
+      "name": "tedvio_v66_assignments_core"
+    },
+    {
+      "version": "20260826210304",
+      "name": "tedvio_v66_assignment_close_autosubmit"
+    },
+    {
+      "version": "20260826212101",
+      "name": "tedvio_v66_attempt_group_student_index"
+    },
+    {
+      "version": "20260826215254",
+      "name": "v67_private_rpc_hardening_core"
+    },
+    {
+      "version": "20260826215323",
+      "name": "v67_public_rpc_wrappers_and_rate_limits"
+    },
+    {
+      "version": "20260826215355",
+      "name": "v67_teacher_rpc_explicit_anon_revoke"
+    },
+    {
+      "version": "20260826215452",
+      "name": "v67_commercial_support_and_legacy_intent"
+    },
+    {
+      "version": "20260826215536",
+      "name": "v67_profiles_rls_initplan_optimization"
+    },
+    {
+      "version": "20260826215753",
+      "name": "v67_canonical_roster_foreign_keys"
+    },
+    {
+      "version": "20260826220930",
+      "name": "v67_attendance_relation_indexes"
+    },
+    {
+      "version": "20260827003428",
+      "name": "v68_onboarding_product_activation"
+    },
+    {
+      "version": "20260827003625",
+      "name": "v68_activation_funnel_admin"
+    },
+    {
+      "version": "20260827004306",
+      "name": "v68_onboarding_fk_indexes"
+    },
+    {
+      "version": "20260827004614",
+      "name": "v68_question_bank_folder_normalization"
+    },
+    {
+      "version": "20260828134154",
+      "name": "v68_11_institution_branding_signatures"
+    },
+    {
+      "version": "20260828134315",
+      "name": "v68_11_branding_rpc_anon_revoke"
+    },
+    {
+      "version": "20260828135352",
+      "name": "v68_11_report_display_name_stable_matching"
+    },
+    {
+      "version": "20260828135738",
+      "name": "v68_11_preserve_existing_logo_across_admins"
+    },
+    {
+      "version": "20260828161759",
+      "name": "v69_privacy_legal_account_center"
+    },
+    {
+      "version": "20260828162738",
+      "name": "v69_legal_copy_seed"
+    },
+    {
+      "version": "20260828191602",
+      "name": "v73_assessment_intelligence_metadata"
+    },
+    {
+      "version": "20260828201138",
+      "name": "v74_teacher_ai_context"
+    },
+    {
+      "version": "20260829010053",
+      "name": "v75_group_schedule_slots"
+    },
+    {
+      "version": "20260829014926",
+      "name": "v76_academic_periods_and_close_guard"
+    },
+    {
+      "version": "20260829015034",
+      "name": "v76_period_student_snapshot"
+    },
+    {
+      "version": "20260829015747",
+      "name": "v76_close_readiness_strict_evidence"
+    },
+    {
+      "version": "20260829015941",
+      "name": "v76_period_function_privilege_hardening"
+    },
+    {
+      "version": "20260830000825",
+      "name": "teacher_v2_phase4a_evaluations"
+    },
+    {
+      "version": "20260830004233",
+      "name": "teacher_v2_phase4a_evaluations_function_fix"
+    },
+    {
+      "version": "20260830004619",
+      "name": "teacher_v2_phase4a_rpc_anon_revoke"
+    },
+    {
+      "version": "20260830004959",
+      "name": "teacher_v2_phase4a_security_invoker"
+    },
+    {
+      "version": "20260830012248",
+      "name": "teacher_v2_phase4b_omr"
+    },
+    {
+      "version": "20260830012430",
+      "name": "teacher_v2_phase4b_omr_revision_index"
+    },
+    {
+      "version": "20260830015749",
+      "name": "teacher_v2_phase4b_omr_closed_capture_and_restore_guard"
+    },
+    {
+      "version": "20260830063545",
+      "name": "teacher_v2_phase4c_gradebook"
+    },
+    {
+      "version": "20260830071800",
+      "name": "teacher_v2_phase4c_gradebook_schema"
+    },
+    {
+      "version": "20260830071957",
+      "name": "teacher_v2_phase4c_gradebook_rpcs"
+    },
+    {
+      "version": "20260830073449",
+      "name": "teacher_v2_phase4c_gradebook_period_hardening"
+    },
+    {
+      "version": "20260830075211",
+      "name": "teacher_v2_phase4c_gradebook"
+    },
+    {
+      "version": "20260830081201",
+      "name": "teacher_v2_phase4c_gradebook_omr_source_guard"
+    },
+    {
+      "version": "20260830082035",
+      "name": "teacher_v2_phase4c_gradebook_structure_guards"
+    },
+    {
+      "version": "20260830201406",
+      "name": "teacher_v2_phase4d_student360_note_history"
+    },
+    {
+      "version": "20260831005947",
+      "name": "teacher_v2_phase5_close_reports_settings"
+    },
+    {
+      "version": "20260831011426",
+      "name": "teacher_v2_phase5_period_summary_ambiguity_fix"
+    },
+    {
+      "version": "20260831144527",
+      "name": "tedvio_access_security_foundation_v21"
+    },
+    {
+      "version": "20260831144627",
+      "name": "tedvio_required_legal_acceptance_v21"
+    },
+    {
+      "version": "20260831152525",
+      "name": "tedvio_access_security_enforcement_v21"
+    },
+    {
+      "version": "20260831170051",
+      "name": "tedvio_v21_legal_rpc_privilege_hardening"
+    },
+    {
+      "version": "20260831170703",
+      "name": "tedvio_v21_onboarding_demo_scope"
+    },
+    {
+      "version": "20260901155908",
+      "name": "tedvio_analytics_2x"
+    },
+    {
+      "version": "20260901161214",
+      "name": "tedvio_analytics_2x_integrity"
+    },
+    {
+      "version": "20260901170624",
+      "name": "pilot_live_recovery"
+    },
+    {
+      "version": "20260901182827",
+      "name": "pilot_health_lab"
+    },
+    {
+      "version": "20260901182915",
+      "name": "pilot_health_session_index"
+    },
+    {
+      "version": "20260901212408",
+      "name": "session_preflight"
+    },
+    {
+      "version": "20260901212537",
+      "name": "session_preflight_latency_fix"
+    },
+    {
+      "version": "20260902161321",
+      "name": "response_receipts_v1"
+    },
+    {
+      "version": "20260902161412",
+      "name": "response_receipts_public_rpc_v1"
+    }
+  ]
+}
+
