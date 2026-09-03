@@ -52,6 +52,24 @@ test('el shell no queda en blanco durante el arranque móvil', async ({ page }) 
   expect(rect.width).toBeGreaterThan(250);
 });
 
+test('el acceso docente reduce errores de contraseña y responde a la conectividad', async ({ page, context }) => {
+  await page.goto('/teacher', { waitUntil: 'networkidle' });
+  const password = page.getByLabel('Contraseña');
+  const reveal = page.getByRole('button', { name: 'Mostrar contraseña' });
+  const submit = page.getByRole('button', { name: 'Entrar a TEDVIO' });
+
+  await password.fill('PruebaVisible!23');
+  await reveal.click();
+  await expect(password).toHaveAttribute('type', 'text');
+  await expect(page.getByRole('button', { name: 'Ocultar contraseña' })).toBeVisible();
+
+  await context.setOffline(true);
+  await expect(page.getByText('Sin conexión', { exact: true })).toBeVisible();
+  await expect(submit).toBeDisabled();
+  await context.setOffline(false);
+  await expect(submit).toBeEnabled();
+});
+
 test('Student 2.x carga su cliente local y permite preparar el acceso', async ({ page }) => {
   const failedRequests = [];
   const pageErrors = [];

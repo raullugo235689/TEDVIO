@@ -131,6 +131,15 @@ export function authErrorMessage(error: unknown, operation: AuthOperation): stri
   const text = errorText(error);
   const combined = `${code} ${text}`;
 
+  if (/auth_offline/.test(combined)) {
+    return 'No hay conexión a internet. TEDVIO conservará tus datos; vuelve a intentar cuando recuperes la señal.';
+  }
+  if (/auth_(signin|session|clear)_timeout|tedvioauthtimeout/.test(combined)) {
+    return 'El servicio de acceso tardó más de lo esperado. Tu contraseña no fue expuesta; revisa la conexión y vuelve a intentar.';
+  }
+  if (/auth_session_missing/.test(combined)) {
+    return 'La cuenta fue validada, pero el navegador no pudo guardar la sesión. Limpia la sesión de este dispositivo e intenta nuevamente.';
+  }
   if (/rate|too many|over_request|email_rate/.test(combined)) {
     return 'Se alcanzó el límite temporal de seguridad. Espera al menos un minuto antes de intentarlo de nuevo.';
   }
@@ -150,7 +159,7 @@ export function authErrorMessage(error: unknown, operation: AuthOperation): stri
     return 'Escribe un correo válido.';
   }
   if (operation === 'signin') {
-    return 'No fue posible iniciar sesión. Verifica tus credenciales y que el correo esté confirmado.';
+    return 'No fue posible iniciar sesión. Verifica tus credenciales o utiliza la recuperación de contraseña.';
   }
   if (operation === 'recover' || operation === 'resend') {
     return 'No fue posible enviar el correo en este momento. Espera un minuto y vuelve a intentarlo.';
