@@ -1,0 +1,53 @@
+name: TEDVIO Security & Stability Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tedvio-security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security-gate:
+    name: Security gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up pinned Node runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          cache: npm
+          cache-dependency-path: apps/teacher-v2/package-lock.json
+
+      - name: Detect committed secrets
+        run: node .github/scripts/security-gate.mjs
+
+      - name: Verify dependency lockfile
+        working-directory: apps/teacher-v2
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Block high and critical production vulnerabilities
+        working-directory: apps/teacher-v2
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Validate repository security contract
+        working-directory: apps/teacher-v2
+        run: npm run test:security
+
+      - name: Reject malformed workflow and whitespace changes
+        run: |
+          node --check .github/scripts/security-gate.mjs
+          git diff --check
