@@ -6,7 +6,7 @@
     "isDynamicEntry": true
   },
   "../../node_modules/qrcode/lib/browser.js": {
-    "file": "assets/browser-CQjArJM7.js",
+    "file": "assets/browser-DdM9DUDN.js",
     "name": "browser",
     "src": "../../node_modules/qrcode/lib/browser.js",
     "isDynamicEntry": true,
@@ -15,7 +15,7 @@
     ]
   },
   "index.html": {
-    "file": "assets/app-DLACyKte.js",
+    "file": "assets/app-vpt37exu.js",
     "name": "index",
     "src": "index.html",
     "isEntry": true,
@@ -24,7 +24,7 @@
       "../../node_modules/qrcode/lib/browser.js"
     ],
     "css": [
-      "assets/index-YLfTYZ6l.css"
+      "assets/index-XeczUBak.css"
     ]
   }
 }

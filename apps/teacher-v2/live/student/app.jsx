@@ -1961,7 +1961,14 @@ function App() {
       error ? h("div", { className: "error-box floating" }, error) : null,
       notice ? h("div", { className: `notice-box ${notice.tone} floating`, role: "status", "aria-live": "polite" }, notice.message) : null,
       h(ReadinessStrip, { readiness }),
-      body,
+      h(
+        "div",
+        {
+          className: `student-stage student-stage-${studentLiveStage}`,
+          key: `${studentLiveStage}:${current?.id || session.id}:${current?.status || session.status}`,
+        },
+        body,
+      ),
       h(
         "button",
         { className: "leave-link", onClick: leave, disabled: submitting },

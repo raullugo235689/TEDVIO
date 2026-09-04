@@ -367,7 +367,7 @@ function Options({ q }) {
 function Entry({ code, setCode, onOpen, error }) {
   return h(
     "div",
-    { className: "p2-app" },
+    { className: "p2-app p2-scene p2-scene-entry" },
     h(
       "main",
       { className: "p2-main" },
@@ -433,7 +433,7 @@ function SyncNotice({ warning, lastSyncedAt }) {
 function Lobby({ x, code, connection, warning }) {
   return h(
     "div",
-    { className: "p2-app" },
+    { className: "p2-app p2-scene p2-scene-lobby" },
     h(
       "header",
       { className: "p2-top" },
@@ -504,7 +504,7 @@ function Live({ x, code, tick, connection, warning }) {
   void tick;
   return h(
     "div",
-    { className: "p2-app" },
+    { className: `p2-app p2-scene p2-scene-${q.status === "revealed" ? "result" : "question"}` },
     h(
       "header",
       { className: "p2-top" },
@@ -592,7 +592,7 @@ function Live({ x, code, tick, connection, warning }) {
 function Status({ title, text, onReset }) {
   return h(
     "div",
-    { className: "p2-app" },
+    { className: "p2-app p2-scene p2-scene-status" },
     h(
       "main",
       { className: "p2-main" },
@@ -847,8 +847,15 @@ function App() {
       title: "Preparando la siguiente pregunta…",
       text: "Conservamos la sesión mientras llega el nuevo contenido.",
     });
-  if (!state.q) return h(Lobby, { x: state, code, connection, warning });
-  return h(Live, { x: state, code, tick, connection, warning });
+  if (!state.q) return h(Lobby, { key: `lobby:${state.s.id}`, x: state, code, connection, warning });
+  return h(Live, {
+    key: `${state.q.id}:${state.q.status}`,
+    x: state,
+    code,
+    tick,
+    connection,
+    warning,
+  });
 }
 
 const projectionRoot = document.getElementById("projectionApp");

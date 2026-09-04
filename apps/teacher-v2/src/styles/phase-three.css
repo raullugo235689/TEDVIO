@@ -241,6 +241,113 @@
 .positive-insight svg { width: 22px; height: 22px; }
 .positive-insight b,.positive-insight small { display: block; }
 
+/* Premium Motion 2.7 — classroom command surface. */
+.classroom-control { position: relative; isolation: isolate; }
+.premium-stage {
+  will-change: transform, opacity;
+  animation: classroom-scene-in .44s cubic-bezier(.16,1,.3,1) both;
+}
+.classroom-connection,
+.classroom-readiness,
+.classroom-status-bar {
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 16px 42px color-mix(in srgb,var(--brand) 7%,transparent), inset 0 1px 0 color-mix(in srgb,#fff 74%,transparent);
+}
+.classroom-readiness::after,
+.classroom-status-bar::after {
+  content: "";
+  position: absolute;
+  right: 7%;
+  bottom: 0;
+  left: 7%;
+  height: 1px;
+  background: linear-gradient(90deg,transparent,color-mix(in srgb,var(--brand) 48%,transparent),color-mix(in srgb,var(--violet) 32%,transparent),transparent);
+}
+.classroom-readiness-title > i { animation: classroom-ready-breathe 2.4s ease-in-out infinite; }
+.classroom-readiness-counts span {
+  transition: transform .2s ease,border-color .2s ease,background .2s ease;
+  box-shadow: inset 0 1px 0 color-mix(in srgb,#fff 72%,transparent);
+}
+.classroom-readiness-counts span:hover { transform: translateY(-2px); border-color: var(--border-strong); }
+.classroom-status-bar > div {
+  border: 1px solid color-mix(in srgb,var(--border) 78%,transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb,#fff 64%,transparent);
+  transition: transform .2s ease,border-color .2s ease;
+}
+.classroom-status-bar > div:hover { transform: translateY(-1px); border-color: var(--border-strong); }
+.classroom-lobby-main,
+.classroom-question-stage {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 92% 4%,color-mix(in srgb,var(--brand) 11%,transparent),transparent 31%),
+    linear-gradient(155deg,color-mix(in srgb,var(--surface) 98%,#fff),color-mix(in srgb,var(--surface) 95%,var(--brand) 5%));
+  box-shadow: 0 28px 72px color-mix(in srgb,var(--brand) 10%,transparent),inset 0 1px 0 color-mix(in srgb,#fff 82%,transparent);
+}
+.classroom-lobby-main::before,
+.classroom-question-stage::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 8%;
+  left: 8%;
+  height: 2px;
+  background: linear-gradient(90deg,transparent,color-mix(in srgb,var(--brand) 68%,transparent),color-mix(in srgb,var(--violet) 42%,transparent),transparent);
+}
+.join-code-panel {
+  border: 1px solid color-mix(in srgb,var(--brand) 12%,var(--border));
+  box-shadow: inset 0 1px 0 color-mix(in srgb,#fff 76%,transparent);
+}
+.join-code-panel b,
+.classroom-timer b,
+.classroom-status-bar b { font-variant-numeric: tabular-nums; }
+.lobby-participants i,
+.question-queue article,
+.response-roster article,
+.ranking-list article {
+  transition: transform .18s ease,border-color .18s ease,background .18s ease,box-shadow .18s ease;
+}
+.lobby-participants i:hover,
+.question-queue article:hover,
+.response-roster article:hover,
+.ranking-list article:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-strong);
+  box-shadow: 0 9px 22px color-mix(in srgb,var(--brand) 7%,transparent);
+}
+.lobby-participants i,
+.question-queue article {
+  opacity: 0;
+  animation: classroom-item-in .34s cubic-bezier(.16,1,.3,1) both;
+}
+.lobby-participants i:nth-child(3),.question-queue article:nth-child(2) { animation-delay: .04s; }
+.lobby-participants i:nth-child(4),.question-queue article:nth-child(3) { animation-delay: .08s; }
+.lobby-participants i:nth-child(n+5),.question-queue article:nth-child(n+4) { animation-delay: .12s; }
+.classroom-timer {
+  border-color: color-mix(in srgb,var(--brand) 28%,var(--border));
+  background: radial-gradient(circle at 35% 25%,color-mix(in srgb,#fff 82%,transparent),transparent 42%),var(--surface-soft);
+  box-shadow: 0 14px 34px color-mix(in srgb,var(--brand) 10%,transparent),inset 0 1px 0 color-mix(in srgb,#fff 84%,transparent);
+  transition: border-color .24s ease,box-shadow .24s ease,transform .24s ease;
+}
+.classroom-question-stage.stage-revealed { border-color: color-mix(in srgb,var(--violet) 30%,var(--border)); }
+.classroom-distribution article { transition: transform .2s ease,border-color .2s ease,background .2s ease; }
+.classroom-distribution article.correct { transform: translateY(-1px); box-shadow: 0 12px 28px color-mix(in srgb,var(--green) 10%,transparent); }
+.result-bar i,.response-progress i { transition: width .42s cubic-bezier(.2,.7,.2,1); }
+.classroom-toolbar {
+  border-color: color-mix(in srgb,var(--brand) 16%,var(--border));
+  box-shadow: 0 20px 54px color-mix(in srgb,var(--brand) 11%,transparent),inset 0 1px 0 color-mix(in srgb,#fff 76%,transparent);
+}
+@keyframes classroom-scene-in {
+  from { opacity: 0; transform: translateY(14px) scale(.994); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes classroom-item-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes classroom-ready-breathe { 50% { transform: scale(.82); opacity: .78; } }
+
 @media (max-width: 1180px) {
   .bank-toolbar { grid-template-columns: minmax(240px,1fr) repeat(2,minmax(140px,.45fr)); }
   .bank-toolbar .toggle-field, .bank-toolbar .status-pill { justify-self: start; }
@@ -298,6 +405,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .classroom-status-bar.live .live-indicator, .classroom-timer.urgent { animation: none; }
-  .bank-question-card, .result-bar i, .response-progress i { transition: none; }
+  .classroom-status-bar.live .live-indicator, .classroom-timer.urgent, .premium-stage, .classroom-readiness-title > i, .lobby-participants i, .question-queue article { animation: none; }
+  .bank-question-card, .result-bar i, .response-progress i, .classroom-readiness-counts span, .classroom-status-bar > div, .lobby-participants i, .question-queue article, .response-roster article, .ranking-list article, .classroom-timer { transition: none; }
 }
