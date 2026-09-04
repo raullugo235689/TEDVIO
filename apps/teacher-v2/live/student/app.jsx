@@ -15,6 +15,7 @@ const cfg = window.TEDVIO_CONFIG || {};
 const configReady = Boolean(cfg.SUPABASE_URL && cfg.SUPABASE_PUBLISHABLE_KEY);
 let supabaseClient;
 let supabaseClientPromise;
+let studentLiveStage = "boot";
 
 async function getSupabase() {
   if (!configReady) throw new Error("TEDVIO no pudo cargar su configuración.");
@@ -193,16 +194,74 @@ function queryCode() {
   return new URLSearchParams(hash).get("code")?.trim().toUpperCase() || "";
 }
 
+function safeText(value, fallback = "") {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  return fallback;
+}
+
+function normalizeStoredStudent(value) {
+  if (!value || typeof value !== "object") return null;
+  const sessionId = safeText(value.sessionId);
+  const participantId = safeText(value.participantId);
+  if (!sessionId || !participantId) return null;
+  return {
+    sessionId,
+    participantId,
+    name: safeText(value.name, "Alumno"),
+    team: safeText(value.team),
+    matricula: safeText(value.matricula),
+    code: safeText(value.code).trim().toUpperCase(),
+  };
+}
+
+const QUESTION_TYPES = new Set([
+  "multiple_choice", "multiple_select", "true_false", "open_text",
+  "numeric", "poll", "scale_5", "ordering", "hotspot",
+]);
+
+function normalizeQuestion(value) {
+  if (!value || typeof value !== "object" || !safeText(value.id)) return null;
+  const questionType = safeText(value.question_type);
+  const status = safeText(value.status, "queued");
+  const timer = Number(value.timer_seconds);
+  return {
+    ...value,
+    id: safeText(value.id),
+    prompt: safeText(value.prompt, "Pregunta sin texto"),
+    question_type: QUESTION_TYPES.has(questionType) ? questionType : "unsupported",
+    options: Array.isArray(value.options)
+      ? value.options.map((option) => safeText(option)).filter(Boolean)
+      : [],
+    media_url: safeText(value.media_url) || null,
+    media_type: safeText(value.media_type) || null,
+    status: ["queued", "live", "closed", "revealed"].includes(status) ? status : "queued",
+    position: Math.max(1, Number(value.position) || 1),
+    timer_seconds: Number.isFinite(timer) ? Math.max(5, Math.min(600, timer)) : 30,
+    launched_at: safeText(value.launched_at) || null,
+  };
+}
+
+function normalizeSession(value) {
+  if (!value || typeof value !== "object" || !safeText(value.id)) return null;
+  const status = safeText(value.status, "draft");
+  return {
+    ...value,
+    id: safeText(value.id),
+    code: safeText(value.code),
+    title: safeText(value.title, "TEDVIO"),
+    status: ["draft", "live", "closed"].includes(status) ? status : "draft",
+    current_question_id: safeText(value.current_question_id) || null,
+    competitive: value.competitive === true,
+    team_mode: value.team_mode === true,
+  };
+}
+
 function readStoredStudent(expectedCode = "") {
   for (const key of [STORAGE_KEY, LEGACY_KEY]) {
     try {
-      const value = JSON.parse(readLocalValue(key) || "null");
-      if (
-        value?.sessionId &&
-        value?.participantId &&
-        (!expectedCode || value.code === expectedCode)
-      )
-        return value;
+      const value = normalizeStoredStudent(JSON.parse(readLocalValue(key) || "null"));
+      if (value && (!expectedCode || value.code === expectedCode)) return value;
     } catch {}
   }
   return null;
@@ -212,12 +271,8 @@ async function recoverStoredStudent(expectedCode = "") {
   const immediate = readStoredStudent(expectedCode);
   if (immediate) return immediate;
   for (const key of [STORAGE_KEY, LEGACY_KEY]) {
-    const value = await readDurableValue(key);
-    if (
-      value?.sessionId &&
-      value?.participantId &&
-      (!expectedCode || value.code === expectedCode)
-    ) return value;
+    const value = normalizeStoredStudent(await readDurableValue(key));
+    if (value && (!expectedCode || value.code === expectedCode)) return value;
   }
   return null;
 }
@@ -400,6 +455,30 @@ function friendly(error) {
   return message;
 }
 
+function classifyRenderError(error) {
+  const message = String(error?.message || error || "");
+  if (/replaceAll/i.test(message)) return "unsupported_string_api";
+  if (/object.*react child|react child.*object/i.test(message)) return "invalid_render_value";
+  const reactCode = message.match(/Minified React error #(\d+)/i)?.[1];
+  return reactCode ? `react_${reactCode}` : "render_failed";
+}
+
+function liveBuildId() {
+  const script = Array.from(document.scripts).find((item) => /\/assets\/app-[^/]+\.js/.test(item.src));
+  return script?.src.match(/app-([^/]+)\.js/)?.[1] || "unknown";
+}
+
+function reportStudentFatal({ reference, reason }) {
+  const student = readStoredStudent(queryCode());
+  if (!student) return;
+  void recordHealth(student, "client_render_failed", null, {
+    reference,
+    reason,
+    build: liveBuildId(),
+    stage: studentLiveStage,
+  });
+}
+
 function secondsLeft(question) {
   if (!question?.launched_at || question.status !== "live") return 0;
   const elapsed =
@@ -428,8 +507,13 @@ async function fetchWorkspace(student) {
     .order("position");
   if (questionError) throw questionError;
 
+  const safeSession = normalizeSession(session);
+  if (!safeSession) throw new Error("SESSION_INVALID");
+  const safeQuestions = (Array.isArray(questions) ? questions : [])
+    .map(normalizeQuestion)
+    .filter(Boolean);
   const current =
-    (questions || []).find((q) => q.id === session.current_question_id) || null;
+    safeQuestions.find((q) => q.id === safeSession.current_question_id) || null;
   let own = null;
   if (current) {
     const { data, error } = await client.rpc("v2_student_answer_result", {
@@ -439,7 +523,7 @@ async function fetchWorkspace(student) {
     if (error) throw error;
     own = data?.[0] || null;
   }
-  return { session, questions: questions || [], current, own };
+  return { session: safeSession, questions: safeQuestions, current, own };
 }
 
 async function fetchReveal(student, session, question) {
@@ -923,6 +1007,12 @@ function Question({ question, questionCount, own, pending, submitting, onSubmit 
         "Enviar ubicación",
       ),
     );
+  } else {
+    answerControl = h(
+      "div",
+      { className: "error-box" },
+      "Este reactivo necesita actualizarse. Espera a que el docente continúe.",
+    );
   }
 
   const pct = Math.max(
@@ -956,7 +1046,7 @@ function Question({ question, questionCount, own, pending, submitting, onSubmit 
       h(
         "div",
         { className: "chips" },
-        h("span", null, question.question_type.replaceAll("_", " ")),
+        h("span", null, safeText(question.question_type, "reactivo").replace(/_/g, " ")),
         h("span", { className: "live" }, "Respondiendo"),
       ),
       h("h1", null, question.prompt),
@@ -975,14 +1065,15 @@ function Result({ reveal, question, session }) {
   const options = Array.isArray(question.options)
     ? question.options.map(String)
     : [];
+  const group = Array.isArray(reveal.group) ? reveal.group : [];
   const counts = new Map(
-    (reveal.group || []).map((row) => [
+    group.map((row) => [
       String(row.answer),
       Number(row.votes || 0),
     ]),
   );
   const total = Number(
-    reveal.group?.[0]?.total || [...counts.values()].reduce((a, b) => a + b, 0),
+    group[0]?.total || [...counts.values()].reduce((a, b) => a + b, 0),
   );
   return h(
     "section",
@@ -1660,7 +1751,8 @@ function App() {
     history.replaceState({}, "", location.pathname);
   };
 
-  if (!storageReady)
+  if (!storageReady) {
+    studentLiveStage = "boot";
     return h(
       "div",
       { className: "app-shell" },
@@ -1669,6 +1761,7 @@ function App() {
         h("h1", null, "Recuperando tu clase…"),
       )),
     );
+  }
 
   if (!configReady)
     return h(
@@ -1681,9 +1774,12 @@ function App() {
       )),
     );
 
-  if (!student)
+  if (!student) {
+    studentLiveStage = "join";
     return h(JoinScreen, { initialCode: queryCode(), busy, error, onJoin });
-  if (!workspace)
+  }
+  if (!workspace) {
+    studentLiveStage = "boot";
     return h(
       "div",
       { className: "app-shell" },
@@ -1700,16 +1796,23 @@ function App() {
         ),
       ),
     );
+  }
 
   const { session, current, questions, own } = workspace;
   let body;
-  if (session.status === "closed")
+  if (session.status === "closed") {
+    studentLiveStage = "finished";
     body = h(Finished, { student, rank, onLeave: leave });
-  else if (!current) body = h(Waiting, { student, session, answered });
-  else if (current.status === "revealed" && reveal?.questionId === current.id)
+  } else if (!current) {
+    studentLiveStage = "lobby";
+    body = h(Waiting, { student, session, answered });
+  } else if (current.status === "revealed" && reveal?.questionId === current.id) {
+    studentLiveStage = "result";
     body = h(Result, { reveal, question: current, session });
-  else
+  } else {
+    studentLiveStage = "question";
     body = h(Question, {
+      key: current.id,
       question: current,
       questionCount: questions.length,
       own,
@@ -1717,6 +1820,7 @@ function App() {
       submitting,
       onSubmit: submit,
     });
+  }
 
   return h(
     "div",
@@ -1742,7 +1846,12 @@ if (!studentRoot) throw new Error("TEDVIO no encontró la superficie del alumno.
 createRoot(studentRoot).render(
   h(
     LiveSurfaceErrorBoundary,
-    { surface: "student-v2", homeHref: "/student-v2/" },
+    {
+      surface: "student-v2",
+      homeHref: "/student-v2/",
+      classifyError: classifyRenderError,
+      onFatal: reportStudentFatal,
+    },
     h(App),
   ),
 );

@@ -8,6 +8,7 @@ const core = fs.readFileSync(path.join(appRoot, 'src/core/pilot-health.ts'), 'ut
 const page = fs.readFileSync(path.join(appRoot, 'src/features/reliability/PilotHealthPage.tsx'), 'utf8');
 const app = fs.readFileSync(path.join(appRoot, 'src/app/App.tsx'), 'utf8');
 const student = fs.readFileSync(path.join(appRoot, 'live/student/app.jsx'), 'utf8');
+const fatalMigration = fs.readFileSync(path.join(root, 'supabase/migrations/20260904140921_live_surface_fatal_telemetry.sql'), 'utf8');
 const failures = [];
 const must = (condition, message) => condition ? console.log('OK  ', message) : (failures.push(message), console.error('FAIL', message));
 
@@ -25,6 +26,9 @@ must(core.includes("table: 'v2_session_health_events'") && !page.includes('setIn
 must(app.includes('classroom/:sessionId/health') && page.includes('Simular carga aislada'), 'la salud del piloto tiene ruta docente propia');
 must(student.includes('v2_record_session_health') && student.includes('response_recovered') && student.includes('response_confirmed'), 'Student informa confirmación y recuperación');
 must(!/p_details:[^\n]*(answer|matricula|name|prompt)/i.test(student), 'Student no envía contenido académico en telemetría');
+must(fatalMigration.includes("'client_render_failed'") && fatalMigration.includes("'reference'") && fatalMigration.includes("'stage'"), 'telemetría fatal conserva referencia y etapa sin contenido académico');
+must(fatalMigration.includes('HEALTH_ACTOR_NOT_ALLOWED') && fatalMigration.includes('session_id = p_session_id'), 'un reporte fatal anónimo exige participante válido');
+must(!/p_details ->> '(answer|matricula|name|prompt)'/i.test(fatalMigration), 'la telemetría fatal no acepta identidad, pregunta ni respuesta');
 
 const model = new Map();
 for (let client = 1; client <= 100; client += 1) {

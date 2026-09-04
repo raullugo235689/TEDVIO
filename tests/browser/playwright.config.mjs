@@ -1,7 +1,7 @@
 import{defineConfig,devices}from'@playwright/test';
 export default defineConfig({
   testDir:'.',
-  testMatch:'v76-2-quality-core.spec.mjs',
+  testMatch:['v76-2-quality-core.spec.mjs','live-student-transition.spec.mjs'],
   timeout:30000,
   expect:{timeout:5000},
   fullyParallel:false,
