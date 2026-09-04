@@ -89,6 +89,20 @@
 .classroom-connection.connected i { background: var(--green); }
 .classroom-connection.offline { border-color: color-mix(in srgb, var(--red) 28%, var(--border)); color: var(--red); }
 .classroom-connection.offline i { background: var(--red); }
+.classroom-readiness { display: grid; grid-template-columns: minmax(220px,1fr) auto auto; align-items: center; gap: 18px; padding: 14px 16px; border: 1px solid color-mix(in srgb,var(--green) 28%,var(--border)); border-radius: 18px; background: linear-gradient(135deg,color-mix(in srgb,var(--green) 8%,var(--surface)),var(--surface)); box-shadow: var(--shadow-soft); }
+.classroom-readiness-title { display: flex; align-items: center; gap: 11px; min-width: 0; }
+.classroom-readiness-title > i { flex: 0 0 auto; width: 12px; height: 12px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 6px color-mix(in srgb,var(--green) 13%,transparent); }
+.classroom-readiness-title span { display: grid; gap: 2px; min-width: 0; }
+.classroom-readiness-title small { color: var(--muted); font-size: 8px; font-weight: 900; letter-spacing: .08em; }
+.classroom-readiness-title b { overflow: hidden; color: var(--text-strong); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.classroom-readiness-counts { display: grid; grid-template-columns: repeat(4,minmax(54px,auto)); gap: 6px; }
+.classroom-readiness-counts span { display: grid; justify-items: center; gap: 2px; padding: 7px 9px; border: 1px solid var(--border); border-radius: 11px; background: color-mix(in srgb,var(--surface) 88%,transparent); }
+.classroom-readiness-counts b { color: var(--text-strong); font-size: 14px; }
+.classroom-readiness-counts small { color: var(--muted); font-size: 7px; font-weight: 850; text-transform: uppercase; }
+.classroom-readiness.degraded { border-color: color-mix(in srgb,var(--amber) 34%,var(--border)); background: linear-gradient(135deg,color-mix(in srgb,var(--amber) 8%,var(--surface)),var(--surface)); }
+.classroom-readiness.degraded .classroom-readiness-title > i,.classroom-readiness.waiting .classroom-readiness-title > i { background: var(--amber); box-shadow: 0 0 0 6px color-mix(in srgb,var(--amber) 13%,transparent); }
+.classroom-readiness.risk { border-color: color-mix(in srgb,var(--red) 32%,var(--border)); background: linear-gradient(135deg,color-mix(in srgb,var(--red) 7%,var(--surface)),var(--surface)); }
+.classroom-readiness.risk .classroom-readiness-title > i { background: var(--red); box-shadow: 0 0 0 6px color-mix(in srgb,var(--red) 12%,transparent); }
 .classroom-status-bar > div { min-height: 58px; display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 13px; background: var(--surface-soft); }
 .classroom-status-bar > div:not(:first-child) { display: grid; align-content: center; gap: 2px; }
 .classroom-status-bar small { color: var(--muted); font-size: 8px; font-weight: 900; letter-spacing: .08em; }
@@ -114,7 +128,13 @@
 .lobby-participants { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .lobby-participants > span { width: 100%; color: var(--text); font-size: 13px; }
 .lobby-participants > span b { color: var(--brand); font-size: 24px; }
-.lobby-participants i { padding: 7px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-soft); color: var(--text); font-size: 11px; font-style: normal; }
+.lobby-participants i { display: inline-flex; align-items: center; gap: 6px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-soft); color: var(--text); font-size: 11px; font-style: normal; }
+.lobby-participants i > span { width: 7px; height: 7px; border-radius: 50%; background: var(--amber); }
+.lobby-participants i.device-ready { border-color: color-mix(in srgb,var(--green) 27%,var(--border)); background: color-mix(in srgb,var(--green) 7%,var(--surface)); }
+.lobby-participants i.device-ready > span { background: var(--green); }
+.lobby-participants i.device-degraded { border-color: color-mix(in srgb,var(--amber) 31%,var(--border)); }
+.lobby-participants i.device-update_required { border-color: color-mix(in srgb,var(--red) 30%,var(--border)); background: color-mix(in srgb,var(--red) 6%,var(--surface)); }
+.lobby-participants i.device-update_required > span { background: var(--red); }
 .lobby-participants p { font-size: 12px; }
 .question-queue { display: grid; gap: 8px; margin-bottom: 12px; }
 .question-queue article { display: grid; grid-template-columns: 34px minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 10px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-soft); }
@@ -263,10 +283,18 @@
   .join-code-panel > div:last-child { justify-content: flex-start; }
   .classroom-status-bar { grid-template-columns: 1fr 1fr; }
   .classroom-status-bar > div:first-child, .classroom-code { grid-column: 1 / -1; }
+  .classroom-readiness { grid-template-columns: 1fr; gap: 12px; }
+  .classroom-readiness-counts { grid-template-columns: repeat(4,1fr); }
+  .classroom-readiness > .button { width: 100%; }
   .classroom-question-stage { padding: 17px; }
   .classroom-question-stage h2 { font-size: 24px; }
   .classroom-distribution article > div:first-child { align-items: flex-start; }
   .participation-buttons { grid-template-columns: 1fr; }
+}
+
+@media (min-width: 561px) and (max-width: 980px) {
+  .classroom-readiness { grid-template-columns: 1fr auto; }
+  .classroom-readiness-counts { grid-column: 1 / -1; grid-row: 2; }
 }
 
 @media (prefers-reduced-motion: reduce) {

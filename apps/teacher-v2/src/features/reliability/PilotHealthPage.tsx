@@ -19,6 +19,10 @@ const eventLabels: Record<SessionHealthEvent['event_type'], string> = {
   client_connected: 'Conexión confirmada',
   client_reconnecting: 'Reconexión iniciada',
   client_offline: 'Conexión interrumpida',
+  client_render_failed: 'Pantalla recuperada',
+  client_ready: 'Dispositivo preparado',
+  client_degraded: 'Modo de respaldo activado',
+  client_update_required: 'Actualización requerida',
   response_confirmed: 'Respuesta confirmada',
   response_queued: 'Respuesta protegida localmente',
   response_recovered: 'Respuesta recuperada',
@@ -74,7 +78,7 @@ export function PilotHealthPage() {
     const recent = events.filter((event) => new Date(event.created_at).getTime() >= recentCutoff);
     const latencies = recent.flatMap((event) => event.latency_ms == null ? [] : [event.latency_ms]);
     const reconnects = recent.filter((event) => event.event_type === 'client_reconnecting').length;
-    const failures = recent.filter((event) => event.event_type === 'response_failed').length;
+    const failures = recent.filter((event) => event.event_type === 'response_failed' || event.event_type === 'client_render_failed').length;
     const queued = events.filter((event) => event.event_type === 'response_queued').length;
     const recovered = events.filter((event) => event.event_type === 'response_recovered').length;
     const latestByParticipant = new Map<string, SessionHealthEvent>();

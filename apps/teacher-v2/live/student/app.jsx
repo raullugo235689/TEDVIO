@@ -468,6 +468,85 @@ function liveBuildId() {
   return script?.src.match(/app-([^/]+)\.js/)?.[1] || "unknown";
 }
 
+function currentBundleFile() {
+  const script = Array.from(document.scripts).find((item) => /\/student-v2\/assets\/app-[^/]+\.js/.test(item.src));
+  return script ? new URL(script.src).pathname.replace(/^\/student-v2\//, "") : "";
+}
+
+async function latestBundleFile() {
+  try {
+    const response = await fetch(`/student-v2/manifest.json?ready=${Date.now()}`, { cache: "no-store" });
+    if (!response.ok) return "";
+    const manifest = await response.json();
+    return safeText(manifest?.["index.html"]?.file);
+  } catch {
+    return "";
+  }
+}
+
+async function probeDurableStorage() {
+  const key = `tedvio.student.preflight.${Math.random().toString(36).slice(2)}`;
+  const token = Math.random().toString(36).slice(2);
+  try {
+    const storage = await writeDurableValue(key, { token });
+    const recovered = await readDurableValue(key);
+    await removeDurableValue(key);
+    return { durable: storage !== "memory" && recovered?.token === token, storage };
+  } catch {
+    return { durable: false, storage: "memory" };
+  }
+}
+
+async function probeStudentReadiness(student, connection) {
+  const started = performance.now();
+  const browserFallback = typeof fetch !== "function" || typeof WebSocket !== "function";
+  const [storage, latest] = await Promise.all([probeDurableStorage(), latestBundleFile()]);
+  let apiReady = false;
+  try {
+    const client = await getSupabase();
+    const { data, error } = await client
+      .from("v2_sessions")
+      .select("id")
+      .eq("id", student.sessionId)
+      .maybeSingle();
+    apiReady = !error && data?.id === student.sessionId;
+  } catch {
+    apiReady = false;
+  }
+  const current = currentBundleFile();
+  const updateRequired = Boolean(current && latest && current !== latest);
+  const realtimeReady = connection === "connected";
+  const reasons = [];
+  if (!realtimeReady) reasons.push("realtime_fallback");
+  if (!storage.durable) reasons.push("volatile_storage");
+  if (browserFallback) reasons.push("browser_fallback");
+  if (!apiReady) reasons.push("api_unavailable");
+  return {
+    status: updateRequired ? "update" : apiReady && realtimeReady && storage.durable && !browserFallback ? "ready" : "degraded",
+    reason: updateRequired ? "new_build_available" : reasons.join(",") || "ready",
+    latency: Math.max(0, Math.round(performance.now() - started)),
+    build: liveBuildId(),
+    checks: { apiReady, realtimeReady, durable: storage.durable, browserReady: !browserFallback },
+  };
+}
+
+function applyStudentUpdate() {
+  try {
+    sessionStorage.setItem("tedvio.student.update_requested", new Date().toISOString());
+  } catch {}
+  const next = new URL(location.href);
+  next.searchParams.set("client", Date.now().toString(36));
+  const reload = () => location.replace(next.toString());
+  const registration = navigator.serviceWorker?.getRegistration?.();
+  if (!registration) {
+    reload();
+    return;
+  }
+  registration
+    .then((value) => value?.update?.())
+    .then(reload, reload);
+}
+
 function reportStudentFatal({ reference, reason }) {
   const student = readStoredStudent(queryCode());
   if (!student) return;
@@ -594,6 +673,23 @@ function Header({ session, connection }) {
         : null,
     ),
   );
+}
+
+function ReadinessStrip({ readiness }) {
+  if (!readiness || readiness.status === "checking") {
+    return h("section", { className: "readiness-strip checking", role: "status" },
+      h("i"), h("div", null, h("b", null, "Comprobando este dispositivo"), h("span", null, "API, almacenamiento y conexión en vivo")));
+  }
+  if (readiness.status === "update") {
+    return h("section", { className: "readiness-strip update", role: "alert" },
+      h("i"), h("div", null, h("b", null, "Actualización lista"), h("span", null, "Aplícala antes de comenzar la siguiente pregunta.")),
+      h("button", { type: "button", onClick: applyStudentUpdate }, "Actualizar ahora"));
+  }
+  const ready = readiness.status === "ready";
+  return h("section", { className: `readiness-strip ${ready ? "ready" : "degraded"}`, role: "status" },
+    h("i"), h("div", null,
+      h("b", null, ready ? "Dispositivo listo" : "Modo de respaldo activo"),
+      h("span", null, ready ? `Comprobación completa · ${readiness.latency} ms` : "TEDVIO seguirá consultando la clase aunque Realtime se interrumpa.")));
 }
 
 function JoinScreen({ initialCode, busy, error, onJoin }) {
@@ -1234,6 +1330,7 @@ function App() {
   const [connection, setConnection] = useState(
     navigator.onLine ? "connecting" : "offline",
   );
+  const [readiness, setReadiness] = useState({ status: "checking" });
   const [answered, setAnswered] = useState(0);
   const [pendingQuestionIds, setPendingQuestionIds] = useState(() => new Set());
   const currentIdRef = useRef(null);
@@ -1246,6 +1343,7 @@ function App() {
   const latestRefreshRef = useRef(null);
   const activeStudentKeyRef = useRef("");
   const sessionMissingRef = useRef(0);
+  const readinessReportRef = useRef("");
 
   activeStudentKeyRef.current = student
     ? `${student.sessionId}:${student.participantId}`
@@ -1254,6 +1352,8 @@ function App() {
   useEffect(() => {
     realtimeStatusRef.current = "";
     sessionMissingRef.current = 0;
+    readinessReportRef.current = "";
+    setReadiness({ status: "checking" });
   }, [student?.sessionId, student?.participantId]);
 
   useEffect(() => {
@@ -1587,6 +1687,35 @@ function App() {
     };
   }, [student, refresh]);
 
+  useEffect(() => {
+    if (!student || !workspace?.session?.id || !configReady) return;
+    let disposed = false;
+    const delay = connection === "connected" ? 300 : 5_500;
+    const timer = window.setTimeout(() => {
+      void probeStudentReadiness(student, connection).then((next) => {
+        if (disposed || activeStudentKeyRef.current !== `${student.sessionId}:${student.participantId}`) return;
+        setReadiness(next);
+        const eventType = next.status === "ready"
+          ? "client_ready"
+          : next.status === "update"
+            ? "client_update_required"
+            : "client_degraded";
+        const fingerprint = `${eventType}:${next.reason}:${next.build}`;
+        if (readinessReportRef.current === fingerprint) return;
+        readinessReportRef.current = fingerprint;
+        void recordHealth(student, eventType, next.latency, {
+          reason: next.reason,
+          build: next.build,
+          stage: studentLiveStage,
+        });
+      });
+    }, delay);
+    return () => {
+      disposed = true;
+      window.clearTimeout(timer);
+    };
+  }, [connection, student, workspace?.session?.id]);
+
   const onJoin = async ({ code, name, matricula, team }) => {
     setBusy(true);
     setError("");
@@ -1831,6 +1960,7 @@ function App() {
       { className: "main" },
       error ? h("div", { className: "error-box floating" }, error) : null,
       notice ? h("div", { className: `notice-box ${notice.tone} floating`, role: "status", "aria-live": "polite" }, notice.message) : null,
+      h(ReadinessStrip, { readiness }),
       body,
       h(
         "button",

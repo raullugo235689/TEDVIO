@@ -55,5 +55,6 @@ test('lobby to question survives older Android WebViews',async({page})=>{
   await page.goto(`/student-v2/?code=${session.code}`);
   await expect(page.getByText('¿Cuál es la respuesta correcta?')).toBeVisible();
   await expect(page.getByRole('button',{name:/A Primera/})).toBeVisible();
+  await expect(page.getByText('Modo de respaldo activo')).toBeVisible({timeout:8000});
   await expect(page.locator('.live-fatal-shell')).toHaveCount(0);
 });
