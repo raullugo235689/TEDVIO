@@ -40,6 +40,10 @@ must(liveBoundary.includes('retryCount') && liveBoundary.includes('onFatal'), 'l
 must(student.includes('client_render_failed') && student.includes('classifyRenderError'), 'Student registra fallos fatales con una categoría segura');
 must(student.includes('.replace(/_/g, " ")') && !student.includes('question.question_type.replaceAll'), 'Student evita replaceAll en la transición a pregunta');
 must(student.includes('normalizeQuestion') && student.includes('normalizeSession') && student.includes('normalizeStoredStudent'), 'Student normaliza datos remotos y estado local antes de renderizar');
+must(student.includes('probeStudentReadiness') && student.includes('probeDurableStorage'), 'Student comprueba API, almacenamiento, navegador y Realtime');
+must(student.includes('client_ready') && student.includes('client_degraded') && student.includes('client_update_required'), 'Student informa preparación sin contenido académico');
+must(student.includes('manifest.json?ready=') && student.includes('applyStudentUpdate'), 'Student detecta y aplica una versión nueva antes de continuar');
+must(studentCss.includes('readiness-strip') && studentCss.includes('Modo de respaldo') === false, 'Student presenta un semáforo adaptable sin duplicar contenido en CSS');
 
 must(studentHtml.includes('boot-progress') && projectionHtml.includes('p2-boot'), 'Student y Projection muestran arranque progresivo');
 must(studentCss.includes('prefers-reduced-motion') && projectionCss.includes('prefers-reduced-motion'), 'el pulido visual respeta movimiento reducido');

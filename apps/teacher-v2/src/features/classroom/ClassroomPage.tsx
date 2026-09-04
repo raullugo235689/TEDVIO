@@ -22,7 +22,12 @@ import {
   type ClassroomSession,
 } from '../../core/classroom';
 import { useTeacherHome } from '../../core/useTeacherHome';
-import { recordSessionHealth } from '../../core/pilot-health';
+import {
+  classReadinessKey,
+  fetchClassReadiness,
+  recordSessionHealth,
+  subscribePilotHealth,
+} from '../../core/pilot-health';
 import type { StudentRecord } from '../../core/types';
 import { EmptyState, ErrorPanel, LoadingScreen, MetricCard, PageHeader, SectionCard, StatusPill } from '../../shared/components';
 import { Icon } from '../../shared/icons';
@@ -361,6 +366,20 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
     staleTime: 5_000,
   });
 
+  const readinessQueryKey = useMemo(
+    () => classReadinessKey(auth.user?.id, sessionId),
+    [auth.user?.id, sessionId],
+  );
+  const readiness = useQuery({
+    queryKey: readinessQueryKey,
+    queryFn: () => {
+      if (!auth.user) throw new Error('No hay una sesión docente activa.');
+      return fetchClassReadiness(auth.user, sessionId);
+    },
+    enabled: Boolean(auth.user && sessionId),
+    staleTime: 5_000,
+  });
+
   const data = workspace.data;
   const current = data?.questions.find((question) => question.id === data.session.current_question_id)
     || data?.questions.find((question) => question.status === 'live' || question.status === 'revealed')
@@ -372,6 +391,13 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
       void queryClient.invalidateQueries({ queryKey: classroomSessionKey(auth.user?.id, sessionId) });
     }, setConnection);
   }, [auth.user?.id, current?.id, queryClient, sessionId]);
+
+  useEffect(() => {
+    if (!sessionId) return;
+    return subscribePilotHealth(sessionId, () => {
+      void queryClient.invalidateQueries({ queryKey: readinessQueryKey });
+    });
+  }, [queryClient, readinessQueryKey, sessionId]);
 
   useEffect(() => {
     const refresh = () => void queryClient.invalidateQueries({ queryKey: classroomSessionKey(auth.user?.id, sessionId) });
@@ -479,6 +505,21 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
   const accuracyRate = allScored.length ? Math.round((allScored.filter((response) => response.is_correct).length / allScored.length) * 100) : null;
   const closed = session.status === 'closed';
   const actionError = actionMutation.error || noteMutation.error;
+  const readinessData = readiness.data || { ready: 0, degraded: 0, updateRequired: 0, observed: 0, clients: [], latestAt: null };
+  const participantIds = new Set(participants.map((participant) => participant.id));
+  const readinessClients = readinessData.clients.filter((client) => participantIds.has(client.participantId));
+  const readinessByParticipant = new Map(readinessClients.map((client) => [client.participantId, client.status]));
+  const readyClients = readinessClients.filter((client) => client.status === 'ready').length;
+  const degradedClients = readinessClients.filter((client) => client.status === 'degraded').length;
+  const updateRequiredClients = readinessClients.filter((client) => client.status === 'update_required').length;
+  const readinessPending = Math.max(0, participants.length - readinessClients.length);
+  const readinessTone = !participants.length
+    ? 'waiting'
+    : updateRequiredClients
+      ? 'risk'
+      : degradedClients || readinessPending
+        ? 'degraded'
+        : 'ready';
 
   async function copy(value: string, fallback: string) {
     try { await navigator.clipboard.writeText(value); setNotice('Enlace copiado.'); } catch { window.prompt(fallback, value); }
@@ -488,11 +529,27 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
     window.open(projectionUrl(session.code), 'tedvio_projection', 'noopener,noreferrer');
   }
 
+  function launchFromLobby(questionId: string) {
+    if (participants.length && readinessTone !== 'ready') {
+      const detail = updateRequiredClients
+        ? `${updateRequiredClients} dispositivo(s) necesitan actualizar TEDVIO.`
+        : `${readinessPending} dispositivo(s) siguen comprobándose y ${degradedClients} están en modo de respaldo.`;
+      if (!window.confirm(`${detail}\n\n¿Deseas iniciar la pregunta de todas formas?`)) return;
+    }
+    actionMutation.mutate({ type: 'launch', questionId });
+  }
+
   return (
     <div className="view-stack classroom-control">
       <PageHeader eyebrow="MODO CLASE" title={session.title || 'Sesión TEDVIO'} detail={`${group?.subject || session.educational_program || 'Clase'} · Código ${session.code}`} actions={<div className="page-actions"><Link className="button ghost" to="/classroom">← Sesiones</Link>{session.group_id ? <Link className="button ghost" to={`/attendance/${session.group_id}`}>Asistencia</Link> : null}<Link className="button secondary" to={`/classroom/${session.id}/health`}><Icon name="shield" />Salud</Link><button className="button secondary" type="button" onClick={openProjection}>Proyectar</button></div>} />
 
       <div className={`classroom-connection ${connection}`} role="status"><i /><span>{connection === 'connected' ? 'Sincronización en vivo activa' : connection === 'offline' ? 'Sin internet · la clase se conserva y se recuperará al volver' : 'Reconectando · comprobando el estado guardado de la clase'}</span></div>
+
+      {!closed ? <section className={`classroom-readiness ${readinessTone}`} role="status" aria-live="polite">
+        <div className="classroom-readiness-title"><i /><span><small>PREPARACIÓN DEL GRUPO</small><b>{readinessTone === 'ready' ? 'Todos los dispositivos observados están listos' : readinessTone === 'risk' ? 'Hay dispositivos que deben actualizarse' : readinessTone === 'waiting' ? 'Esperando alumnos' : 'La clase puede continuar con respaldo'}</b></span></div>
+        <div className="classroom-readiness-counts"><span><b>{readyClients}</b><small>Listos</small></span><span><b>{degradedClients}</b><small>Respaldo</small></span><span><b>{updateRequiredClients}</b><small>Actualizar</small></span><span><b>{readinessPending}</b><small>Comprobando</small></span></div>
+        <Link className="button ghost compact" to={`/classroom/${session.id}/health`}>Preparar clase</Link>
+      </section> : null}
 
       {notice ? <div className="success-strip"><Icon name="check" /><span>{notice}</span><button type="button" onClick={() => setNotice('')}>×</button></div> : null}
       {actionError ? <ErrorPanel title="No se pudo completar la acción" detail={(actionError as Error).message || 'Intenta nuevamente.'} /> : null}
@@ -534,9 +591,13 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
               <div className="classroom-lobby-main">
                 <span className="eyebrow">SALA DE ESPERA</span><h2>{session.title}</h2><p>Los alumnos pueden entrar con el código o mediante el enlace de acceso.</p>
                 <div className="join-code-panel"><div><small>CÓDIGO</small><b>{session.code}</b></div><div><button className="button secondary" type="button" onClick={() => void copy(studentJoinUrl(session.code), 'Enlace para alumnos')}>Copiar enlace de alumnos</button><button className="button secondary" type="button" onClick={openProjection}>Abrir proyección</button></div></div>
-                <div className="lobby-participants"><span><b>{participants.length}</b> conectados</span>{participants.length ? participants.slice(0, 30).map((participant) => <i key={participant.id}>{participant.display_name}</i>) : <p>Esperando alumnos…</p>}</div>
+                <div className="lobby-participants"><span><b>{participants.length}</b> conectados</span>{participants.length ? participants.slice(0, 30).map((participant) => {
+                  const deviceStatus = readinessByParticipant.get(participant.id) || 'checking';
+                  const deviceLabel = deviceStatus === 'ready' ? 'Listo' : deviceStatus === 'degraded' ? 'Respaldo activo' : deviceStatus === 'update_required' ? 'Debe actualizar' : 'Comprobando';
+                  return <i key={participant.id} className={`device-${deviceStatus}`} title={deviceLabel}><span />{participant.display_name}</i>;
+                }) : <p>Esperando alumnos…</p>}</div>
               </div>
-              <SectionCard><div className="section-heading compact"><div><span className="eyebrow">COLA DE PREGUNTAS</span><h2>{queued.length} preparadas</h2><p>Inicia la primera cuando el grupo esté listo.</p></div></div><div className="question-queue">{queued.map((question) => <article key={question.id}><span>{question.position}</span><div><b>{question.prompt}</b><small>{question.timer_seconds} s · {questionLabel(question.status)}</small></div><button className="button primary compact" type="button" disabled={actionMutation.isPending} onClick={() => actionMutation.mutate({ type: 'launch', questionId: question.id })}>Iniciar</button></article>)}</div><Link className="button ghost wide" to={`/bank?session=${session.id}${session.group_id ? `&group=${session.group_id}` : ''}`}>＋ Añadir preguntas desde el banco</Link></SectionCard>
+              <SectionCard><div className="section-heading compact"><div><span className="eyebrow">COLA DE PREGUNTAS</span><h2>{queued.length} preparadas</h2><p>Inicia la primera cuando el grupo esté listo.</p></div></div><div className="question-queue">{queued.map((question) => <article key={question.id}><span>{question.position}</span><div><b>{question.prompt}</b><small>{question.timer_seconds} s · {questionLabel(question.status)}</small></div><button className="button primary compact" type="button" disabled={actionMutation.isPending} onClick={() => launchFromLobby(question.id)}>Iniciar</button></article>)}</div><Link className="button ghost wide" to={`/bank?session=${session.id}${session.group_id ? `&group=${session.group_id}` : ''}`}>＋ Añadir preguntas desde el banco</Link></SectionCard>
             </section>
           ) : (
             <>

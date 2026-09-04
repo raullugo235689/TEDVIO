@@ -9,6 +9,8 @@ const page = fs.readFileSync(path.join(appRoot, 'src/features/reliability/PilotH
 const app = fs.readFileSync(path.join(appRoot, 'src/app/App.tsx'), 'utf8');
 const student = fs.readFileSync(path.join(appRoot, 'live/student/app.jsx'), 'utf8');
 const fatalMigration = fs.readFileSync(path.join(root, 'supabase/migrations/20260904140921_live_surface_fatal_telemetry.sql'), 'utf8');
+const readinessMigration = fs.readFileSync(path.join(root, 'supabase/migrations/20260904173428_student_readiness_preflight.sql'), 'utf8');
+const classroom = fs.readFileSync(path.join(appRoot, 'src/features/classroom/ClassroomPage.tsx'), 'utf8');
 const failures = [];
 const must = (condition, message) => condition ? console.log('OK  ', message) : (failures.push(message), console.error('FAIL', message));
 
@@ -29,6 +31,11 @@ must(!/p_details:[^\n]*(answer|matricula|name|prompt)/i.test(student), 'Student 
 must(fatalMigration.includes("'client_render_failed'") && fatalMigration.includes("'reference'") && fatalMigration.includes("'stage'"), 'telemetría fatal conserva referencia y etapa sin contenido académico');
 must(fatalMigration.includes('HEALTH_ACTOR_NOT_ALLOWED') && fatalMigration.includes('session_id = p_session_id'), 'un reporte fatal anónimo exige participante válido');
 must(!/p_details ->> '(answer|matricula|name|prompt)'/i.test(fatalMigration), 'la telemetría fatal no acepta identidad, pregunta ni respuesta');
+must(readinessMigration.includes("'client_ready'") && readinessMigration.includes("'client_degraded'") && readinessMigration.includes("'client_update_required'"), 'la base distingue listo, respaldo y actualización');
+must(readinessMigration.includes('HEALTH_ACTOR_NOT_ALLOWED') && readinessMigration.includes('session_id = p_session_id'), 'la preparación sólo puede reportarla un participante real');
+must(!/p_details ->> '(answer|matricula|name|prompt)'/i.test(readinessMigration), 'la preparación no acepta identidad ni contenido académico');
+must(core.includes('fetchClassReadiness') && core.includes(".in('event_type', ['client_ready', 'client_degraded', 'client_update_required'])"), 'el docente resume el último estado de cada dispositivo');
+must(classroom.includes('PREPARACIÓN DEL GRUPO') && classroom.includes('launchFromLobby'), 'Modo Clase muestra el semáforo y advierte antes de iniciar');
 
 const model = new Map();
 for (let client = 1; client <= 100; client += 1) {

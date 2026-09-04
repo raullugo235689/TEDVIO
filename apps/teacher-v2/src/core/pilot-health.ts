@@ -5,6 +5,10 @@ export type SessionHealthEventType =
   | 'client_connected'
   | 'client_reconnecting'
   | 'client_offline'
+  | 'client_render_failed'
+  | 'client_ready'
+  | 'client_degraded'
+  | 'client_update_required'
   | 'response_confirmed'
   | 'response_queued'
   | 'response_recovered'
@@ -16,7 +20,7 @@ export interface SessionHealthEvent {
   actor_role: 'teacher' | 'student';
   event_type: SessionHealthEventType;
   latency_ms: number | null;
-  details: { surface?: string; question_id?: string; reason?: string };
+  details: { surface?: string; question_id?: string; reason?: string; reference?: string; build?: string; stage?: string };
   created_at: string;
 }
 
@@ -52,6 +56,26 @@ export interface PilotHealthWorkspace {
   participantCount: number;
   events: SessionHealthEvent[];
   runs: PilotLoadRun[];
+}
+
+export type ClientReadinessStatus = 'ready' | 'degraded' | 'update_required';
+
+export interface ClientReadiness {
+  participantId: string;
+  status: ClientReadinessStatus;
+  latencyMs: number | null;
+  reason: string;
+  build: string;
+  createdAt: string;
+}
+
+export interface ClassReadinessSnapshot {
+  clients: ClientReadiness[];
+  ready: number;
+  degraded: number;
+  updateRequired: number;
+  observed: number;
+  latestAt: string | null;
 }
 
 function message(error: unknown): string {
@@ -118,6 +142,55 @@ export async function recordSessionHealth(
     p_details: { surface: 'teacher-v2', reason: reason || null },
   });
   if (error) throw new Error(message(error));
+}
+
+export function classReadinessKey(userId?: string, sessionId?: string) {
+  return ['class-readiness', userId || 'anonymous', sessionId || 'none'] as const;
+}
+
+export async function fetchClassReadiness(user: User, sessionId: string): Promise<ClassReadinessSnapshot> {
+  const since = new Date(Date.now() - 30 * 60_000).toISOString();
+  const { data, error } = await supabase
+    .from('v2_session_health_events')
+    .select('participant_id,event_type,latency_ms,details,created_at')
+    .eq('teacher_id', user.id)
+    .eq('session_id', sessionId)
+    .in('event_type', ['client_ready', 'client_degraded', 'client_update_required'])
+    .gte('created_at', since)
+    .order('created_at', { ascending: false })
+    .limit(500);
+  if (error) throw new Error(`No se pudo comprobar la preparación: ${message(error)}`);
+
+  const latest = new Map<string, ClientReadiness>();
+  for (const row of data || []) {
+    const participantId = String(row.participant_id || '');
+    if (!participantId || latest.has(participantId)) continue;
+    const details = row.details && typeof row.details === 'object'
+      ? row.details as Record<string, unknown>
+      : {};
+    const status: ClientReadinessStatus = row.event_type === 'client_ready'
+      ? 'ready'
+      : row.event_type === 'client_update_required'
+        ? 'update_required'
+        : 'degraded';
+    latest.set(participantId, {
+      participantId,
+      status,
+      latencyMs: row.latency_ms == null ? null : Number(row.latency_ms),
+      reason: String(details.reason || ''),
+      build: String(details.build || ''),
+      createdAt: String(row.created_at),
+    });
+  }
+  const clients = [...latest.values()];
+  return {
+    clients,
+    ready: clients.filter((client) => client.status === 'ready').length,
+    degraded: clients.filter((client) => client.status === 'degraded').length,
+    updateRequired: clients.filter((client) => client.status === 'update_required').length,
+    observed: clients.length,
+    latestAt: clients[0]?.createdAt || null,
+  };
 }
 
 export function subscribePilotHealth(sessionId: string, onChange: () => void): () => void {

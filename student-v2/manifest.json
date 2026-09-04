@@ -6,7 +6,7 @@
     "isDynamicEntry": true
   },
   "index.html": {
-    "file": "assets/app-NonpKgHB.js",
+    "file": "assets/app-C14H-KS9.js",
     "name": "index",
     "src": "index.html",
     "isEntry": true,
@@ -14,7 +14,7 @@
       "../../node_modules/@supabase/supabase-js/dist/index.mjs"
     ],
     "css": [
-      "assets/index-BXurEHCy.css"
+      "assets/index-DcXNq4vR.css"
     ]
   }
 }
