@@ -88,6 +88,160 @@
 @keyframes student-card-in { from { opacity: 0; transform: translateY(10px) scale(.995); } }
 @keyframes student-boot { from { transform: translateX(-65%); } to { transform: translateX(205%); } }
 
+/* Premium Motion 2.7 — quiet depth and scene continuity without heavy media. */
+.app-shell,
+.entry-shell {
+  position: relative;
+  isolation: isolate;
+  overflow-x: clip;
+}
+
+.app-shell::before,
+.entry-shell::before {
+  content: "";
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 82% 7%, rgba(105, 79, 255, .1), transparent 22%),
+    radial-gradient(circle at 8% 34%, rgba(29, 167, 255, .08), transparent 26%),
+    linear-gradient(rgba(39, 107, 255, .025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(39, 107, 255, .025) 1px, transparent 1px);
+  background-size: auto, auto, 34px 34px, 34px 34px;
+  mask-image: linear-gradient(to bottom, #000, transparent 78%);
+}
+
+.app-shell > *,
+.entry-shell > * {
+  position: relative;
+  z-index: 1;
+}
+
+.topbar {
+  border-bottom-color: rgba(153, 176, 210, .35);
+  box-shadow: 0 10px 32px rgba(20, 54, 99, .06);
+}
+
+.topbar::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 5%, rgba(39, 107, 255, .34), rgba(105, 79, 255, .22), transparent 95%);
+}
+
+.student-stage {
+  position: relative;
+  will-change: transform, opacity;
+  animation: student-scene-in 420ms cubic-bezier(.16, 1, .3, 1) both;
+}
+
+.student-stage-result { transform-origin: 50% 18%; }
+
+.entry-card,
+.state-card,
+.question-card,
+.result-card {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(190, 205, 226, .62);
+  background: linear-gradient(155deg, rgba(255,255,255,.99), rgba(248,251,255,.97));
+  box-shadow: 0 26px 72px rgba(16, 47, 88, .12), inset 0 1px 0 #fff;
+}
+
+.entry-card::before,
+.state-card::before,
+.question-card::before,
+.result-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 9%;
+  left: 9%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(55, 116, 255, .65), rgba(112, 88, 255, .42), transparent);
+}
+
+.readiness-strip {
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transition: border-color 220ms ease, background 220ms ease, box-shadow 220ms ease;
+}
+
+.readiness-strip > i { animation: student-ready-breathe 2.4s ease-in-out infinite; }
+.readiness-strip b { font-size: 13px; letter-spacing: -.01em; }
+.readiness-strip span { font-size: 11px; }
+.readiness-strip button { font-size: 12px; }
+
+.progress {
+  border-color: rgba(190, 205, 226, .58);
+  box-shadow: 0 12px 30px rgba(16, 47, 88, .07), inset 0 1px 0 #fff;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.progress > i > b,
+.bar-row > i > b {
+  transition: width 420ms cubic-bezier(.2, .7, .2, 1);
+}
+
+.options .option,
+.scale button,
+.order-picked button {
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: student-option-in 360ms cubic-bezier(.16, 1, .3, 1) both;
+}
+
+.options .option:nth-child(2), .scale button:nth-child(2), .order-picked button:nth-child(2) { animation-delay: 45ms; }
+.options .option:nth-child(3), .scale button:nth-child(3), .order-picked button:nth-child(3) { animation-delay: 90ms; }
+.options .option:nth-child(4), .scale button:nth-child(4), .order-picked button:nth-child(4) { animation-delay: 135ms; }
+.options .option:nth-child(5), .scale button:nth-child(5), .order-picked button:nth-child(5) { animation-delay: 180ms; }
+.options .option:nth-child(n+6), .order-picked button:nth-child(n+6) { animation-delay: 210ms; }
+
+.option {
+  border-color: rgba(190, 204, 223, .72);
+  box-shadow: 0 8px 22px rgba(20, 54, 99, .045), inset 0 1px 0 rgba(255,255,255,.9);
+}
+
+.option.selected {
+  box-shadow: 0 0 0 3px rgba(39,107,255,.1), 0 12px 28px rgba(39,107,255,.1);
+  transform: translateY(-1px);
+}
+
+.result-icon,
+.success-mark,
+.finish-mark {
+  box-shadow: 0 14px 34px rgba(27, 125, 79, .14), inset 0 1px 0 #fff;
+  animation: student-result-mark 520ms cubic-bezier(.16, 1, .3, 1) both;
+}
+
+.chips span { font-size: 10px; }
+.entry-card label { font-size: 12px; }
+.hint, .secure, .leave-link { font-size: 12px; }
+
+@keyframes student-scene-in {
+  from { opacity: 0; transform: translateY(16px) scale(.988); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes student-option-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes student-result-mark {
+  from { opacity: 0; transform: scale(.72) rotate(-5deg); }
+  to { opacity: 1; transform: scale(1) rotate(0); }
+}
+
+@keyframes student-ready-breathe {
+  50% { box-shadow: 0 0 0 7px rgba(36,161,100,.08); }
+}
+
 .primary-btn:focus-visible,
 .secondary-btn:focus-visible,
 .option:focus-visible,

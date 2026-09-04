@@ -587,7 +587,7 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
       ) : (
         <>
           {!current ? (
-            <section className="classroom-lobby-grid">
+            <section className="classroom-lobby-grid premium-stage" key={`lobby:${session.id}`}>
               <div className="classroom-lobby-main">
                 <span className="eyebrow">SALA DE ESPERA</span><h2>{session.title}</h2><p>Los alumnos pueden entrar con el código o mediante el enlace de acceso.</p>
                 <div className="join-code-panel"><div><small>CÓDIGO</small><b>{session.code}</b></div><div><button className="button secondary" type="button" onClick={() => void copy(studentJoinUrl(session.code), 'Enlace para alumnos')}>Copiar enlace de alumnos</button><button className="button secondary" type="button" onClick={openProjection}>Abrir proyección</button></div></div>
@@ -602,8 +602,8 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
           ) : (
             <>
               <nav className="classroom-question-strip" aria-label="Preguntas de la sesión">{questions.map((question) => <button type="button" key={question.id} className={`${question.status}${current.id === question.id ? ' current' : ''}`} disabled={question.status === 'queued' || actionMutation.isPending} onClick={() => question.status !== 'queued' && actionMutation.mutate({ type: 'launch', questionId: question.id })}>{question.position}</button>)}</nav>
-              <section className="classroom-stage-grid">
-                <article className="classroom-question-stage">
+              <section className="classroom-stage-grid premium-stage" key={`${current.id}:${current.status}`}>
+                <article className={`classroom-question-stage stage-${current.status}`}>
                   <header><div><div className="question-chips"><StatusPill tone={current.status === 'live' ? 'green' : current.status === 'revealed' ? 'violet' : 'neutral'}>{questionLabel(current.status)}</StatusPill><StatusPill>Pregunta {current.position} de {questions.length}</StatusPill><StatusPill>{current.question_type.replaceAll('_', ' ')}</StatusPill></div><h2>{current.prompt}</h2></div><div className={`classroom-timer${remaining <= 5 && current.status === 'live' ? ' urgent' : ''}`}><b>{current.status === 'live' ? remaining : '—'}</b><span>{current.status === 'live' ? 'segundos' : 'cerrada'}</span></div></header>
                   {current.media_url ? current.media_type === 'image' ? <img className="classroom-media" src={current.media_url} alt="Recurso de la pregunta" /> : current.media_type === 'audio' ? <audio controls src={current.media_url} /> : <video className="classroom-media" controls src={current.media_url} /> : null}
                   <Distribution question={current} responses={currentResponses} />

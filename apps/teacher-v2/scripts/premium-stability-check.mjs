@@ -47,6 +47,9 @@ must(studentCss.includes('readiness-strip') && studentCss.includes('Modo de resp
 
 must(studentHtml.includes('boot-progress') && projectionHtml.includes('p2-boot'), 'Student y Projection muestran arranque progresivo');
 must(studentCss.includes('prefers-reduced-motion') && projectionCss.includes('prefers-reduced-motion'), 'el pulido visual respeta movimiento reducido');
+must(student.includes('student-stage') && studentCss.includes('student-scene-in'), 'Student anima cada cambio de escena sin depender del motor de datos');
+must(projection.includes('p2-scene') && projectionCss.includes('projection-scene-in'), 'Projection diferencia lobby, pregunta y resultado con transiciones de escena');
+must(studentCss.includes('transform, opacity') && projectionCss.includes('transform, opacity'), 'las escenas premium priorizan propiedades de animación fluidas');
 must(projectionCss.includes('brightness(0) invert(1)'), 'el logotipo de Projection conserva contraste sobre fondo oscuro');
 must(serviceWorker.includes('student-v2|projection-v2'), 'el service worker conserva caché de artefactos en vivo');
 
