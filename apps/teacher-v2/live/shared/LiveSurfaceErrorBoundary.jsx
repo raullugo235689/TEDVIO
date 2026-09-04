@@ -9,7 +9,7 @@ function diagnosticReference() {
 }
 
 export class LiveSurfaceErrorBoundary extends Component {
-  state = { error: null, reference: "" };
+  state = { error: null, reference: "", retryCount: 0 };
 
   static getDerivedStateFromError(error) {
     return { error, reference: "" };
@@ -30,6 +30,21 @@ export class LiveSurfaceErrorBoundary extends Component {
     } catch {
       // La recuperación visual funciona aunque el almacenamiento esté bloqueado.
     }
+    try {
+      this.props.onFatal?.({
+        reference,
+        reason: this.props.classifyError?.(error) || "render_failed",
+      });
+    } catch {
+      // La telemetría jamás puede bloquear la recuperación local.
+    }
+    if (this.state.retryCount === 0) {
+      window.setTimeout(() => {
+        this.setState((current) => current.error
+          ? { error: null, reference: "", retryCount: 1 }
+          : current);
+      }, 350);
+    }
   }
 
   render() {
@@ -48,7 +63,14 @@ export class LiveSurfaceErrorBoundary extends Component {
         h(
           "div",
           { className: "live-fatal-actions" },
-          h("button", { type: "button", onClick: () => location.reload() }, "Recargar TEDVIO"),
+          h("button", {
+            type: "button",
+            onClick: () => this.setState((current) => ({
+              error: null,
+              reference: "",
+              retryCount: current.retryCount + 1,
+            })),
+          }, "Reintentar ahora"),
           h("a", { href: this.props.homeHref || "/" }, "Volver al acceso"),
         ),
         h("small", null, "Si vuelve a ocurrir, comparte la referencia con soporte."),

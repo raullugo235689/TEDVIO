@@ -1,12 +1,12 @@
 {
   "../../node_modules/@supabase/supabase-js/dist/index.mjs": {
-    "file": "assets/dist-CATZ1QFq.js",
+    "file": "assets/dist-0ci0KgD5.js",
     "name": "dist",
     "src": "../../node_modules/@supabase/supabase-js/dist/index.mjs",
     "isDynamicEntry": true
   },
   "../../node_modules/qrcode/lib/browser.js": {
-    "file": "assets/browser-Do3bUEpr.js",
+    "file": "assets/browser-CQjArJM7.js",
     "name": "browser",
     "src": "../../node_modules/qrcode/lib/browser.js",
     "isDynamicEntry": true,
@@ -15,7 +15,7 @@
     ]
   },
   "index.html": {
-    "file": "assets/app-DsN0a790.js",
+    "file": "assets/app-DLACyKte.js",
     "name": "index",
     "src": "index.html",
     "isEntry": true,
@@ -24,7 +24,7 @@
       "../../node_modules/qrcode/lib/browser.js"
     ],
     "css": [
-      "assets/index-Cns5_D4s.css"
+      "assets/index-YLfTYZ6l.css"
     ]
   }
 }

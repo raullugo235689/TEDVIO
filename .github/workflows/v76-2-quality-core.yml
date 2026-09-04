@@ -10,6 +10,7 @@ on:
       - 'tests/v76-1-navigation-stability-regression.mjs'
       - 'tests/browser/router-harness.html'
       - 'tests/browser/v76-2-quality-core.spec.mjs'
+      - 'tests/browser/live-student-transition.spec.mjs'
       - 'tests/browser/playwright.config.mjs'
       - 'tests/v68-4-teacher-progressive-boot-regression.mjs'
       - 'tests/v68-5-demand-driven-performance-regression.mjs'
@@ -33,6 +34,7 @@ jobs:
         run: |
           node --check teacher-router-v76-2.js
           node --check tests/browser/v76-2-quality-core.spec.mjs
+          node --check tests/browser/live-student-transition.spec.mjs
           node --check tests/browser/playwright.config.mjs
       - name: Quality Core regression
         run: |

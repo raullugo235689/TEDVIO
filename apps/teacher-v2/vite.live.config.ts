@@ -35,7 +35,7 @@ export default defineConfig(({ mode }) => {
     publicDir: resolve(sourceRoot, 'public'),
     plugins: [react(), trimBundleLines()],
     build: {
-      target: 'es2022',
+      target: 'es2019',
       outDir: resolve(packageRoot, '..', '..', mode),
       emptyOutDir: true,
       sourcemap: false,

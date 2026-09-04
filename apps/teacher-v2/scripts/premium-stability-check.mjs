@@ -36,6 +36,10 @@ must(projection.includes('import("@supabase/supabase-js")'), 'Projection difiere
 must(projection.includes('import("qrcode")'), 'Projection difiere el generador QR hasta el lobby');
 must(student.includes('LiveSurfaceErrorBoundary') && projection.includes('LiveSurfaceErrorBoundary'), 'las superficies en vivo tienen recuperación de render');
 must(liveBoundary.includes('RECUPERACIÓN SEGURA') && liveBoundary.includes('tedvio.live.last_fatal_error'), 'la recuperación conserva una referencia diagnóstica local');
+must(liveBoundary.includes('retryCount') && liveBoundary.includes('onFatal'), 'la superficie reintenta una vez e informa el fallo sin bloquear');
+must(student.includes('client_render_failed') && student.includes('classifyRenderError'), 'Student registra fallos fatales con una categoría segura');
+must(student.includes('.replace(/_/g, " ")') && !student.includes('question.question_type.replaceAll'), 'Student evita replaceAll en la transición a pregunta');
+must(student.includes('normalizeQuestion') && student.includes('normalizeSession') && student.includes('normalizeStoredStudent'), 'Student normaliza datos remotos y estado local antes de renderizar');
 
 must(studentHtml.includes('boot-progress') && projectionHtml.includes('p2-boot'), 'Student y Projection muestran arranque progresivo');
 must(studentCss.includes('prefers-reduced-motion') && projectionCss.includes('prefers-reduced-motion'), 'el pulido visual respeta movimiento reducido');
