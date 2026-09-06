@@ -32,14 +32,8 @@ must(
 must((sql.match(/c\.group_id\s*=\s*v2_grade_items\.group_id/gi) || []).length >= 2, 'la relación cruzada se valida en INSERT y UPDATE');
 must((sql.match(/\(select auth\.uid\(\)\)/g) || []).length >= 16, 'las políticas cachean auth.uid() mediante SELECT');
 
-for (const index of [
-  'sessions_current_question_id_idx',
-  'responses_participant_id_idx',
-  'v2_gradebook_categories_group_id_idx',
-  'v2_gradebook_categories_period_id_idx',
-]) {
-  must(sql.includes(`create index if not exists ${index}`), `${index} está definido de forma idempotente`);
-}
+must(!/create\s+(?:unique\s+)?index/i.test(sql), 'la medición no introduce índices especulativos en tablas heredadas o vacías');
+must(/active\s+--\s+v2_grade_\* access paths already have covering indexes/i.test(sql), 'la decisión de índices queda documentada en la migración');
 
 if (failures.length) {
   console.error(`\n${failures.length} regla(s) del cierre técnico del issue #53 fallaron.`);
