@@ -1,5 +1,5 @@
--- Issue #53 · Consolidate duplicated gradebook RLS policies and add the
--- foreign-key indexes justified by the current production workload.
+-- Issue #53 · Consolidate duplicated gradebook RLS policies after reviewing
+-- the production workload and the isolated recovery schema.
 
 -- The legacy `*_owner` ALL policies overlapped the operation-specific
 -- policies. Because permissive policies are ORed, the overlap also allowed an
@@ -140,16 +140,7 @@ using (
   )
 );
 
--- Production measurements on 2026-09-06 showed live rows and relationship
--- activity on these foreign keys. Keep this first index pass deliberately
--- small; empty tables remain candidates after the expanded pilot creates a
--- representative workload.
-create index if not exists sessions_current_question_id_idx
-  on public.sessions (current_question_id);
-create index if not exists responses_participant_id_idx
-  on public.responses (participant_id);
-create index if not exists v2_gradebook_categories_group_id_idx
-  on public.v2_gradebook_categories (group_id);
-create index if not exists v2_gradebook_categories_period_id_idx
-  on public.v2_gradebook_categories (period_id)
-  where period_id is not null;
+-- No new index is added here. The unindexed foreign keys reported on
+-- 2026-09-06 belong to legacy or empty alternate tables, while the active
+-- v2_grade_* access paths already have covering indexes. Reassess after the
+-- expanded pilot instead of adding speculative write overhead.
