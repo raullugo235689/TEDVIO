@@ -18,7 +18,7 @@ Fecha de verificación: 6 de septiembre de 2026. Base revisada: `main` después 
 - Consolidación de las políticas RLS duplicadas de `v2_grade_categories` y `v2_grade_items`.
 - Separación explícita de SELECT, INSERT, UPDATE y DELETE sin la política permisiva `ALL` heredada.
 - Cierre de una validación débil que permitía asociar un ítem con una categoría de otro grupo durante ciertas actualizaciones.
-- Primer conjunto de índices de claves foráneas respaldado por filas y actividad observadas en producción.
+- Revisión de índices con estadísticas reales: las rutas canónicas activas ya están cubiertas; los avisos restantes corresponden a tablas heredadas o alternativas vacías y no justifican índices nuevos todavía.
 
 ## Pendiente externo
 
@@ -29,4 +29,4 @@ Fecha de verificación: 6 de septiembre de 2026. Base revisada: `main` después 
 
 ## Índices diferidos con intención
 
-Los asesores también señalan claves foráneas sin índice en tablas todavía vacías. No se agregan todas en esta entrega para evitar índices especulativos y nuevas advertencias de índices sin uso. Se revisarán después del piloto ampliado con `pg_stat_statements`, conteos reales y planes de las consultas dominantes.
+Los asesores señalan claves foráneas sin índice en tablas heredadas o alternativas todavía vacías. No se agregan en esta entrega para evitar índices especulativos, penalización de escrituras y nuevas advertencias de índices sin uso. Se revisarán después del piloto ampliado con `pg_stat_statements`, conteos reales y planes de las consultas dominantes.
