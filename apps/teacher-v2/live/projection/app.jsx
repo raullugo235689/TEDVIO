@@ -849,7 +849,7 @@ function App() {
     });
   if (!state.q) return h(Lobby, { key: `lobby:${state.s.id}`, x: state, code, connection, warning });
   return h(Live, {
-    key: `${state.q.id}:${state.q.status}`,
+    key: state.q.id,
     x: state,
     code,
     tick,

@@ -31,6 +31,7 @@ import {
 import type { StudentRecord } from '../../core/types';
 import { EmptyState, ErrorPanel, LoadingScreen, MetricCard, PageHeader, SectionCard, StatusPill } from '../../shared/components';
 import { Icon } from '../../shared/icons';
+import { ActionDialog } from '../../shared/ActionDialog';
 import { useAuth } from '../auth/AuthProvider';
 
 interface ScoreRow {
@@ -64,6 +65,11 @@ type ClassroomAction =
   | { type: 'reveal'; questionId: string }
   | { type: 'close-question'; questionId: string }
   | { type: 'close-session' };
+
+type ClassroomDialog =
+  | { kind: 'launch'; questionId: string; detail: string }
+  | { kind: 'close' }
+  | { kind: 'copy'; title: string; value: string };
 
 function sessionTone(status: string): string {
   if (status === 'live') return 'green';
@@ -354,6 +360,7 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
   const navigate = useNavigate();
   const [notice, setNotice] = useState('');
   const [showRanking, setShowRanking] = useState(true);
+  const [dialog, setDialog] = useState<ClassroomDialog | null>(null);
   const [connection, setConnection] = useState<ClassroomConnectionState>(() => navigator.onLine ? 'connecting' : 'offline');
 
   const workspace = useQuery({
@@ -464,6 +471,7 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
     onSuccess: async (type) => {
       const messages: Record<ClassroomAction['type'], string> = { launch: 'Pregunta iniciada.', reveal: 'Respuesta revelada.', 'close-question': 'Respuestas cerradas.', 'close-session': 'Clase finalizada y guardada.' };
       setNotice(messages[type]);
+      setDialog(null);
       await invalidate();
     },
   });
@@ -476,7 +484,7 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
     onSuccess: async () => { setNotice('Nota guardada en el expediente del alumno.'); await invalidate(); },
   });
 
-  if (workspace.isLoading) return <LoadingScreen label="Abriendo el cockpit docente…" />;
+  if (workspace.isLoading) return <LoadingScreen label="Abriendo Modo Clase…" />;
   if (workspace.isError) return <ErrorPanel title="No pude abrir Modo Clase" detail={workspace.error.message} onRetry={() => workspace.refetch()} />;
   if (!data) return null;
 
@@ -522,7 +530,8 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
         : 'ready';
 
   async function copy(value: string, fallback: string) {
-    try { await navigator.clipboard.writeText(value); setNotice('Enlace copiado.'); } catch { window.prompt(fallback, value); }
+    try { await navigator.clipboard.writeText(value); setNotice('Copiado. Ya puedes compartirlo.'); }
+    catch { setDialog({ kind: 'copy', title: fallback, value }); }
   }
 
   function openProjection() {
@@ -534,7 +543,9 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
       const detail = updateRequiredClients
         ? `${updateRequiredClients} dispositivo(s) necesitan actualizar TEDVIO.`
         : `${readinessPending} dispositivo(s) siguen comprobándose y ${degradedClients} están en modo de respaldo.`;
-      if (!window.confirm(`${detail}\n\n¿Deseas iniciar la pregunta de todas formas?`)) return;
+      actionMutation.reset();
+      setDialog({ kind: 'launch', questionId, detail });
+      return;
     }
     actionMutation.mutate({ type: 'launch', questionId });
   }
@@ -551,7 +562,7 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
         <Link className="button ghost compact" to={`/classroom/${session.id}/health`}>Preparar clase</Link>
       </section> : null}
 
-      {notice ? <div className="success-strip"><Icon name="check" /><span>{notice}</span><button type="button" onClick={() => setNotice('')}>×</button></div> : null}
+      {notice ? <div className="success-strip" role="status"><Icon name="check" /><span>{notice}</span><button type="button" aria-label="Cerrar aviso" onClick={() => setNotice('')}>×</button></div> : null}
       {actionError ? <ErrorPanel title="No se pudo completar la acción" detail={(actionError as Error).message || 'Intenta nuevamente.'} /> : null}
 
       <section className={`classroom-status-bar ${closed ? 'closed' : session.status}`}>
@@ -602,7 +613,7 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
           ) : (
             <>
               <nav className="classroom-question-strip" aria-label="Preguntas de la sesión">{questions.map((question) => <button type="button" key={question.id} className={`${question.status}${current.id === question.id ? ' current' : ''}`} disabled={question.status === 'queued' || actionMutation.isPending} onClick={() => question.status !== 'queued' && actionMutation.mutate({ type: 'launch', questionId: question.id })}>{question.position}</button>)}</nav>
-              <section className="classroom-stage-grid premium-stage" key={`${current.id}:${current.status}`}>
+              <section className="classroom-stage-grid premium-stage" key={current.id}>
                 <article className={`classroom-question-stage stage-${current.status}`}>
                   <header><div><div className="question-chips"><StatusPill tone={current.status === 'live' ? 'green' : current.status === 'revealed' ? 'violet' : 'neutral'}>{questionLabel(current.status)}</StatusPill><StatusPill>Pregunta {current.position} de {questions.length}</StatusPill><StatusPill>{current.question_type.replaceAll('_', ' ')}</StatusPill></div><h2>{current.prompt}</h2></div><div className={`classroom-timer${remaining <= 5 && current.status === 'live' ? ' urgent' : ''}`}><b>{current.status === 'live' ? remaining : '—'}</b><span>{current.status === 'live' ? 'segundos' : 'cerrada'}</span></div></header>
                   {current.media_url ? current.media_type === 'image' ? <img className="classroom-media" src={current.media_url} alt="Recurso de la pregunta" /> : current.media_type === 'audio' ? <audio controls src={current.media_url} /> : <video className="classroom-media" controls src={current.media_url} /> : null}
@@ -623,15 +634,34 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
 
           <div className="classroom-tools-grid">
             <ParticipationPanel roster={roster} notes={notes} sessionId={session.id} groupId={session.group_id} saving={noteMutation.isPending} onSaveNote={(studentId, note) => noteMutation.mutate({ studentId, note })} />
-            <SectionCard><div className="section-heading compact"><div><span className="eyebrow">CIERRE DE CLASE</span><h2>Deja la evidencia lista</h2><p>{questions.length ? `${completed} de ${questions.length} preguntas completadas.` : 'La sesión todavía no contiene preguntas.'}</p></div></div><div className="classroom-close-summary"><span><small>Conectados</small><b>{participants.length}</b></span><span><small>Respuestas</small><b>{responses.length}</b></span><span><small>Acierto</small><b>{accuracyRate == null ? '—' : `${accuracyRate}%`}</b></span></div><button className="button danger wide" type="button" disabled={actionMutation.isPending} onClick={() => { if (window.confirm('¿Finalizar esta clase? Las respuestas quedarán guardadas y la sesión se cerrará.')) actionMutation.mutate({ type: 'close-session' }); }}>Finalizar clase</button></SectionCard>
+            <SectionCard><div className="section-heading compact"><div><span className="eyebrow">CIERRE DE CLASE</span><h2>Deja la evidencia lista</h2><p>{questions.length ? `${completed} de ${questions.length} preguntas completadas.` : 'La sesión todavía no contiene preguntas.'}</p></div></div><div className="classroom-close-summary"><span><small>Conectados</small><b>{participants.length}</b></span><span><small>Respuestas</small><b>{responses.length}</b></span><span><small>Acierto</small><b>{accuracyRate == null ? '—' : `${accuracyRate}%`}</b></span></div><button className="button danger wide" type="button" disabled={actionMutation.isPending} onClick={() => { actionMutation.reset(); setDialog({ kind: 'close' }); }}>Finalizar clase</button></SectionCard>
           </div>
         </>
       )}
+      {dialog ? <ActionDialog
+        key={dialog.kind}
+        title={dialog.kind === 'close' ? '¿Finalizar esta clase?' : dialog.kind === 'launch' ? '¿Iniciar con dispositivos pendientes?' : dialog.title}
+        detail={dialog.kind === 'close' ? 'Los alumnos dejarán de responder. Las respuestas registradas se conservarán y podrás consultar el resumen de la sesión.' : dialog.kind === 'launch' ? dialog.detail : 'La copia automática no está disponible. Selecciona el texto y cópialo para compartirlo.'}
+        confirmLabel={dialog.kind === 'close' ? 'Finalizar clase' : 'Iniciar de todas formas'}
+        danger={dialog.kind === 'close'}
+        busy={actionMutation.isPending}
+        error={dialog.kind !== 'copy' ? actionMutation.error?.message : undefined}
+        onDismiss={() => setDialog(null)}
+        onConfirm={dialog.kind === 'copy' ? undefined : () => {
+          if (actionMutation.isPending) return;
+          if (closed || (dialog.kind === 'launch' && (current || !queued.some((question) => question.id === dialog.questionId)))) {
+            setDialog(null);
+            setNotice('La sesión cambió. Revisa su estado antes de continuar.');
+            return;
+          }
+          actionMutation.mutate(dialog.kind === 'close' ? { type: 'close-session' } : { type: 'launch', questionId: dialog.questionId });
+        }}
+      >{dialog.kind === 'copy' ? <label className="classroom-copy-field">{dialog.title}<input readOnly value={dialog.value} onFocus={(event) => event.currentTarget.select()} /></label> : null}</ActionDialog> : null}
     </div>
   );
 }
 
 export function ClassroomPage() {
   const { sessionId } = useParams();
-  return sessionId ? <ClassroomControl sessionId={sessionId} /> : <ClassroomLanding />;
+  return sessionId ? <ClassroomControl key={sessionId} sessionId={sessionId} /> : <ClassroomLanding />;
 }
