@@ -112,13 +112,16 @@
   mask-image: linear-gradient(to bottom, #000, transparent 78%);
 }
 
-.app-shell > *,
+.app-shell > :not(.topbar),
 .entry-shell > * {
   position: relative;
   z-index: 1;
 }
 
 .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
   border-bottom-color: rgba(153, 176, 210, .35);
   box-shadow: 0 10px 32px rgba(20, 54, 99, .06);
 }
