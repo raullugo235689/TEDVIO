@@ -1,3 +1,5 @@
+import jsQR from 'jsqr';
+
 export const OMR_LETTERS = ['A', 'B', 'C', 'D', 'E'] as const;
 
 export type OmrAnswer = (typeof OMR_LETTERS)[number] | null;
@@ -30,11 +32,49 @@ export interface OmrCorner {
 export interface OmrAnalysis {
   answers: OmrAnswer[];
   quality: OmrMarkQuality[];
+  photoQuality: OmrPhotoQuality;
   corners: Record<'topLeft' | 'topRight' | 'bottomRight' | 'bottomLeft', OmrCorner>;
   qr: string | null;
   previewDataUrl: string;
   width: number;
   height: number;
+}
+
+export type OmrPhotoIssue = 'orientation' | 'resolution' | 'lighting' | 'contrast' | 'blur' | 'crop' | 'perspective';
+
+export interface OmrPhotoMetrics {
+  width: number;
+  height: number;
+  shortEdge: number;
+  megapixels: number;
+  brightness: number;
+  contrast: number;
+  shadowSpread: number;
+  sharpness: number;
+  pageCoverage: number | null;
+  perspectiveBalance: number | null;
+}
+
+export interface OmrPhotoQuality {
+  accepted: boolean;
+  issues: OmrPhotoIssue[];
+  metrics: OmrPhotoMetrics;
+  guidance: string[];
+}
+
+export interface OmrAnalyzeOptions {
+  decodeQr?: boolean;
+  enforcePhotoQuality?: boolean;
+}
+
+export class OmrPhotoQualityError extends Error {
+  readonly quality: OmrPhotoQuality;
+
+  constructor(quality: OmrPhotoQuality) {
+    super(quality.guidance.slice(0, 2).join(' '));
+    this.name = 'OmrPhotoQualityError';
+    this.quality = quality;
+  }
 }
 
 export interface OmrQrPayload {
@@ -44,70 +84,8 @@ export interface OmrQrPayload {
   enrollment: string;
 }
 
-interface JsQrResult {
-  data?: string;
-}
-
-type JsQr = (
-  data: Uint8ClampedArray,
-  width: number,
-  height: number,
-  options?: { inversionAttempts?: 'dontInvert' | 'onlyInvert' | 'attemptBoth' | 'invertFirst' },
-) => JsQrResult | null;
-
-declare global {
-  interface Window {
-    jsQR?: JsQr;
-  }
-}
-
-const scriptLoads = new Map<string, Promise<void>>();
-
-function loadScript(src: string, ready: () => boolean): Promise<void> {
-  if (ready()) return Promise.resolve();
-  const existing = scriptLoads.get(src);
-  if (existing) return existing;
-
-  const pending = new Promise<void>((resolve, reject) => {
-    const current = [...document.scripts].find((script) => script.src === src);
-    const script = current || document.createElement('script');
-    const timeout = window.setTimeout(() => reject(new Error('La herramienta tardó demasiado en cargar.')), 12_000);
-
-    function finish() {
-      window.clearTimeout(timeout);
-      if (ready()) resolve();
-      else reject(new Error('La herramienta externa no quedó disponible.'));
-    }
-
-    script.addEventListener('load', finish, { once: true });
-    script.addEventListener('error', () => {
-      window.clearTimeout(timeout);
-      reject(new Error('No fue posible cargar la herramienta externa.'));
-    }, { once: true });
-
-    if (!current) {
-      script.src = src;
-      script.async = true;
-      script.crossOrigin = 'anonymous';
-      document.head.appendChild(script);
-    }
-  }).catch((error) => {
-    scriptLoads.delete(src);
-    throw error;
-  });
-
-  scriptLoads.set(src, pending);
-  return pending;
-}
-
 export async function loadQrDecoder(): Promise<boolean> {
-  if (typeof window.jsQR === 'function') return true;
-  try {
-    await loadScript('https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js', () => typeof window.jsQR === 'function');
-    return typeof window.jsQR === 'function';
-  } catch {
-    return false;
-  }
+  return typeof jsQR === 'function';
 }
 
 export async function renderQrCode(text: string): Promise<string> {
@@ -159,6 +137,128 @@ export function parseOmrPayload(payload?: string | null): OmrQrPayload | null {
   const [, examId = '', version = '', studentId = '', enrollment = ''] = payload.split('|');
   if (!examId || !/^[A-C]$/.test(version)) return null;
   return { examId, version, studentId, enrollment };
+}
+
+const PHOTO_GUIDANCE: Record<OmrPhotoIssue, string> = {
+  orientation: 'Coloca la hoja en vertical.',
+  resolution: 'Acerca la cámara hasta que la hoja ocupe casi toda la imagen.',
+  lighting: 'Busca luz uniforme y evita sombras o reflejos sobre el papel.',
+  contrast: 'Limpia la lente y usa un fondo que contraste con la hoja.',
+  blur: 'Sostén el dispositivo con ambas manos y vuelve a enfocar.',
+  crop: 'Incluye la hoja completa y sus cuatro cuadros negros.',
+  perspective: 'Pon la cámara paralela al papel, sin tomar la foto de lado.',
+};
+
+function roundMetric(value: number): number {
+  return Number(value.toFixed(3));
+}
+
+function luminanceAt(data: Uint8ClampedArray, width: number, x: number, y: number): number {
+  const pixel = (y * width + x) * 4;
+  return 0.299 * (data[pixel] ?? 255) + 0.587 * (data[pixel + 1] ?? 255) + 0.114 * (data[pixel + 2] ?? 255);
+}
+
+function photoStatistics(data: Uint8ClampedArray, width: number, height: number) {
+  const step = Math.max(1, Math.floor(Math.min(width, height) / 240));
+  const gridSums = Array.from({ length: 16 }, () => 0);
+  const gridCounts = Array.from({ length: 16 }, () => 0);
+  let sum = 0;
+  let squared = 0;
+  let gradient = 0;
+  let gradientSamples = 0;
+  let samples = 0;
+
+  for (let y = 0; y < height; y += step) {
+    for (let x = 0; x < width; x += step) {
+      const luminance = luminanceAt(data, width, x, y);
+      sum += luminance;
+      squared += luminance * luminance;
+      samples += 1;
+      const gridX = Math.min(3, Math.floor((x / Math.max(1, width)) * 4));
+      const gridY = Math.min(3, Math.floor((y / Math.max(1, height)) * 4));
+      const gridIndex = gridY * 4 + gridX;
+      gridSums[gridIndex] = (gridSums[gridIndex] ?? 0) + luminance;
+      gridCounts[gridIndex] = (gridCounts[gridIndex] ?? 0) + 1;
+
+      if (x + step < width && y + step < height) {
+        gradient += Math.abs(luminance - luminanceAt(data, width, x + step, y));
+        gradient += Math.abs(luminance - luminanceAt(data, width, x, y + step));
+        gradientSamples += 2;
+      }
+    }
+  }
+
+  const mean = samples ? sum / samples : 255;
+  const variance = samples ? Math.max(0, squared / samples - mean * mean) : 0;
+  const gridMeans = gridSums.map((value, index) => value / Math.max(1, gridCounts[index] ?? 0));
+  return {
+    brightness: mean / 255,
+    contrast: Math.sqrt(variance) / 255,
+    shadowSpread: (Math.max(...gridMeans) - Math.min(...gridMeans)) / 255,
+    sharpness: gradientSamples ? gradient / gradientSamples / 255 : 0,
+  };
+}
+
+function polygonArea(points: Array<{ x: number; y: number }>): number {
+  return Math.abs(points.reduce((sum, point, index) => {
+    const next = points[(index + 1) % points.length] || point;
+    return sum + point.x * next.y - next.x * point.y;
+  }, 0)) / 2;
+}
+
+export function assessOmrPhoto(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  corners: Record<'topLeft' | 'topRight' | 'bottomRight' | 'bottomLeft', OmrCorner> | null = null,
+  sourceSize: { width: number; height: number } = { width, height },
+): OmrPhotoQuality {
+  const statistics = photoStatistics(data, width, height);
+  const issues: OmrPhotoIssue[] = [];
+  let pageCoverage: number | null = null;
+  let perspectiveBalance: number | null = null;
+
+  if (sourceSize.width > sourceSize.height * 0.92) issues.push('orientation');
+  if (Math.min(sourceSize.width, sourceSize.height) < 650) issues.push('resolution');
+  if (statistics.brightness < 0.32 || statistics.shadowSpread > 0.42) issues.push('lighting');
+  if (statistics.contrast < 0.055) issues.push('contrast');
+  if (statistics.sharpness < 0.006 && statistics.contrast < 0.13) issues.push('blur');
+
+  if (corners) {
+    const top = Math.hypot(corners.topRight.x - corners.topLeft.x, corners.topRight.y - corners.topLeft.y);
+    const bottom = Math.hypot(corners.bottomRight.x - corners.bottomLeft.x, corners.bottomRight.y - corners.bottomLeft.y);
+    const left = Math.hypot(corners.bottomLeft.x - corners.topLeft.x, corners.bottomLeft.y - corners.topLeft.y);
+    const right = Math.hypot(corners.bottomRight.x - corners.topRight.x, corners.bottomRight.y - corners.topRight.y);
+    pageCoverage = polygonArea([corners.topLeft, corners.topRight, corners.bottomRight, corners.bottomLeft]) / Math.max(1, width * height);
+    perspectiveBalance = Math.min(top, bottom) / Math.max(1, Math.max(top, bottom)) * Math.min(left, right) / Math.max(1, Math.max(left, right));
+    if (pageCoverage < 0.42) issues.push('crop');
+    if (perspectiveBalance < 0.48) issues.push('perspective');
+  }
+
+  const uniqueIssues = [...new Set(issues)];
+  const metrics: OmrPhotoMetrics = {
+    width: sourceSize.width,
+    height: sourceSize.height,
+    shortEdge: Math.min(sourceSize.width, sourceSize.height),
+    megapixels: roundMetric(sourceSize.width * sourceSize.height / 1_000_000),
+    brightness: roundMetric(statistics.brightness),
+    contrast: roundMetric(statistics.contrast),
+    shadowSpread: roundMetric(statistics.shadowSpread),
+    sharpness: roundMetric(statistics.sharpness),
+    pageCoverage: pageCoverage == null ? null : roundMetric(pageCoverage),
+    perspectiveBalance: perspectiveBalance == null ? null : roundMetric(perspectiveBalance),
+  };
+  return {
+    accepted: uniqueIssues.length === 0,
+    issues: uniqueIssues,
+    metrics,
+    guidance: uniqueIssues.map((issue) => PHOTO_GUIDANCE[issue]),
+  };
+}
+
+function withPhotoIssue(quality: OmrPhotoQuality, issue: OmrPhotoIssue): OmrPhotoQuality {
+  const issues = [...new Set([...quality.issues, issue])];
+  return { ...quality, accepted: false, issues, guidance: issues.map((item) => PHOTO_GUIDANCE[item]) };
 }
 
 function darknessAt(
@@ -315,15 +415,14 @@ export async function analyzeOmrFile(
   file: File,
   questionCount: number,
   optionCount: number,
+  options: OmrAnalyzeOptions = {},
 ): Promise<OmrAnalysis> {
+  if (file.size > 25 * 1024 * 1024) throw new Error('La imagen supera 25 MB. Usa la foto original de la cámara o reduce su tamaño.');
   const image = await loadImage(file);
   const maxDimension = 1600;
   const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
   const width = Math.max(1, Math.round(image.naturalWidth * scale));
   const height = Math.max(1, Math.round(image.naturalHeight * scale));
-  if (width > height * 0.92) {
-    throw new Error('Coloca la hoja en vertical y toma la fotografía completa.');
-  }
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
@@ -332,6 +431,13 @@ export async function analyzeOmrFile(
   context.drawImage(image, 0, 0, width, height);
   const imageData = context.getImageData(0, 0, width, height);
   const data = imageData.data;
+  const basePhotoQuality = assessOmrPhoto(data, width, height, null, {
+    width: image.naturalWidth,
+    height: image.naturalHeight,
+  });
+  if (options.enforcePhotoQuality !== false && !basePhotoQuality.accepted) {
+    throw new OmrPhotoQualityError(basePhotoQuality);
+  }
 
   const cornerCandidates = {
     topLeft: findCorner(data, width, height, 'topLeft'),
@@ -340,10 +446,17 @@ export async function analyzeOmrFile(
     bottomLeft: findCorner(data, width, height, 'bottomLeft'),
   };
   if (Object.values(cornerCandidates).some((corner) => !corner || corner.darkness < 0.38)) {
-    throw new Error('No pude localizar las cuatro marcas negras. Toma la hoja completa, en vertical y con luz uniforme.');
+    throw new OmrPhotoQualityError(withPhotoIssue(basePhotoQuality, 'crop'));
   }
 
   const corners = cornerCandidates as Record<'topLeft' | 'topRight' | 'bottomRight' | 'bottomLeft', OmrCorner>;
+  const photoQuality = assessOmrPhoto(data, width, height, corners, {
+    width: image.naturalWidth,
+    height: image.naturalHeight,
+  });
+  if (options.enforcePhotoQuality !== false && !photoQuality.accepted) {
+    throw new OmrPhotoQualityError(photoQuality);
+  }
   const pageWidth = (
     Math.hypot(corners.topRight.x - corners.topLeft.x, corners.topRight.y - corners.topLeft.y) +
     Math.hypot(corners.bottomRight.x - corners.bottomLeft.x, corners.bottomRight.y - corners.bottomLeft.y)
@@ -379,9 +492,9 @@ export async function analyzeOmrFile(
   }
 
   let qr: string | null = null;
-  if (await loadQrDecoder()) {
+  if (options.decodeQr !== false && await loadQrDecoder()) {
     try {
-      qr = window.jsQR?.(data, width, height, { inversionAttempts: 'attemptBoth' })?.data || null;
+      qr = jsQR(data, width, height, { inversionAttempts: 'attemptBoth' })?.data || null;
     } catch {
       qr = null;
     }
@@ -391,6 +504,7 @@ export async function analyzeOmrFile(
   return {
     answers,
     quality,
+    photoQuality,
     corners,
     qr,
     previewDataUrl: canvas.toDataURL('image/jpeg', 0.84),
