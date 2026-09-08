@@ -154,7 +154,9 @@ test('captura por lote guarda, avanza y nunca preselecciona al siguiente alumno'
   const state = await fixture(page);
   await page.getByRole('button', { name: 'Iniciar captura por lote' }).click();
   await expect(page.getByRole('heading', { name: 'Escanear grupo completo' })).toBeVisible();
+  await expect(page.locator('.omr-confirm-dock')).toHaveCount(0);
   await page.getByRole('button', { name: /Captura manual/ }).click();
+  await expect(page.locator('.omr-confirm-dock')).toBeVisible();
   await page.getByLabel('Alumno', { exact: true }).selectOption('a');
   await page.getByRole('checkbox', { name: /Verifiqué que la hoja pertenece/ }).click();
   for (const [number, letter] of [[1, 'A'], [2, 'B'], [3, 'C'], [4, 'D']]) await answer(page, number, letter).click();

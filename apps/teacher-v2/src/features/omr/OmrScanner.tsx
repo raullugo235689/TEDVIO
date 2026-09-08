@@ -109,6 +109,9 @@ export function OmrScanner({ detail, initialResult = null, batchMode = false, ba
     () => currentResult || findExistingResult(detail, studentId, enrollment, version),
     [detail, enrollment, currentResult, studentId, version],
   );
+  const captureStarted = Boolean(
+    initialResult || captureMethod === 'manual' || sourceFingerprint || analysisSize || photoQuality || qrValue,
+  );
 
   const mutation = useMutation({
     mutationKey: ['omr-write', auth.user?.id, detail.exam.id],
@@ -427,13 +430,13 @@ export function OmrScanner({ detail, initialResult = null, batchMode = false, ba
       </section>
 
       </fieldset>
-      <section className="omr-confirm-dock">
+      {captureStarted ? <section className="omr-confirm-dock">
         <div><span className="eyebrow">RESULTADO PROVISIONAL</span><b>{grade.score.toFixed(1)}</b><small>{grade.correct}/{detail.exam.question_count} aciertos · {grade.blanks} en blanco · {manualCorrections} correcciones</small></div>
         <div className="omr-confirm-context"><StatusPill tone={unresolvedWarnings.length || !identityConfirmed ? 'amber' : 'green'}>{unresolvedWarnings.length ? `${unresolvedWarnings.length} sin revisar` : !identityConfirmed ? 'Verifica identidad' : 'Lista para confirmar'}</StatusPill>{existing ? <StatusPill tone="violet">Actualiza resultado</StatusPill> : null}</div>
         <button className="button ghost" type="button" disabled={!canSave || busy || !online} onClick={() => save(false, batchMode)}>{batchMode ? 'Pendiente y siguiente' : 'Guardar pendiente'}</button>
         {batchMode ? <button className="button secondary" type="button" disabled={!canConfirm || unresolvedWarnings.length > 0 || busy || !online} onClick={() => save(true, false)}>Confirmar y terminar</button> : null}
         <button className="button primary" type="button" disabled={!canConfirm || unresolvedWarnings.length > 0 || busy || !online} onClick={() => save(true, batchMode)}>{mutation.isPending ? 'Guardando…' : batchMode ? 'Confirmar y siguiente' : 'Confirmar y calificar'}</button>
-      </section>
+      </section> : null}
       {dialog ? <ActionDialog eyebrow="TEDVIO · REVISIÓN OMR" title={dialog.title} detail={dialog.detail} confirmLabel={dialog.label} danger={dialog.danger} busy={saving} error={mutation.error?.message} onDismiss={() => setDialog(null)} onConfirm={dialog.action} /> : null}
     </div>
   );
