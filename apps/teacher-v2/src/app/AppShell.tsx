@@ -1,3 +1,4 @@
+import { hasPendingGradebook, useGradebookDraftGuard } from '../core/useGradebookDraftGuard';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useIsMutating, useQueryClient } from '@tanstack/react-query';
@@ -38,6 +39,8 @@ export function AppShell() {
   const auth = useAuth();
   const queryClient = useQueryClient();
   useAttendanceDraftGuard(auth.user?.id);
+  useGradebookDraftGuard(auth.user?.id);
+  const gradebookSaving = useIsMutating({ mutationKey: ['gradebook-write', auth.user?.id] }) > 0;
   const attendanceSaving = useIsMutating({ mutationKey: ['attendance-write', auth.user?.id] }) > 0;
   const [confirmLogout, setConfirmLogout] = useState(false);
   const reliability = useReliability();
@@ -77,11 +80,11 @@ export function AppShell() {
   const connectionTone = reliability.syncing ? 'syncing' : reliability.online ? (reliability.pendingCount ? 'pending' : 'online') : 'offline';
 
   async function logout(confirmed = false) {
-    if (!confirmed && hasPendingAttendance(queryClient, auth.user?.id)) {
+    if (!confirmed && (hasPendingAttendance(queryClient, auth.user?.id) || hasPendingGradebook(queryClient, auth.user?.id))) {
       setConfirmLogout(true);
       return;
     }
-    if (attendanceSaving) return;
+    if (attendanceSaving || gradebookSaving) return;
     setSigningOut(true);
     try {
       await auth.signOut();
@@ -191,9 +194,9 @@ export function AppShell() {
           </section>
         </div>
       ) : null}
-      {confirmLogout ? <ActionDialog eyebrow="TEDVIO · CUENTA" title="¿Salir con asistencia pendiente?"
-        detail="Hay una captura de asistencia sin guardar en esta pestaña. Al cerrar sesión se descartará; puedes cancelar y volver a guardarla."
-        confirmLabel="Salir sin guardar" danger busy={signingOut || attendanceSaving}
+      {confirmLogout ? <ActionDialog eyebrow="TEDVIO · CUENTA" title={hasPendingGradebook(queryClient, auth.user?.id) ? '¿Salir con calificaciones pendientes?' : '¿Salir con asistencia pendiente?'}
+        detail="Hay trabajo académico sin guardar en esta pestaña. Al cerrar sesión se descartará; puedes cancelar y volver a guardarlo."
+        confirmLabel="Salir sin guardar" danger busy={signingOut || attendanceSaving || gradebookSaving}
         onDismiss={() => setConfirmLogout(false)} onConfirm={() => void logout(true)} /> : null}
     </div>
   );
