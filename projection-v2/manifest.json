@@ -1,14 +1,14 @@
 {
-  "../../../../../../2408fd138883/tedvio/apps/teacher-v2/node_modules/@supabase/supabase-js/dist/index.mjs": {
+  "../../node_modules/@supabase/supabase-js/dist/index.mjs": {
     "file": "assets/dist-0ci0KgD5.js",
     "name": "dist",
-    "src": "../../../../../../2408fd138883/tedvio/apps/teacher-v2/node_modules/@supabase/supabase-js/dist/index.mjs",
+    "src": "../../node_modules/@supabase/supabase-js/dist/index.mjs",
     "isDynamicEntry": true
   },
-  "../../../../../../2408fd138883/tedvio/apps/teacher-v2/node_modules/qrcode/lib/browser.js": {
+  "../../node_modules/qrcode/lib/browser.js": {
     "file": "assets/browser-BczK6FMS.js",
     "name": "browser",
-    "src": "../../../../../../2408fd138883/tedvio/apps/teacher-v2/node_modules/qrcode/lib/browser.js",
+    "src": "../../node_modules/qrcode/lib/browser.js",
     "isDynamicEntry": true,
     "imports": [
       "index.html"
@@ -20,8 +20,8 @@
     "src": "index.html",
     "isEntry": true,
     "dynamicImports": [
-      "../../../../../../2408fd138883/tedvio/apps/teacher-v2/node_modules/@supabase/supabase-js/dist/index.mjs",
-      "../../../../../../2408fd138883/tedvio/apps/teacher-v2/node_modules/qrcode/lib/browser.js"
+      "../../node_modules/@supabase/supabase-js/dist/index.mjs",
+      "../../node_modules/qrcode/lib/browser.js"
     ],
     "css": [
       "assets/index-XeczUBak.css"
