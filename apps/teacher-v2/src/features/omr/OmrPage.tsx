@@ -317,6 +317,8 @@ function OmrDetailView({ detail, refetch }: { detail: OmrExamDetail; refetch: ()
   async function refreshAll() {
     await Promise.all([
       refetch(),
+      queryClient.invalidateQueries({ queryKey: ['teacher-gradebook-detail', auth.user?.id] }),
+      queryClient.invalidateQueries({ queryKey: ['teacher-gradebook-workspace', auth.user?.id] }),
       queryClient.invalidateQueries({ queryKey: omrWorkspaceKey(auth.user?.id) }),
       queryClient.invalidateQueries({ queryKey: ['teacher-exam-detail', auth.user?.id, detail.exam.id] }),
       queryClient.invalidateQueries({ queryKey: ['teacher-exams', auth.user?.id] }),
@@ -328,6 +330,7 @@ function OmrDetailView({ detail, refetch }: { detail: OmrExamDetail; refetch: ()
       <div className="view-stack omr-page">
         <PageHeader eyebrow="OMR · CAPTURA" title={detail.exam.title} detail={`${groupLabel(detail.group)} · ${detail.exam.question_count} reactivos`} actions={<button className="button secondary" type="button" onClick={() => { setScannerOpen(false); setEditing(null); }}>← Evaluación</button>} />
         <OmrScanner
+          key={`${detail.exam.id}:${editing?.id || 'new'}`}
           detail={detail}
           initialResult={editing}
           onCancel={() => { setScannerOpen(false); setEditing(null); }}
@@ -407,7 +410,7 @@ export function OmrPage() {
   if (!workspace.data) return <ErrorPanel title="OMR no disponible" detail="No se recibió el catálogo de evaluaciones." />;
   if (!examId) return <OmrLanding workspace={workspace.data} />;
   if (detail.isLoading) return <LoadingScreen label="Preparando la evaluación OMR…" />;
-  if (detail.isError) return <ErrorPanel title="No pude abrir la evaluación" detail={detail.error.message} onRetry={() => detail.refetch()} />;
+  if (detail.isError && !detail.data) return <ErrorPanel title="No pude abrir la evaluación" detail={detail.error.message} onRetry={() => detail.refetch()} />;
   if (!detail.data) return <ErrorPanel title="Evaluación no disponible" detail="No se encontró la evaluación seleccionada." />;
   return <OmrDetailView detail={detail.data} refetch={() => detail.refetch()} />;
 }

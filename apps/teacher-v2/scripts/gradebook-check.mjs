@@ -7,7 +7,7 @@ const app = fs.readFileSync(path.join(src, 'app/App.tsx'), 'utf8');
 const navigation = fs.readFileSync(path.join(src, 'app/navigation.tsx'), 'utf8');
 const main = fs.readFileSync(path.join(src, 'main.tsx'), 'utf8');
 const api = fs.readFileSync(path.join(src, 'core/gradebook.ts'), 'utf8');
-const page = ['GradebookPage.tsx', 'GradebookEditors.tsx'].map(file => fs.readFileSync(path.join(src, 'features/gradebook', file), 'utf8')).join('\n');
+const page = ['GradebookPage.tsx', 'GradebookEditors.tsx', 'OmrPublicationPanel.tsx'].map(file => fs.readFileSync(path.join(src, 'features/gradebook', file), 'utf8')).join('\n');
 const css = fs.readFileSync(path.join(src, 'styles/phase-four-gradebook.css'), 'utf8');
 const failures = [];
 
