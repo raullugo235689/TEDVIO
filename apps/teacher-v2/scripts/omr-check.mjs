@@ -40,7 +40,7 @@ must(!api.includes('.delete(') && !page.includes('.delete(') && !scanner.include
 must(engine.includes('analyzeOmrFile') && engine.includes('findCorner') && engine.includes('mapPoint'), 'el motor local detecta marcas, perspectiva y burbujas');
 must(engine.includes("'topLeft' | 'topRight' | 'bottomRight' | 'bottomLeft'"), 'el lector exige las cuatro marcas de alineación');
 must(engine.includes('crypto.subtle.digest') && scanner.includes('fingerprintFile'), 'la captura genera una huella local sin subir la fotografía');
-must(engine.includes('jsqr@1.4.0') && engine.includes('qrcodejs/1.0.0'), 'QR se carga solo al utilizar lectura o impresión');
+must(engine.includes('jsqr@1.4.0') && engine.includes("import('qrcode')"), 'QR se carga solo al utilizar lectura o impresión');
 must(scanner.includes('capture="environment"') && scanner.includes('accept="image/*"'), 'el escáner abre la cámara trasera y también admite archivo');
 must(scanner.includes('unresolvedWarnings') && scanner.includes('Guardar pendiente') && scanner.includes('Confirmar y calificar'), 'las marcas dudosas requieren revisión antes de confirmar');
 must(scanner.includes('La fotografía se analiza en este dispositivo') && page.includes('La fotografía no se sube a Supabase'), 'la interfaz explica el tratamiento local de la imagen');

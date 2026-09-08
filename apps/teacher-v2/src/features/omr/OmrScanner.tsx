@@ -1,7 +1,13 @@
+import { useAcademicDraft } from '../../core/useAcademicDraft';
+import { createOmrReview, omrExamSignature, omrResultSignature, type OmrReviewDraft } from '../../core/omr-review';
+import { ActionDialog } from '../../shared/ActionDialog';
+import { useReliability } from '../reliability/ReliabilityProvider';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useIsMutating, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   findExistingResult,
+  fetchOmrExam,
+  omrExamKey,
   gradeAnswers,
   normalizeAnswers,
   saveOmrResult,
@@ -44,23 +50,23 @@ export function OmrScanner({ detail, initialResult = null, onSaved, onCancel }: 
   const auth = useAuth();
   const cameraInput = useRef<HTMLInputElement>(null);
   const uploadInput = useRef<HTMLInputElement>(null);
-  const [captureMethod, setCaptureMethod] = useState<OmrCaptureMethod>(initialResult ? 'manual' : 'camera');
-  const [studentId, setStudentId] = useState(initialResult?.student_id || '');
-  const [enrollment, setEnrollment] = useState(initialResult?.enrollment || '');
-  const [studentName, setStudentName] = useState(initialResult?.student_name || '');
-  const [version, setVersion] = useState(initialResult?.version || detail.exam.versions[0] || 'A');
-  const [answers, setAnswers] = useState<OmrAnswer[]>(() => normalizeAnswers(initialResult?.answers, detail.exam.question_count));
-  const [originalAnswers, setOriginalAnswers] = useState<OmrAnswer[]>(() => normalizeAnswers(initialResult?.answers, detail.exam.question_count));
-  const [quality, setQuality] = useState<OmrMarkQuality[]>(() => initialResult ? [] : initialQuality(detail.exam.question_count));
-  const [warningIndexes, setWarningIndexes] = useState<Set<number>>(() => new Set());
-  const [reviewedWarnings, setReviewedWarnings] = useState<Set<number>>(() => new Set());
-  const [previewDataUrl, setPreviewDataUrl] = useState('');
-  const [qrValue, setQrValue] = useState('');
-  const [sourceFingerprint, setSourceFingerprint] = useState(initialResult?.source_fingerprint || '');
-  const [analysisSize, setAnalysisSize] = useState<{ width: number; height: number } | null>(null);
+  const client = useQueryClient(), { online } = useReliability();
+  const currentResult = detail.results.find(row => row.id === initialResult?.id) || initialResult;
+  const review = useAcademicDraft(['omr-draft', auth.user?.id, detail.exam.id, initialResult?.id || 'new'], createOmrReview(detail, currentResult));
+  const { captureMethod, studentId, enrollment, studentName, version, answers, originalAnswers, quality, previewDataUrl, qrValue, sourceFingerprint, analysisSize, reviewNote, processing: analyzing } = review.value;
+  const warningIndexes = useMemo(() => new Set(review.value.warningIndexes), [review.value.warningIndexes]);
+  const reviewedWarnings = useMemo(() => new Set(review.value.reviewedWarnings), [review.value.reviewedWarnings]);
+  const saving = useIsMutating({ mutationKey: ['omr-write', auth.user?.id, detail.exam.id] }) > 0;
+  const busy = saving || analyzing;
+  const [dialog, setDialog] = useState<{ title: string; detail: string; label: string; action: () => void; danger?: boolean } | null>(null);
   const [analysisError, setAnalysisError] = useState('');
-  const [analyzing, setAnalyzing] = useState(false);
-  const [reviewNote, setReviewNote] = useState(initialResult?.review_note || '');
+  const [onlyWarnings, setOnlyWarnings] = useState(false);
+  function field<K extends keyof OmrReviewDraft>(key: K) { return (update: OmrReviewDraft[K] | ((value: OmrReviewDraft[K]) => OmrReviewDraft[K])) => review.set(current => { const value = typeof update === 'function' ? (update as (value: OmrReviewDraft[K]) => OmrReviewDraft[K])(current[key]) : update; return Object.is(current[key], value) ? current : { ...current, [key]: value }; }); }
+  const setCaptureMethod = field('captureMethod'), setStudentId = field('studentId'), setEnrollment = field('enrollment'), setStudentName = field('studentName'), setVersion = field('version');
+  const setAnswers = field('answers'), setOriginalAnswers = field('originalAnswers'), setQuality = field('quality'), setPreviewDataUrl = field('previewDataUrl'), setQrValue = field('qrValue'), setSourceFingerprint = field('sourceFingerprint'), setAnalysisSize = field('analysisSize'), setReviewNote = field('reviewNote'), setAnalyzing = field('processing');
+  function setWarningIndexes(value: Set<number>) { field('warningIndexes')([...value]); }
+  function setReviewedWarnings(update: Set<number> | ((value: Set<number>) => Set<number>)) { field('reviewedWarnings')(current => [...(typeof update === 'function' ? update(new Set(current)) : update)]); }
+
   const [notice, setNotice] = useState(initialResult ? 'Revisa las respuestas guardadas y confirma cualquier corrección.' : '');
 
   useEffect(() => {
@@ -80,56 +86,43 @@ export function OmrScanner({ detail, initialResult = null, onSaved, onCancel }: 
     answer !== originalAnswers[index] ? count + 1 : count
   ), 0), [answers, originalAnswers]);
   const existing = useMemo(
-    () => initialResult || findExistingResult(detail, studentId, enrollment, version),
-    [detail, enrollment, initialResult, studentId, version],
+    () => currentResult || findExistingResult(detail, studentId, enrollment, version),
+    [detail, enrollment, currentResult, studentId, version],
   );
 
   const mutation = useMutation({
-    mutationFn: async (confirmed: boolean) => {
+    mutationKey: ['omr-write', auth.user?.id, detail.exam.id],
+    mutationFn: async ({ confirmed, value, revision }: { confirmed: boolean; value: OmrReviewDraft; revision: number }) => {
       if (!auth.user) throw new Error('Tu sesión expiró.');
-      if (detail.roster.length && !studentId) throw new Error('Selecciona al alumno del padrón.');
-      if (!detail.roster.length && !enrollment.trim() && !studentName.trim()) {
-        throw new Error('Escribe al menos el nombre o la matrícula.');
-      }
-      if (confirmed && unresolvedWarnings.length) {
-        throw new Error(`Revisa los ${unresolvedWarnings.length} reactivos marcados en amarillo antes de confirmar.`);
-      }
-      return saveOmrResult(auth.user, {
-        resultId: existing?.id || null,
-        examId: detail.exam.id,
-        studentId: studentId || null,
-        enrollment,
-        studentName,
-        version,
-        answers,
-        captureMethod,
-        quality: {
-          schema: 1,
-          qr: qrValue || null,
-          image: analysisSize,
-          marks: quality.map((mark, index) => ({
-            question: index + 1,
-            status: mark.status,
-            best: Number(mark.best || 0),
-            gap: Number(mark.gap || 0),
-            scores: mark.scores || [],
-            reviewed: reviewedWarnings.has(index),
-          })),
-        },
-        scanWarnings: warningIndexes.size,
-        manualCorrections,
-        confirmed,
-        reviewNote,
-        sourceFingerprint,
+      if (detail.roster.length && !value.studentId) throw new Error('Selecciona al alumno del padrón.');
+      if (!detail.roster.length && !value.enrollment.trim() && !value.studentName.trim()) throw new Error('Escribe el nombre o la matrícula.');
+      if (confirmed && value.warningIndexes.some(index => !value.reviewedWarnings.includes(index))) throw new Error('Revisa todas las respuestas señaladas antes de confirmar.');
+      const latest = await fetchOmrExam(auth.user, detail.exam.id);
+      const key = omrExamKey(auth.user.id, detail.exam.id);
+      if (client.getQueryState(key)) client.setQueryData(key, latest);
+      const target = initialResult ? latest.results.find(row => row.id === initialResult.id) : findExistingResult(latest, value.studentId, value.enrollment, value.version);
+      if (omrExamSignature(latest) !== value.baseExam || (target && value.baseResults[target.id] !== omrResultSignature(target)) || (initialResult && !target)) throw new Error('La evaluación o el resultado cambiaron. Tu revisión se conserva; descarta para cargar la versión actual antes de continuar.');
+      const result = await saveOmrResult(auth.user, {
+        resultId: target?.id || null, examId: detail.exam.id, studentId: value.studentId || null, enrollment: value.enrollment, studentName: value.studentName, version: value.version, answers: value.answers, captureMethod: value.captureMethod,
+        quality: { schema: 1, qr: value.qrValue || null, image: value.analysisSize, marks: value.quality.map((mark, index) => ({ question: index + 1, status: mark.status, best: mark.best, gap: mark.gap, scores: mark.scores, reviewed: value.reviewedWarnings.includes(index) })) },
+        scanWarnings: value.warningIndexes.length, manualCorrections: value.answers.filter((answer, index) => answer !== value.originalAnswers[index]).length, confirmed, reviewNote: value.reviewNote, sourceFingerprint: value.sourceFingerprint,
       });
+      if (JSON.stringify(normalizeAnswers(result.answers, value.answers.length)) !== JSON.stringify(value.answers) || result.version !== value.version || (result.student_id || '') !== value.studentId || (confirmed && !result.reviewed && result.review_status !== 'confirmed')) throw new Error('No se pudo confirmar la captura completa. Tu revisión sigue disponible.');
+      return { result, revision };
     },
-    onSuccess: async (result) => {
-      setNotice(result.review_status === 'confirmed'
-        ? `Resultado confirmado: ${Number(result.score).toFixed(1)}.`
-        : 'Lectura guardada como pendiente de revisión.');
-      await onSaved(result);
-    },
+    onSuccess: async ({ result, revision }) => { review.clear(revision); setDialog(null); await onSaved(result); },
   });
+  function save(confirmed: boolean) {
+    if (busy || !online) return;
+    const submission = { confirmed, value: review.value, revision: review.revision };
+    mutation.reset();
+    setDialog({ title: confirmed ? '¿Confirmar este resultado?' : '¿Guardar para revisar después?', detail: `${studentName || enrollment} · Versión ${version} · ${grade.correct} de ${detail.exam.question_count} aciertos.${existing ? ' Se actualizará el resultado existente y se conservará su historial.' : ''}`, label: confirmed ? 'Confirmar resultado' : 'Guardar pendiente', action: () => mutation.mutate(submission) });
+  }
+  function replace(action: () => void) {
+    if (busy) return;
+    if (!review.dirty) { action(); return; }
+    setDialog({ title: '¿Reemplazar esta captura pendiente?', detail: 'La nueva lectura sustituirá las respuestas y la fotografía que estás revisando.', label: 'Reemplazar captura', danger: true, action: () => { setDialog(null); action(); } });
+  }
 
   async function readFile(file: File, method: 'camera' | 'upload') {
     setAnalyzing(true);
@@ -156,7 +149,11 @@ export function OmrScanner({ detail, initialResult = null, onSaved, onCancel }: 
     if (parsed && parsed.examId !== detail.exam.id) {
       throw new Error('El QR corresponde a otra evaluación. Abre el examen correcto o toma otra fotografía.');
     }
-    if (parsed?.version && detail.exam.versions.includes(parsed.version)) setVersion(parsed.version);
+    if (parsed && !detail.exam.versions.includes(parsed.version)) throw new Error('La versión del QR no pertenece a esta evaluación.');
+    if (parsed?.studentId && detail.roster.length && !detail.roster.some(student => student.id === parsed.studentId)) throw new Error('El alumno del QR no pertenece al padrón activo de esta evaluación.');
+    if (parsed && initialResult && parsed.studentId && parsed.studentId !== initialResult.student_id) throw new Error('La hoja pertenece a otro alumno. Abre su resultado antes de corregirla.');
+    if (!initialResult) { setStudentId(''); setEnrollment(''); setStudentName(''); }
+    if (parsed?.version) setVersion(parsed.version);
     if (parsed?.studentId && detail.roster.some((student) => student.id === parsed.studentId)) {
       setStudentId(parsed.studentId);
     } else if (parsed?.enrollment) {
@@ -179,9 +176,9 @@ export function OmrScanner({ detail, initialResult = null, onSaved, onCancel }: 
     setQrValue(analysis.qr || '');
     setSourceFingerprint(fingerprint);
     setAnalysisSize({ width: analysis.width, height: analysis.height });
-    setNotice(warnings.size
+    setNotice((parsed ? '' : 'QR no reconocido. Selecciona al alumno y verifica la versión. ') + (warnings.size
       ? `${warnings.size} reactivo${warnings.size === 1 ? '' : 's'} requieren confirmación manual.`
-      : 'Lectura completa sin marcas dudosas. Confirma los datos del alumno y guarda.');
+      : 'Lectura completa sin marcas dudosas. Confirma los datos del alumno y guarda.'));
   }
 
   function startManualCapture() {
@@ -207,7 +204,8 @@ export function OmrScanner({ detail, initialResult = null, onSaved, onCancel }: 
     }
   }
 
-  const canSave = answers.length === detail.exam.question_count && (
+  const locked = detail.period?.status === 'closed' || !['ready', 'closed'].includes(detail.exam.status);
+  const canSave = !locked && answers.length === detail.exam.question_count && (
     detail.roster.length ? Boolean(studentId) : Boolean(enrollment.trim() || studentName.trim())
   );
   const error = (mutation.error as Error | null)?.message || analysisError;
@@ -220,12 +218,14 @@ export function OmrScanner({ detail, initialResult = null, onSaved, onCancel }: 
           <h2>{initialResult ? 'Corregir resultado OMR' : 'Escanear hoja de respuestas'}</h2>
           <p>La fotografía se analiza en este dispositivo; TEDVIO guarda las respuestas y la calidad, no la imagen.</p>
         </div>
-        <button className="button ghost" type="button" onClick={onCancel}>Cerrar escáner</button>
+        <button className="button ghost" type="button" disabled={busy} onClick={() => review.dirty ? setDialog({ title: '¿Cerrar con revisión pendiente?', detail: 'Podrás recuperar esta revisión al volver a abrirla en esta pestaña. Guarda antes de recargar o cerrar sesión.', label: 'Conservar y cerrar', action: onCancel }) : onCancel()}>Cerrar escáner</button>
       </section>
 
       {notice ? <div className="success-strip"><Icon name="check" /><span>{notice}</span><button type="button" onClick={() => setNotice('')}>×</button></div> : null}
       {error ? <ErrorPanel title="No se pudo completar la lectura" detail={error} /> : null}
 
+      {review.dirty ? <div className="omr-work-status" role="status"><span>{online ? 'Revisión pendiente de guardar' : 'Sin conexión · revisión conservada en esta pestaña'}</span><button className="button ghost" disabled={busy} onClick={() => setDialog({ title: '¿Descartar esta revisión?', detail: 'Se recuperará la captura guardada. Las correcciones y la fotografía pendientes se perderán.', label: 'Descartar revisión', danger: true, action: () => { review.clear(); mutation.reset(); setDialog(null); setAnalysisError(''); } })}>Descartar revisión</button></div> : null}
+      <fieldset className="omr-review-fields" disabled={busy || locked}>
       <section className="omr-capture-actions">
         <input
           ref={cameraInput}
@@ -235,7 +235,7 @@ export function OmrScanner({ detail, initialResult = null, onSaved, onCancel }: 
           capture="environment"
           onChange={(event) => {
             const file = event.target.files?.[0];
-            if (file) void readFile(file, 'camera');
+            if (file) replace(() => { void readFile(file, 'camera'); });
           }}
         />
         <input
@@ -245,7 +245,7 @@ export function OmrScanner({ detail, initialResult = null, onSaved, onCancel }: 
           accept="image/*"
           onChange={(event) => {
             const file = event.target.files?.[0];
-            if (file) void readFile(file, 'upload');
+            if (file) replace(() => { void readFile(file, 'upload'); });
           }}
         />
         <button className="omr-capture-card primary" type="button" disabled={analyzing} onClick={() => cameraInput.current?.click()}>
@@ -254,7 +254,7 @@ export function OmrScanner({ detail, initialResult = null, onSaved, onCancel }: 
         <button className="omr-capture-card" type="button" disabled={analyzing} onClick={() => uploadInput.current?.click()}>
           <Icon name="layout" /><span><b>Elegir imagen</b><small>Utiliza una fotografía guardada previamente.</small></span>
         </button>
-        <button className="omr-capture-card" type="button" disabled={analyzing} onClick={startManualCapture}>
+        <button className="omr-capture-card" type="button" disabled={analyzing} onClick={() => replace(startManualCapture)}>
           <Icon name="grades" /><span><b>Captura manual</b><small>Registra respuestas sin utilizar la cámara.</small></span>
         </button>
       </section>
@@ -279,14 +279,14 @@ export function OmrScanner({ detail, initialResult = null, onSaved, onCancel }: 
 
           <div className="form-grid two omr-meta-form">
             {detail.roster.length ? (
-              <label>Alumno<select value={studentId} onChange={(event) => setStudentId(event.target.value)}><option value="">Selecciona del padrón</option>{detail.roster.map((student) => <option key={student.id} value={student.id}>{student.enrollment} · {student.full_name}</option>)}</select></label>
+              <label>Alumno<select aria-label="Alumno" value={studentId} onChange={(event) => setStudentId(event.target.value)}><option value="">Selecciona del padrón</option>{detail.roster.map((student) => <option key={student.id} value={student.id}>{student.enrollment} · {student.full_name}</option>)}</select></label>
             ) : (
               <>
                 <label>Matrícula<input value={enrollment} onChange={(event) => setEnrollment(event.target.value)} placeholder="Matrícula" /></label>
                 <label>Nombre<input value={studentName} onChange={(event) => setStudentName(event.target.value)} placeholder="Nombre completo" /></label>
               </>
             )}
-            <label>Versión<select value={version} onChange={(event) => setVersion(event.target.value)}>{detail.exam.versions.map((item) => <option key={item} value={item}>Versión {item}</option>)}</select></label>
+            <label>Versión<select aria-label="Versión" value={version} onChange={(event) => setVersion(event.target.value)}>{detail.exam.versions.map((item) => <option key={item} value={item}>Versión {item}</option>)}</select></label>
             <label>Método<input value={methodLabel(captureMethod)} readOnly /></label>
           </div>
 
@@ -294,8 +294,10 @@ export function OmrScanner({ detail, initialResult = null, onSaved, onCancel }: 
             <div className="warning-strip"><Icon name="alert" /><span>Ya existe un resultado para este alumno y versión. Al confirmar, TEDVIO guardará la corrección y conservará la revisión anterior en el historial.</span></div>
           ) : null}
 
+          <div className="omr-review-tools"><label className="toggle-field"><input type="checkbox" checked={onlyWarnings} onChange={event => setOnlyWarnings(event.target.checked)} /> Solo respuestas por revisar</label><button className="button secondary compact" type="button" disabled={!unresolvedWarnings.length} onClick={() => { setOnlyWarnings(true); window.requestAnimationFrame(() => document.querySelector<HTMLElement>('.omr-answer-row:not(.reviewed) button')?.focus()); }}>Ir a la siguiente duda</button></div>
           <div className="omr-answer-grid" aria-label="Revisión de respuestas">
             {answers.map((answer, index) => {
+              if (onlyWarnings && (!warningIndexes.has(index) || reviewedWarnings.has(index))) return null;
               const warning = warningIndexes.has(index);
               const reviewed = reviewedWarnings.has(index);
               return (
@@ -303,25 +305,27 @@ export function OmrScanner({ detail, initialResult = null, onSaved, onCancel }: 
                   <div className="omr-answer-number"><b>{index + 1}</b><small>{warning ? reviewed ? 'Revisada' : quality[index]?.status === 'blank' ? 'Blanco' : 'Dudosa' : 'Leída'}</small></div>
                   <div className="omr-answer-options" role="group" aria-label={`Respuesta ${index + 1}`}>
                     {OMR_LETTERS.slice(0, detail.exam.option_count).map((letter) => (
-                      <button type="button" className={answer === letter ? 'active' : ''} onClick={() => chooseAnswer(index, letter)} key={letter}>{letter}</button>
+                      <button type="button" aria-pressed={answer === letter} className={answer === letter ? 'active' : ''} onClick={() => chooseAnswer(index, letter)} key={letter}>{letter}</button>
                     ))}
-                    <button type="button" className={!answer ? 'active blank' : 'blank'} onClick={() => chooseAnswer(index, null)}>—</button>
+                    <button type="button" aria-label="En blanco" aria-pressed={!answer} className={!answer ? 'active blank' : 'blank'} onClick={() => chooseAnswer(index, null)}>—</button>
                   </div>
                 </article>
               );
             })}
           </div>
 
-          <label className="wide-field">Nota de revisión<textarea rows={2} value={reviewNote} onChange={(event) => setReviewNote(event.target.value)} placeholder="Motivo de la corrección o incidencia de la hoja" /></label>
+          <label className="wide-field">Nota de revisión<textarea maxLength={1000} rows={2} value={reviewNote} onChange={(event) => setReviewNote(event.target.value)} placeholder="Motivo de la corrección o incidencia de la hoja" /></label>
         </SectionCard>
       </section>
 
+      </fieldset>
       <section className="omr-confirm-dock">
         <div><span className="eyebrow">RESULTADO PROVISIONAL</span><b>{grade.score.toFixed(1)}</b><small>{grade.correct}/{detail.exam.question_count} aciertos · {grade.blanks} en blanco · {manualCorrections} correcciones</small></div>
         <div className="omr-confirm-context"><StatusPill tone={unresolvedWarnings.length ? 'amber' : 'green'}>{unresolvedWarnings.length ? `${unresolvedWarnings.length} sin revisar` : 'Lista para confirmar'}</StatusPill>{existing ? <StatusPill tone="violet">Actualiza resultado</StatusPill> : null}</div>
-        <button className="button ghost" type="button" disabled={!canSave || mutation.isPending} onClick={() => mutation.mutate(false)}>Guardar pendiente</button>
-        <button className="button primary" type="button" disabled={!canSave || unresolvedWarnings.length > 0 || mutation.isPending} onClick={() => mutation.mutate(true)}>{mutation.isPending ? 'Guardando…' : 'Confirmar y calificar'}</button>
+        <button className="button ghost" type="button" disabled={!canSave || busy || !online} onClick={() => save(false)}>Guardar pendiente</button>
+        <button className="button primary" type="button" disabled={!canSave || unresolvedWarnings.length > 0 || busy || !online} onClick={() => save(true)}>{mutation.isPending ? 'Guardando…' : 'Confirmar y calificar'}</button>
       </section>
+      {dialog ? <ActionDialog eyebrow="TEDVIO · REVISIÓN OMR" title={dialog.title} detail={dialog.detail} confirmLabel={dialog.label} danger={dialog.danger} busy={saving} error={mutation.error?.message} onDismiss={() => setDialog(null)} onConfirm={dialog.action} /> : null}
     </div>
   );
 }

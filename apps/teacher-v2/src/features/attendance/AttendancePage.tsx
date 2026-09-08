@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useIsMutating, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { attendanceLabel, groupName, groupSubject } from '../../core/academic';
 import {
   attendanceDayKey,
@@ -10,9 +10,11 @@ import {
   saveAttendanceRecords,
   updateAttendanceOptions,
   updateAttendanceState,
-  type AttendanceDraftRecord,
   type AttendanceSessionOptions,
 } from '../../core/attendance';
+import { attendanceDraftKey, attendanceWriteKey, attendanceSnapshot, sameAttendanceSnapshot, missingAttendanceRecords, editAttendanceDraft, finishAttendanceSave, validAttendanceDate, type AttendanceDraft, type AttendanceValues, type AttendanceSnapshot } from '../../core/attendance-draft';
+import { ActionDialog } from '../../shared/ActionDialog';
+import { useReliability } from '../reliability/ReliabilityProvider';
 import { groupDetailKey, groupWorkspaceKey } from '../../core/groups';
 import type { AttendanceRecordStatus, AttendanceSessionState, DashboardGroup } from '../../core/types';
 import { useTeacherHome } from '../../core/useTeacherHome';
@@ -72,7 +74,7 @@ function AttendanceLanding() {
 
   return (
     <div className="view-stack">
-      <PageHeader eyebrow="ASISTENCIA PRO" title="Selecciona un grupo" detail="Abre, pausa, corrige y cierra listas desde el mismo shell, sin regresar a la interfaz heredada." />
+      <PageHeader eyebrow="ASISTENCIA PRO" title="Selecciona un grupo" detail="Consulta tus listas, registra la asistencia y revisa las observaciones de cada grupo." />
       <SectionCard>
         <div className="attendance-landing-tools">
           <label className="search-field"><Icon name="search" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar grupo o materia" /></label>
@@ -99,19 +101,28 @@ function AttendanceGroupCard({ group, date }: { group: DashboardGroup; date: str
   );
 }
 
-function AttendanceEditor({ groupId }: { groupId: string }) {
+function AttendanceEditor({ groupId, date }: { groupId: string; date: string }) {
   const auth = useAuth();
   const queryClient = useQueryClient();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const date = searchParams.get('date') || localDateKey();
+  const [, setSearchParams] = useSearchParams();
+  const { online } = useReliability();
+  const dayKey = attendanceDayKey(auth.user?.id, groupId, date);
+  const draftKey = attendanceDraftKey(auth.user?.id, groupId, date);
+  const writeKey = attendanceWriteKey(auth.user?.id, groupId, date);
+  const busy = useIsMutating({ mutationKey: writeKey }) > 0;
+  const [dialog, setDialog] = useState<'closed' | 'reopen' | 'discard' | 'absent' | null>(null);
+  const draftQuery = useQuery<AttendanceDraft | null>({
+    queryKey: draftKey, queryFn: async () => null, enabled: false,
+    initialData: null, staleTime: Infinity, gcTime: Infinity,
+  });
+  const pending = draftQuery.data ?? null;
   const [query, setQuery] = useState('');
-  const [draft, setDraft] = useState<Record<string, { status: AttendanceRecordStatus; note: string }>>({});
-  const [options, setOptions] = useState<AttendanceSessionOptions>({ lateAfterMinutes: 10, autoMarkAbsent: true, notes: '' });
-  const [dirty, setDirty] = useState(false);
+  const dirty = Boolean(pending);
   const [notice, setNotice] = useState('');
 
   const day = useQuery({
     queryKey: attendanceDayKey(auth.user?.id, groupId, date),
+    gcTime: Infinity,
     queryFn: () => {
       if (!auth.user) throw new Error('Tu sesión expiró.');
       return fetchAttendanceDay(auth.user, groupId, date);
@@ -119,77 +130,106 @@ function AttendanceEditor({ groupId }: { groupId: string }) {
     enabled: Boolean(auth.user && groupId),
   });
 
-  useEffect(() => {
-    if (!day.data) return;
-    const recordByStudent = new Map(day.data.records.map((record) => [record.student_id, record]));
-    const next: Record<string, { status: AttendanceRecordStatus; note: string }> = {};
-    for (const student of day.data.students) {
-      const record = recordByStudent.get(student.id);
-      next[student.id] = {
-        status: record?.status || 'present',
-        note: record?.observation || record?.note || '',
-      };
-    }
-    setDraft(next);
-    setOptions({
-      lateAfterMinutes: Number(day.data.session?.late_after_minutes ?? 10),
-      autoMarkAbsent: day.data.session?.auto_mark_absent ?? true,
-      notes: day.data.session?.notes || '',
-    });
-    setDirty(false);
-  }, [day.data]);
+  const snapshot = useMemo(() => day.data ? attendanceSnapshot(day.data) : null, [day.data]);
+  const draft = pending?.values.records ?? snapshot?.records ?? {};
+  const options = pending?.values.options ?? snapshot?.options ?? { lateAfterMinutes: 10, autoMarkAbsent: true, notes: '' };
+  const conflict = Boolean(pending && snapshot && !sameAttendanceSnapshot(pending.base, snapshot)
+    && !sameAttendanceSnapshot({ ...pending.base, ...pending.values }, snapshot));
+
+  function edit(update: (values: AttendanceValues) => AttendanceValues) {
+    if (!snapshot || busy || snapshot.status === 'closed') return;
+    queryClient.setQueryData<AttendanceDraft | null>(draftKey, (current) => editAttendanceDraft(current, snapshot, update));
+  }
+
+  function setDraft(update: (records: AttendanceValues['records']) => AttendanceValues['records']) {
+    edit((values) => ({ ...values, records: update(values.records) }));
+  }
+
+  function setOptions(next: AttendanceSessionOptions) {
+    edit((values) => ({ ...values, options: next }));
+  }
 
   async function invalidate() {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: attendanceDayKey(auth.user?.id, groupId, date) }),
       queryClient.invalidateQueries({ queryKey: groupDetailKey(auth.user?.id, groupId) }),
       queryClient.invalidateQueries({ queryKey: groupWorkspaceKey(auth.user?.id) }),
       queryClient.invalidateQueries({ queryKey: ['teacher-home', auth.user?.id] }),
     ]);
   }
 
+  function receiveSavedDay(saved: Awaited<ReturnType<typeof fetchAttendanceDay>>, revision: number, clear = true) {
+    // Auth clears the cache on sign-out. A late response must not repopulate it.
+    if (!queryClient.getQueryState(dayKey)) return;
+    queryClient.setQueryData(dayKey, saved);
+    if (clear) queryClient.setQueryData<AttendanceDraft | null>(draftKey, (current) => finishAttendanceSave(current, revision));
+  }
+
   const createMutation = useMutation({
-    mutationFn: () => {
+    mutationKey: writeKey,
+    mutationFn: async (submission: { options: AttendanceSessionOptions; revision: number }) => {
       if (!auth.user) throw new Error('Tu sesión expiró.');
-      return createAttendanceSession(auth.user, groupId, date, options);
+      await createAttendanceSession(auth.user, groupId, date, submission.options);
+      return { saved: await fetchAttendanceDay(auth.user, groupId, date), revision: submission.revision };
     },
-    onSuccess: async () => {
+    onSuccess: async ({ saved, revision }) => {
+      receiveSavedDay(saved, revision);
       setNotice('Lista creada. Marca las excepciones y guarda.');
       await invalidate();
     },
   });
 
-  function draftRows(): AttendanceDraftRecord[] {
-    return Object.entries(draft).map(([studentId, value]) => ({ studentId, status: value.status, note: value.note }));
-  }
-
   const commitMutation = useMutation({
-    mutationFn: async (action: 'save' | AttendanceSessionState) => {
-      if (!auth.user || !day.data?.session) throw new Error('La lista todavía no existe.');
-      if (action !== 'open' || day.data.session.status !== 'closed') {
-        await saveAttendanceRecords(auth.user, day.data.session.id, draftRows());
-        await updateAttendanceOptions(auth.user, day.data.session.id, options);
+    mutationKey: writeKey,
+    mutationFn: async (submission: { action: 'save' | AttendanceSessionState; base: AttendanceSnapshot; values: AttendanceValues; revision: number }) => {
+      if (!auth.user || !submission.base.sessionId) throw new Error('La lista todavía no existe.');
+      const latest = await fetchAttendanceDay(auth.user, groupId, date);
+      const remote = attendanceSnapshot(latest);
+      const reopening = submission.action === 'open' && submission.base.status === 'closed';
+      const unchanged = sameAttendanceSnapshot(submission.base, remote);
+      const alreadySaved = sameAttendanceSnapshot({ ...submission.base, ...submission.values }, remote);
+      if (remote.sessionId !== submission.base.sessionId || remote.status !== submission.base.status
+        || (!reopening && !unchanged && !alreadySaved)) {
+        if (queryClient.getQueryState(dayKey)) queryClient.setQueryData(dayKey, latest);
+        throw new Error('La lista guardada cambió. Tus cambios siguen visibles; revísalos antes de continuar.');
       }
-      if (action !== 'save') await updateAttendanceState(auth.user, day.data.session.id, action);
-      return action;
+      if (remote.status === 'closed' && !reopening) throw new Error('Reabre la lista antes de guardar cambios.');
+      if (!reopening) {
+        const rows = Object.entries(submission.values.records).map(([studentId, row]) => ({ studentId, ...row }));
+        await saveAttendanceRecords(auth.user, submission.base.sessionId, rows);
+        await updateAttendanceOptions(auth.user, submission.base.sessionId, submission.values.options);
+      }
+      if (submission.action !== 'save') await updateAttendanceState(auth.user, submission.base.sessionId, submission.action);
+      return { ...submission, reopening, saved: await fetchAttendanceDay(auth.user, groupId, date) };
     },
-    onSuccess: async (action) => {
+    onSuccess: async ({ action, saved, revision, reopening }) => {
+      receiveSavedDay(saved, revision, !reopening);
       const labels: Record<string, string> = { save: 'Lista guardada.', open: 'Lista abierta.', paused: 'Lista pausada.', closed: 'Lista cerrada.' };
       setNotice(labels[action] || 'Cambios guardados.');
-      setDirty(false);
+      setDialog(null);
       await invalidate();
     },
   });
 
+  function commit(action: 'save' | AttendanceSessionState) {
+    if (!snapshot || busy || !online) return;
+    const reopening = action === 'open' && snapshot.status === 'closed';
+    commitMutation.mutate({ action, base: reopening ? snapshot : pending?.base ?? snapshot,
+      values: pending?.values ?? snapshot, revision: pending?.revision ?? 0 });
+  }
+
+  function confirm(kind: NonNullable<typeof dialog>) {
+    commitMutation.reset();
+    setDialog(kind);
+  }
+
   function changeDate(next: string) {
-    if (dirty && !window.confirm('Hay cambios sin guardar. ¿Cambiar de fecha de todos modos?')) return;
+    if (busy || !validAttendanceDate(next) || next === date) return;
     setSearchParams({ date: next });
     setNotice('');
   }
 
   function setAll(status: AttendanceRecordStatus) {
     setDraft((current) => Object.fromEntries(Object.entries(current).map(([id, value]) => [id, { ...value, status }])));
-    setDirty(true);
   }
 
   const filteredStudents = useMemo(() => {
@@ -203,15 +243,16 @@ function AttendanceEditor({ groupId }: { groupId: string }) {
   }, [draft]);
 
   if (day.isLoading) return <LoadingScreen label="Cargando la lista…" />;
-  if (day.isError) return <ErrorPanel title="No pude abrir la asistencia" detail={day.error.message} onRetry={() => day.refetch()} />;
-  if (!day.data) return null;
+  if (day.isError && !day.data) return <ErrorPanel title="No pude abrir la asistencia" detail={day.error.message} onRetry={() => day.refetch()} />;
+  if (!day.data) return <ErrorPanel title="Lista no disponible en esta pestaña" detail="Conéctate para consultar esta fecha. La captura pendiente de las otras listas se conserva durante esta sesión." onRetry={() => day.refetch()} />;
 
   const { group, session, students } = day.data;
   const locked = session?.status === 'closed';
-  const busy = createMutation.isPending || commitMutation.isPending;
+  const unsavedDefaults = Boolean(session && !locked && missingAttendanceRecords(day.data) > 0);
+  const needsSave = dirty || unsavedDefaults;
 
   return (
-    <div className="view-stack">
+    <div className="view-stack attendance-editor">
       <PageHeader
         eyebrow="ASISTENCIA PRO"
         title={group.group_name || group.name}
@@ -219,15 +260,23 @@ function AttendanceEditor({ groupId }: { groupId: string }) {
         actions={<div className="page-actions"><Link className="button ghost" to="/attendance">← Grupos</Link><Link className="button ghost" to={`/groups/${groupId}`}>Centro del grupo</Link></div>}
       />
 
-      {notice ? <div className="success-strip"><Icon name="check" /><span>{notice}</span><button type="button" onClick={() => setNotice('')}>×</button></div> : null}
+      {notice ? <div className="success-strip" role="status"><Icon name="check" /><span>{notice}</span><button type="button" aria-label="Cerrar aviso" onClick={() => setNotice('')}>×</button></div> : null}
       {createMutation.isError || commitMutation.isError ? <ErrorPanel title="No se pudo guardar la asistencia" detail={(createMutation.error || commitMutation.error)?.message || 'Intenta nuevamente.'} /> : null}
+      {day.isError ? <ErrorPanel title="No se pudo actualizar la lista" detail="Se conserva la información disponible y tu captura pendiente. Comprueba la conexión y vuelve a intentarlo." onRetry={() => day.refetch()} /> : null}
+
+      <div className={`attendance-work-status${!online || conflict ? ' warning' : ''}`} role="status">
+        <div><b>{!online ? 'Sin conexión' : conflict ? 'La lista guardada cambió' : dirty ? 'Captura pendiente de guardar' : unsavedDefaults ? 'Lista por guardar' : locked ? 'Lista cerrada' : session ? 'Lista guardada' : 'Prepara una nueva lista'}</b>
+          <p>{dirty ? 'Tu captura se conserva al navegar dentro de TEDVIO en esta pestaña. Guarda antes de recargar o cerrar sesión.' : unsavedDefaults ? 'Los estados propuestos todavía no se han registrado. Revisa la lista y pulsa Guardar.' : !online ? 'Puedes revisar la información disponible. El guardado requiere conexión.' : 'Selecciona la fecha que deseas consultar.'}</p>
+          {conflict ? <p>Revisa tus cambios visibles. Para usar la versión guardada, descarta esta captura.</p> : null}</div>
+        {dirty ? <button type="button" className="button ghost" disabled={busy} onClick={() => confirm('discard')}>Descartar cambios</button> : null}
+      </div>
 
       <SectionCard className="attendance-date-card">
         <div className="attendance-date-controls">
-          <button className="icon-button" type="button" onClick={() => changeDate(moveDate(date, -1))} aria-label="Día anterior">←</button>
-          <label>Fecha<input type="date" value={date} onChange={(event) => changeDate(event.target.value)} /></label>
-          <button className="icon-button" type="button" onClick={() => changeDate(moveDate(date, 1))} aria-label="Día siguiente">→</button>
-          <button className="button ghost compact" type="button" onClick={() => changeDate(localDateKey())}>Hoy</button>
+          <button className="icon-button" type="button" disabled={busy} onClick={() => changeDate(moveDate(date, -1))} aria-label="Día anterior">←</button>
+          <label>Fecha<input type="date" disabled={busy} value={date} onChange={(event) => changeDate(event.target.value)} /></label>
+          <button className="icon-button" type="button" disabled={busy} onClick={() => changeDate(moveDate(date, 1))} aria-label="Día siguiente">→</button>
+          <button className="button ghost compact" type="button" disabled={busy} onClick={() => changeDate(localDateKey())}>Hoy</button>
           <StatusPill tone={sessionTone(session?.status)}>{sessionLabel(session?.status)}</StatusPill>
         </div>
       </SectionCard>
@@ -236,10 +285,10 @@ function AttendanceEditor({ groupId }: { groupId: string }) {
         <section className="attendance-create-panel">
           <div><span className="eyebrow">NUEVA LISTA</span><h2>No existe asistencia para esta fecha</h2><p>{students.length ? `TEDVIO preparará ${students.length} alumnos activos con estado Presente por defecto.` : 'El grupo todavía no tiene alumnos activos.'}</p></div>
           <div className="attendance-options compact-options">
-            <label>Retardo después de<input type="number" min="0" max="120" value={options.lateAfterMinutes} onChange={(event) => setOptions({ ...options, lateAfterMinutes: Number(event.target.value) })} /><span>minutos</span></label>
-            <label className="toggle-field"><input type="checkbox" checked={options.autoMarkAbsent} onChange={(event) => setOptions({ ...options, autoMarkAbsent: event.target.checked })} /> Completar ausencias al cierre</label>
+            <label>Retardo después de<input type="number" min="0" max="120" disabled={busy} value={options.lateAfterMinutes} onChange={(event) => setOptions({ ...options, lateAfterMinutes: Number(event.target.value) })} /><span>minutos</span></label>
+            <label className="toggle-field"><input type="checkbox" disabled={busy} checked={options.autoMarkAbsent} onChange={(event) => setOptions({ ...options, autoMarkAbsent: event.target.checked })} /> Completar ausencias al cierre</label>
           </div>
-          <button className="button primary" type="button" disabled={!students.length || createMutation.isPending} onClick={() => createMutation.mutate()}>{createMutation.isPending ? 'Creando lista…' : 'Crear lista de asistencia'}</button>
+          <button className="button primary" type="button" disabled={!students.length || busy || !online} onClick={() => createMutation.mutate({ options, revision: pending?.revision ?? 0 })}>{createMutation.isPending ? 'Creando lista…' : 'Crear lista de asistencia'}</button>
         </section>
       ) : (
         <>
@@ -252,16 +301,16 @@ function AttendanceEditor({ groupId }: { groupId: string }) {
 
           <SectionCard>
             <div className="section-heading attendance-heading">
-              <div><span className="eyebrow">CAPTURA</span><h2>{students.length} alumnos activos</h2><p>{locked ? 'La lista está cerrada. Reábrela para corregir registros.' : dirty ? 'Hay cambios pendientes de guardar.' : 'Todos los cambios visibles están sincronizados.'}</p></div>
+              <div><span className="eyebrow">CAPTURA</span><h2>{students.length} alumnos activos</h2><p>{locked ? 'La lista está cerrada. Reábrela para corregir registros.' : needsSave ? 'Hay cambios pendientes de guardar.' : 'La captura visible está guardada.'}</p></div>
               <div className="page-actions">
-                {!locked ? <><button className="button ghost compact" type="button" onClick={() => setAll('present')}>Todos presentes</button><button className="button ghost compact" type="button" onClick={() => setAll('absent')}>Todos falta</button></> : null}
+                {!locked ? <><button className="button ghost compact" type="button" disabled={busy} onClick={() => setAll('present')}>Todos presentes</button><button className="button ghost compact" type="button" disabled={busy} onClick={() => confirm('absent')}>Todos falta</button></> : null}
               </div>
             </div>
 
             <div className="attendance-options">
-              <label>Retardo después de <input type="number" min="0" max="120" disabled={locked} value={options.lateAfterMinutes} onChange={(event) => { setOptions({ ...options, lateAfterMinutes: Number(event.target.value) }); setDirty(true); }} /> minutos</label>
-              <label className="toggle-field"><input type="checkbox" disabled={locked} checked={options.autoMarkAbsent} onChange={(event) => { setOptions({ ...options, autoMarkAbsent: event.target.checked }); setDirty(true); }} /> Completar ausencias al cierre</label>
-              <label className="attendance-general-note">Nota de la lista<input disabled={locked} value={options.notes} onChange={(event) => { setOptions({ ...options, notes: event.target.value }); setDirty(true); }} placeholder="Tema, actividad o incidencia general" /></label>
+              <label>Retardo después de <input type="number" min="0" max="120" disabled={locked || busy} value={options.lateAfterMinutes} onChange={(event) => { setOptions({ ...options, lateAfterMinutes: Number(event.target.value) }); }} /> minutos</label>
+              <label className="toggle-field"><input type="checkbox" disabled={locked || busy} checked={options.autoMarkAbsent} onChange={(event) => { setOptions({ ...options, autoMarkAbsent: event.target.checked }); }} /> Completar ausencias al cierre</label>
+              <label className="attendance-general-note">Nota de la lista<input disabled={locked || busy} value={options.notes} onChange={(event) => { setOptions({ ...options, notes: event.target.value }); }} placeholder="Tema, actividad o incidencia general" /></label>
             </div>
 
             <div className="toolbar-v2">
@@ -277,9 +326,9 @@ function AttendanceEditor({ groupId }: { groupId: string }) {
                     <article className={`attendance-student status-${value.status}`} key={student.id}>
                       <div className="attendance-student-name"><strong>{student.full_name}</strong><span>{student.enrollment}</span></div>
                       <div className="attendance-status-control" role="group" aria-label={`Estado de ${student.full_name}`}>
-                        {statuses.map((status) => <button key={status.key} type="button" disabled={locked} className={value.status === status.key ? `active ${status.key}` : ''} title={status.label} onClick={() => { setDraft((current) => ({ ...current, [student.id]: { ...value, status: status.key } })); setDirty(true); }}><b>{status.short}</b><span>{status.label}</span></button>)}
+                        {statuses.map((status) => <button key={status.key} type="button" disabled={locked || busy} className={value.status === status.key ? `active ${status.key}` : ''} aria-pressed={value.status === status.key} title={status.label} onClick={() => { setDraft((current) => ({ ...current, [student.id]: { ...value, status: status.key } })); }}><b>{status.short}</b><span>{status.label}</span></button>)}
                       </div>
-                      <input className="attendance-note" disabled={locked} value={value.note} onChange={(event) => { setDraft((current) => ({ ...current, [student.id]: { ...value, note: event.target.value } })); setDirty(true); }} placeholder="Observación opcional" />
+                      <input aria-label={`Observación de ${student.full_name}`} className="attendance-note" disabled={locked || busy} value={value.note} onChange={(event) => { setDraft((current) => ({ ...current, [student.id]: { ...value, note: event.target.value } })); }} placeholder="Observación opcional" />
                     </article>
                   );
                 })}
@@ -288,21 +337,35 @@ function AttendanceEditor({ groupId }: { groupId: string }) {
           </SectionCard>
 
           <div className="attendance-savebar">
-            <div><StatusPill tone={sessionTone(session.status)}>{sessionLabel(session.status)}</StatusPill><span>{dirty ? 'Cambios pendientes' : 'Lista sincronizada'}</span></div>
+            <div><StatusPill tone={sessionTone(session.status)}>{sessionLabel(session.status)}</StatusPill><span>{busy ? 'Guardando…' : needsSave ? 'Cambios pendientes' : 'Lista guardada'}</span></div>
             <div>
-              {!locked ? <button className="button secondary" type="button" disabled={busy} onClick={() => commitMutation.mutate('save')}>{commitMutation.isPending ? 'Guardando…' : 'Guardar'}</button> : null}
-              {session.status === 'open' ? <button className="button ghost" type="button" disabled={busy} onClick={() => commitMutation.mutate('paused')}>Pausar</button> : null}
-              {session.status === 'paused' ? <button className="button primary" type="button" disabled={busy} onClick={() => commitMutation.mutate('open')}>Reanudar</button> : null}
-              {session.status !== 'closed' ? <button className="button danger" type="button" disabled={busy} onClick={() => { if (window.confirm('¿Cerrar esta lista? Quedará protegida contra cambios accidentales.')) commitMutation.mutate('closed'); }}>Cerrar lista</button> : <button className="button primary" type="button" disabled={busy} onClick={() => { if (window.confirm('¿Reabrir esta lista para realizar correcciones?')) commitMutation.mutate('open'); }}>Reabrir lista</button>}
+              {!locked ? <button className="button secondary" type="button" disabled={busy || !online || conflict} onClick={() => commit('save')}>{commitMutation.isPending ? 'Guardando…' : 'Guardar'}</button> : null}
+              {session.status === 'open' ? <button className="button ghost" type="button" disabled={busy || !online || conflict} onClick={() => commit('paused')}>Pausar</button> : null}
+              {session.status === 'paused' ? <button className="button primary" type="button" disabled={busy || !online || conflict} onClick={() => commit('open')}>Reanudar</button> : null}
+              {session.status !== 'closed' ? <button className="button danger" type="button" disabled={busy || !online || conflict} onClick={() => confirm('closed')}>Cerrar lista</button> : <button className="button primary" type="button" disabled={busy || !online} onClick={() => confirm('reopen')}>Reabrir lista</button>}
             </div>
           </div>
         </>
       )}
+      {dialog ? <ActionDialog eyebrow="TEDVIO · ASISTENCIA" title={dialog === 'closed' ? '¿Guardar y cerrar esta lista?' : dialog === 'reopen' ? '¿Reabrir la lista?' : dialog === 'absent' ? '¿Marcar falta a todo el grupo?' : '¿Descartar esta captura?'}
+        detail={dialog === 'closed' ? 'Se guardarán los estados y observaciones visibles. Después, la lista quedará protegida hasta que la reabras.' : dialog === 'reopen' ? 'Podrás corregir estados y observaciones. Los registros guardados se conservarán.' : dialog === 'absent' ? `Cambiará el estado de los ${students.length} alumnos, incluidos los que no aparecen en la búsqueda. Las observaciones se conservarán.` : 'Se quitarán tus cambios pendientes de esta fecha y se mostrará la versión guardada. Esta acción no se puede deshacer.'}
+        confirmLabel={dialog === 'closed' ? 'Guardar y cerrar' : dialog === 'reopen' ? 'Reabrir lista' : dialog === 'absent' ? 'Marcar todos falta' : 'Descartar cambios'}
+        busy={busy} danger={dialog !== 'reopen'} error={commitMutation.error?.message}
+        onDismiss={() => setDialog(null)} onConfirm={() => {
+          if (busy) return;
+          if (dialog === 'discard') { queryClient.setQueryData(draftKey, null); setDialog(null); setNotice('Se muestra la versión guardada.'); }
+          else if (dialog === 'absent') { setAll('absent'); setDialog(null); }
+          else commit(dialog === 'reopen' ? 'open' : 'closed');
+        }} /> : null}
     </div>
   );
 }
 
 export function AttendancePage() {
   const { groupId } = useParams();
-  return groupId ? <AttendanceEditor groupId={groupId} /> : <AttendanceLanding />;
+  const auth = useAuth();
+  const [params] = useSearchParams();
+  const requestedDate = params.get('date') || '';
+  const date = validAttendanceDate(requestedDate) ? requestedDate : localDateKey();
+  return groupId ? <AttendanceEditor key={`${auth.user?.id}:${groupId}:${date}`} groupId={groupId} date={date} /> : <AttendanceLanding />;
 }

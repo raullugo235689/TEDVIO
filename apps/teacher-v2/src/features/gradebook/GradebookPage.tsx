@@ -1,6 +1,8 @@
+import { OmrPublicationPanel } from './OmrPublicationPanel';
+import { CategoriesEditor, ScoreCapture } from './GradebookEditors';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useIsMutating, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   calculateGradebook,
   ensureGradebookDefaults,
@@ -11,13 +13,9 @@ import {
   gradebookWorkspaceKey,
   linkOmrExamToGradebook,
   recommendedPeriodId,
-  saveGradebookCategories,
   saveGradebookItem,
-  saveGradebookScores,
-  type CategoryDraft,
   type GradeCategory,
   type GradeItem,
-  type GradeScoreDraft,
   type GradebookCalculation,
   type GradebookDetail,
   type GradebookRevision,
@@ -89,7 +87,7 @@ function Landing({ workspace }: { workspace: GradebookWorkspace }) {
   return (
     <div className="view-stack gradebook-page">
       <PageHeader
-        eyebrow="ETAPA 4C · LIBRO"
+        eyebrow="CALIFICACIONES"
         title="Libro de calificaciones"
         detail="Integra actividades, asistencia y resultados OMR con ponderaciones trazables y protección por periodo."
       />
@@ -120,54 +118,6 @@ function Landing({ workspace }: { workspace: GradebookWorkspace }) {
   );
 }
 
-function CategoriesEditor({ categories, busy, onSave }: { categories: GradeCategory[]; busy: boolean; onSave: (rows: CategoryDraft[]) => void }) {
-  const [drafts, setDrafts] = useState<CategoryDraft[]>([]);
-  useEffect(() => setDrafts(categories.map((category) => ({ id: category.id, name: category.name, kind: category.kind, weight: Number(category.weight) }))), [categories]);
-  const total = drafts.reduce((sum, category) => sum + Number(category.weight || 0), 0);
-  function patch(index: number, values: Partial<CategoryDraft>) {
-    setDrafts((current) => current.map((row, position) => position === index ? { ...row, ...values } : row));
-  }
-  function addManual() {
-    setDrafts((current) => [...current, { name: `Categoría ${current.filter((row) => row.kind === 'manual').length + 1}`, kind: 'manual', weight: 0 }]);
-  }
-  return (
-    <SectionCard>
-      <div className="section-heading"><div><span className="eyebrow">PONDERACIONES</span><h2>Estructura del curso</h2><p>La suma debe ser 100%. El tipo de una categoría existente no cambia para conservar la trazabilidad.</p></div><StatusPill tone={Math.abs(total - 100) < 0.01 ? 'green' : 'red'}>{total.toFixed(1)}%</StatusPill></div>
-      <div className="gradebook-category-editor">
-        {drafts.map((category, index) => (
-          <article key={category.id || `new-${index}`}>
-            <label>Nombre<input value={category.name} onChange={(event) => patch(index, { name: event.target.value })} /></label>
-            <label>Fuente<select value={category.kind} disabled={Boolean(category.id)} onChange={(event) => patch(index, { kind: event.target.value as CategoryDraft['kind'] })}><option value="manual">Manual</option><option value="omr">OMR</option><option value="attendance">Asistencia</option><option value="live">Participación Live</option></select></label>
-            <label>Peso<input type="number" min="0" max="100" step="0.1" value={category.weight} onChange={(event) => patch(index, { weight: Number(event.target.value) })} /></label><b>%</b>
-          </article>
-        ))}
-      </div>
-      <footer className="gradebook-editor-footer"><button className="button ghost" type="button" onClick={addManual}>＋ Categoría manual</button><button className="button primary" type="button" disabled={busy || Math.abs(total - 100) >= 0.01 || drafts.some((row) => !row.name.trim())} onClick={() => onSave(drafts)}>{busy ? 'Guardando…' : 'Guardar ponderaciones'}</button></footer>
-    </SectionCard>
-  );
-}
-
-function ScoreCapture({ detail, calculation, item, busy, onClose, onSave }: { detail: GradebookDetail; calculation: GradebookCalculation; item: GradeItem; busy: boolean; onClose: () => void; onSave: (rows: GradeScoreDraft[]) => void }) {
-  const studentMap = new Map(calculation.students.map((student) => [student.student.id, student.itemScores[item.id]]));
-  const noteMap = new Map(detail.scores.filter((score) => score.item_id === item.id).map((score) => [score.student_id, score.note || '']));
-  const [rows, setRows] = useState<GradeScoreDraft[]>(() => detail.students.map((student) => ({ studentId: student.id, score: studentMap.get(student.id) ?? null, note: noteMap.get(student.id) || '' })));
-  function update(studentId: string, patch: Partial<GradeScoreDraft>) {
-    setRows((current) => current.map((row) => row.studentId === studentId ? { ...row, ...patch } : row));
-  }
-  return (
-    <SectionCard className="gradebook-score-capture">
-      <div className="section-heading"><div><span className="eyebrow">CAPTURA MASIVA</span><h2>{item.title}</h2><p>Máximo {Number(item.max_score).toFixed(2)} · {shortDate(item.item_date)}</p></div><button className="button ghost" type="button" onClick={onClose}>Cerrar</button></div>
-      <div className="gradebook-score-list">
-        {detail.students.map((student) => {
-          const row = rows.find((value) => value.studentId === student.id)!;
-          return <article key={student.id}><div><b>{student.full_name}</b><small>{student.enrollment}</small></div><label>Calificación<input type="number" min="0" max={Number(item.max_score)} step="0.01" value={row.score ?? ''} onChange={(event) => update(student.id, { score: event.target.value === '' ? null : Number(event.target.value) })} /></label><label>Nota<input value={row.note || ''} onChange={(event) => update(student.id, { note: event.target.value })} /></label></article>;
-        })}
-      </div>
-      <footer className="gradebook-editor-footer"><span>{rows.filter((row) => row.score != null).length}/{rows.length} capturadas</span><button className="button primary" type="button" disabled={busy} onClick={() => onSave(rows)}>{busy ? 'Guardando…' : 'Guardar captura'}</button></footer>
-    </SectionCard>
-  );
-}
-
 function GradeTable({ detail, calculation }: { detail: GradebookDetail; calculation: GradebookCalculation }) {
   return (
     <SectionCard>
@@ -177,13 +127,13 @@ function GradeTable({ detail, calculation }: { detail: GradebookDetail; calculat
   );
 }
 
-function EvidencePanel({ detail, calculation, editable, busyExam, onSync, onNewItem, onCapture }: { detail: GradebookDetail; calculation: GradebookCalculation; editable: boolean; busyExam: string; onSync: (examId: string, categoryId: string) => void; onNewItem: () => void; onCapture: (item: GradeItem) => void }) {
+function EvidencePanel({ detail, calculation, editable, periodId, onNewItem, onCapture }: { detail: GradebookDetail; calculation: GradebookCalculation; editable: boolean; periodId: string | null; onNewItem: () => void; onCapture: (item: GradeItem) => void }) {
   const omrCategory = detail.categories.find((category) => category.kind === 'omr');
   return (
     <div className="view-stack compact-stack">
       <SectionCard>
         <div className="section-heading"><div><span className="eyebrow">OMR → LIBRO</span><h2>Evaluaciones confirmadas</h2><p>Solo se publican resultados confirmados y no archivados.</p></div><Link className="button ghost" to="/omr">Abrir OMR</Link></div>
-        {calculation.examSync.length ? <div className="gradebook-evidence-list">{calculation.examSync.map((state) => <article key={state.exam.id}><div><b>{state.exam.title}</b><small>{shortDate(state.exam.exam_date)} · {state.confirmed} confirmados · {state.pending} pendientes{state.unmatched ? ` · ${state.unmatched} sin alumno` : ''}</small></div><StatusPill tone={state.linked ? 'green' : 'amber'}>{state.linked ? 'Sincronizada' : 'Por publicar'}</StatusPill><button className="button secondary compact" type="button" disabled={!editable || !omrCategory || busyExam === state.exam.id} onClick={() => omrCategory && onSync(state.exam.id, omrCategory.id)}>{busyExam === state.exam.id ? 'Sincronizando…' : state.linked ? 'Actualizar' : 'Publicar en Libro'}</button></article>)}</div> : <EmptyState icon="exam" title="Sin evaluaciones OMR" detail="Marca una evaluación como Lista y confirma sus resultados para publicarla." action={<Link className="button primary" to="/exams">Ir a Evaluaciones</Link>} />}
+        {calculation.examSync.length ? <div className="gradebook-evidence-list">{calculation.examSync.map((state) => <article key={state.exam.id}><div><b>{state.exam.title}</b><small>{shortDate(state.exam.exam_date)} · {state.confirmed} confirmados · {state.pending} pendientes{state.unmatched ? ` · ${state.unmatched} sin alumno` : ''}</small></div><OmrPublicationPanel detail={detail} periodId={periodId} examId={state.exam.id} categoryId={omrCategory?.id} /></article>)}</div> : <EmptyState icon="exam" title="Sin evaluaciones OMR" detail="Marca una evaluación como Lista y confirma sus resultados para publicarla." action={<Link className="button primary" to="/exams">Ir a Evaluaciones</Link>} />}
         {!omrCategory ? <div className="warning-strip"><Icon name="alert" /><span>Configura una categoría de tipo OMR antes de publicar evaluaciones.</span></div> : null}
       </SectionCard>
       <SectionCard>
@@ -204,7 +154,8 @@ function DetailView({ detail, periodId, onPeriod }: { detail: GradebookDetail; p
   const [tab, setTab] = useState<'book' | 'evidence' | 'config' | 'history'>('book');
   const [notice, setNotice] = useState('');
   const [newItemOpen, setNewItemOpen] = useState(false);
-  const [captureItem, setCaptureItem] = useState<GradeItem | null>(null);
+  const [captureItem, setCaptureItem] = useState<string | null>(null);
+  const captureBusy = useIsMutating({ mutationKey: ['gradebook-write', auth.user?.id, detail.group.id] }) > 0;
   const [itemTitle, setItemTitle] = useState('');
   const [itemCategory, setItemCategory] = useState('');
   const [itemMax, setItemMax] = useState(10);
@@ -221,11 +172,8 @@ function DetailView({ detail, periodId, onPeriod }: { detail: GradebookDetail; p
   }
 
   const defaults = useMutation({ mutationFn: () => { if (!auth.user) throw new Error('Tu sesión expiró.'); return ensureGradebookDefaults(auth.user, detail.group.id); }, onSuccess: async () => { setNotice('Estructura 40/30/20/10 creada.'); await refresh(); } });
-  const categories = useMutation({ mutationFn: (rows: CategoryDraft[]) => { if (!auth.user) throw new Error('Tu sesión expiró.'); return saveGradebookCategories(auth.user, detail.group.id, rows); }, onSuccess: async () => { setNotice('Ponderaciones guardadas.'); await refresh(); } });
   const item = useMutation({ mutationFn: () => { if (!auth.user) throw new Error('Tu sesión expiró.'); return saveGradebookItem(auth.user, { groupId: detail.group.id, categoryId: itemCategory, periodId, title: itemTitle, maxScore: itemMax, itemDate, reason: 'Nueva actividad desde TEDVIO 2.0' }); }, onSuccess: async () => { setNotice('Actividad creada.'); setNewItemOpen(false); setItemTitle(''); await refresh(); } });
-  const score = useMutation({ mutationFn: (rows: GradeScoreDraft[]) => { if (!auth.user || !captureItem) throw new Error('No hay una actividad válida.'); return saveGradebookScores(auth.user, captureItem.id, rows); }, onSuccess: async () => { setNotice('Calificaciones guardadas.'); setCaptureItem(null); await refresh(); } });
-  const omr = useMutation({ mutationFn: ({ examId, categoryId }: { examId: string; categoryId: string }) => { if (!auth.user) throw new Error('Tu sesión expiró.'); return linkOmrExamToGradebook(auth.user, examId, categoryId); }, onSuccess: async (result) => { setNotice(`${result.linked} resultados OMR publicados; ${result.pending} pendientes.`); await refresh(); } });
-  const error = (defaults.error || categories.error || item.error || score.error || omr.error) as Error | null;
+  const error = (defaults.error || item.error) as Error | null;
   const manualCategories = detail.categories.filter((category) => category.kind === 'manual');
   const official = detail.periodSummary;
 
@@ -238,12 +186,12 @@ function DetailView({ detail, periodId, onPeriod }: { detail: GradebookDetail; p
       <PageHeader eyebrow="LIBRO DE CALIFICACIONES" title={groupLabel(detail.group)} detail={[detail.group.university_name || detail.group.university, detail.group.school_cycle || detail.group.term].filter(Boolean).join(' · ')} actions={<div className="page-actions"><Link className="button ghost" to="/gradebook">← Libros</Link><button className="button secondary" type="button" onClick={() => exportGradebookCsv(detail, calculation)}>Exportar CSV</button></div>} />
       {notice ? <div className="success-strip"><Icon name="check" /><span>{notice}</span><button type="button" onClick={() => setNotice('')}>×</button></div> : null}
       {error ? <ErrorPanel title="No se pudo completar la operación" detail={error.message} /> : null}
-      <section className="gradebook-context-bar"><label>Periodo<select value={periodId || 'course'} onChange={(event) => onPeriod(event.target.value === 'course' ? null : event.target.value)}><option value="course">Curso completo</option>{detail.periods.map((row) => <option key={row.id} value={row.id}>{row.name} · {row.status === 'closed' ? 'cerrado' : 'abierto'}</option>)}</select></label>{period ? <><StatusPill tone={period.status === 'closed' ? 'blue' : 'green'}>{period.status === 'closed' ? 'Periodo cerrado' : 'Periodo abierto'}</StatusPill><span>{shortDate(period.starts_on)}–{shortDate(period.ends_on)}</span></> : <StatusPill tone={detail.periods.length ? 'amber' : 'green'}>{detail.periods.length ? 'Vista consolidada' : 'Curso editable'}</StatusPill>}{Math.abs(calculation.configuredWeight - 100) >= 0.01 ? <StatusPill tone="red">Ponderaciones {calculation.configuredWeight.toFixed(1)}%</StatusPill> : <StatusPill tone="green">Ponderaciones 100%</StatusPill>}</section>
+      <section className="gradebook-context-bar"><label>Periodo<select disabled={captureBusy} value={periodId || 'course'} onChange={(event) => onPeriod(event.target.value === 'course' ? null : event.target.value)}><option value="course">Curso completo</option>{detail.periods.map((row) => <option key={row.id} value={row.id}>{row.name} · {row.status === 'closed' ? 'cerrado' : 'abierto'}</option>)}</select></label>{period ? <><StatusPill tone={period.status === 'closed' ? 'blue' : 'green'}>{period.status === 'closed' ? 'Periodo cerrado' : 'Periodo abierto'}</StatusPill><span>{shortDate(period.starts_on)}–{shortDate(period.ends_on)}</span></> : <StatusPill tone={detail.periods.length ? 'amber' : 'green'}>{detail.periods.length ? 'Vista consolidada' : 'Curso editable'}</StatusPill>}{Math.abs(calculation.configuredWeight - 100) >= 0.01 ? <StatusPill tone="red">Ponderaciones {calculation.configuredWeight.toFixed(1)}%</StatusPill> : <StatusPill tone="green">Ponderaciones 100%</StatusPill>}</section>
       {period?.status === 'closed' ? <section className="gradebook-locked-banner"><Icon name="shield" /><div><span className="eyebrow">CIERRE PROTEGIDO</span><h2>Los promedios provienen del snapshot oficial.</h2><p>Reabre el periodo desde Periodos Académicos antes de corregir evidencias.</p></div><Link className="button secondary" to="/periods">Ver Periodos</Link></section> : null}
       {!period && detail.periods.length ? <div className="warning-strip"><Icon name="alert" /><span>La vista del curso es consolidada. Selecciona un periodo abierto para crear evidencias o capturar calificaciones.</span></div> : null}
       <section className="metric-grid four"><MetricCard label={period?.status === 'closed' ? 'Promedio oficial' : 'Promedio actual'} value={grade(calculation.groupAverage)} detail={`Aprobación ${percent(calculation.approvalRate)}`} icon="grades" tone="blue" /><MetricCard label="Alumnos evaluados" value={String(calculation.students.length - calculation.studentsWithoutGrade)} detail={`${calculation.studentsWithoutGrade} sin promedio`} icon="groups" tone="violet" /><MetricCard label="Captura manual" value={`${calculation.manualCaptured}/${calculation.manualExpected}`} detail={`${calculation.manualPending} pendientes`} icon="check" tone={calculation.manualPending ? 'amber' : 'green'} /><MetricCard label="OMR confirmado" value={String(calculation.confirmedOmr)} detail={`${calculation.pendingOmr} por revisar`} icon="exam" tone={calculation.pendingOmr ? 'amber' : 'green'} /></section>
-      {!detail.categories.length ? <section className="gradebook-setup-hero"><div><Icon name="grades" /></div><div><span className="eyebrow">CONFIGURACIÓN INICIAL</span><h2>Prepara el Libro con una estructura base.</h2><p>TEDVIO creará Exámenes OMR 40%, Actividades 30%, Prácticas 20% y Asistencia 10%. Después podrás ajustar nombres y ponderaciones.</p><button className="button primary" type="button" disabled={defaults.isPending} onClick={() => defaults.mutate()}>{defaults.isPending ? 'Configurando…' : 'Crear estructura 40/30/20/10'}</button></div></section> : <><nav className="gradebook-tabs" aria-label="Secciones del Libro"><button type="button" className={tab === 'book' ? 'active' : ''} onClick={() => setTab('book')}>Libro</button><button type="button" className={tab === 'evidence' ? 'active' : ''} onClick={() => setTab('evidence')}>Evidencias</button><button type="button" className={tab === 'config' ? 'active' : ''} onClick={() => setTab('config')}>Ponderaciones</button><button type="button" className={tab === 'history' ? 'active' : ''} onClick={() => setTab('history')}>Bitácora</button></nav>{tab === 'book' ? <><div className="gradebook-category-cards">{detail.categories.map((category) => { const values = calculation.students.map((student) => student.categoryValues[category.id]?.value).filter((value): value is number => value != null); const average = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null; return <article key={category.id}><div><span className="eyebrow">{kindLabel(category.kind)}</span><h3>{category.name}</h3></div><b>{Number(category.weight).toFixed(0)}%</b><small>Promedio {grade(average)}</small></article>; })}</div><GradeTable detail={detail} calculation={calculation} />{official && period ? <SectionCard><div className="section-heading"><div><span className="eyebrow">PREPARACIÓN DE CIERRE</span><h2>{Boolean(official.ready) ? 'Periodo listo para cerrar' : 'Pendientes académicos'}</h2><p>{Boolean(official.ready) ? 'Las reglas de cierre no detectan incidencias.' : 'TEDVIO conserva visibles los faltantes antes del cierre.'}</p></div><StatusPill tone={Boolean(official.ready) ? 'green' : 'amber'}>{Boolean(official.ready) ? 'Listo' : 'En proceso'}</StatusPill></div>{Array.isArray(official.issues) && official.issues.length ? <ul className="gradebook-issue-list">{official.issues.map((issue, index) => <li key={index}><Icon name="alert" />{String((issue as Record<string, unknown>).label || 'Pendiente')}</li>)}</ul> : <div className="success-strip"><Icon name="check" /><span>Sin incidencias de cierre.</span></div>}</SectionCard> : null}</> : null}{tab === 'evidence' ? <><EvidencePanel detail={detail} calculation={calculation} editable={calculation.editable} busyExam={omr.variables?.examId || ''} onSync={(examId, categoryId) => omr.mutate({ examId, categoryId })} onNewItem={() => setNewItemOpen(true)} onCapture={setCaptureItem} />{newItemOpen ? <SectionCard><div className="section-heading"><div><span className="eyebrow">NUEVA EVIDENCIA</span><h2>Actividad manual</h2></div><button className="button ghost" type="button" onClick={() => setNewItemOpen(false)}>Cerrar</button></div><div className="form-grid four"><label>Título<input value={itemTitle} onChange={(event) => setItemTitle(event.target.value)} /></label><label>Categoría<select value={itemCategory} onChange={(event) => setItemCategory(event.target.value)}>{manualCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label><label>Máximo<input type="number" min="0.01" max="10000" step="0.01" value={itemMax} onChange={(event) => setItemMax(Number(event.target.value))} /></label><label>Fecha<input type="date" value={itemDate} onChange={(event) => setItemDate(event.target.value)} /></label></div><footer className="gradebook-editor-footer"><button className="button primary" type="button" disabled={item.isPending || !calculation.editable || !itemTitle.trim() || !itemCategory} onClick={() => item.mutate()}>{item.isPending ? 'Guardando…' : 'Crear actividad'}</button></footer></SectionCard> : null}{captureItem ? <ScoreCapture detail={detail} calculation={calculation} item={captureItem} busy={score.isPending} onClose={() => setCaptureItem(null)} onSave={(rows) => score.mutate(rows)} /> : null}<SectionCard><div className="section-heading"><div><span className="eyebrow">MATRIZ DE EVIDENCIAS</span><h2>Fuente, captura y resultado</h2><p>Permite localizar exactamente qué actividad origina cada calificación.</p></div></div><div className="gradebook-table-wrap"><table className="gradebook-table evidence"><thead><tr><th>Alumno</th>{calculation.items.map((evidence) => <th key={evidence.id}>{evidence.title}<small>/{Number(evidence.max_score).toFixed(1)}</small></th>)}<th>Promedio</th></tr></thead><tbody>{calculation.students.map((student) => <tr key={student.student.id}><td><b>{student.student.full_name}</b><small>{student.student.enrollment}</small></td>{calculation.items.map((evidence) => <td key={evidence.id}>{student.itemScores[evidence.id] == null ? '—' : Number(student.itemScores[evidence.id]).toFixed(2)}</td>)}<td className="gradebook-final"><b>{grade(student.displayedGrade)}</b></td></tr>)}</tbody></table></div></SectionCard></> : null}{tab === 'config' ? <CategoriesEditor categories={detail.categories} busy={categories.isPending} onSave={(rows) => categories.mutate(rows)} /> : null}{tab === 'history' ? <History revisions={detail.revisions} /> : null}</>}
-      <section className="gradebook-next-phase"><Icon name="route" /><div><span className="eyebrow">SIGUIENTE BLOQUE · 4D</span><h2>La evidencia ya está lista para Alumno 360°.</h2><p>El expediente consolidará trayectoria, asistencia, OMR, actividades, notas y evolución por periodo.</p></div></section>
+      {!detail.categories.length ? <section className="gradebook-setup-hero"><div><Icon name="grades" /></div><div><span className="eyebrow">CONFIGURACIÓN INICIAL</span><h2>Prepara el Libro con una estructura base.</h2><p>TEDVIO creará Exámenes OMR 40%, Actividades 30%, Prácticas 20% y Asistencia 10%. Después podrás ajustar nombres y ponderaciones.</p><button className="button primary" type="button" disabled={defaults.isPending} onClick={() => defaults.mutate()}>{defaults.isPending ? 'Configurando…' : 'Crear estructura 40/30/20/10'}</button></div></section> : <><nav className="gradebook-tabs" aria-label="Secciones del Libro"><button type="button" className={tab === 'book' ? 'active' : ''} onClick={() => setTab('book')}>Libro</button><button type="button" className={tab === 'evidence' ? 'active' : ''} onClick={() => setTab('evidence')}>Evidencias</button><button type="button" className={tab === 'config' ? 'active' : ''} onClick={() => setTab('config')}>Ponderaciones</button><button type="button" className={tab === 'history' ? 'active' : ''} onClick={() => setTab('history')}>Bitácora</button></nav>{tab === 'book' ? <><div className="gradebook-category-cards">{detail.categories.map((category) => { const values = calculation.students.map((student) => student.categoryValues[category.id]?.value).filter((value): value is number => value != null); const average = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null; return <article key={category.id}><div><span className="eyebrow">{kindLabel(category.kind)}</span><h3>{category.name}</h3></div><b>{Number(category.weight).toFixed(0)}%</b><small>Promedio {grade(average)}</small></article>; })}</div><GradeTable detail={detail} calculation={calculation} />{official && period ? <SectionCard><div className="section-heading"><div><span className="eyebrow">PREPARACIÓN DE CIERRE</span><h2>{Boolean(official.ready) ? 'Periodo listo para cerrar' : 'Pendientes académicos'}</h2><p>{Boolean(official.ready) ? 'Las reglas de cierre no detectan incidencias.' : 'TEDVIO conserva visibles los faltantes antes del cierre.'}</p></div><StatusPill tone={Boolean(official.ready) ? 'green' : 'amber'}>{Boolean(official.ready) ? 'Listo' : 'En proceso'}</StatusPill></div>{Array.isArray(official.issues) && official.issues.length ? <ul className="gradebook-issue-list">{official.issues.map((issue, index) => <li key={index}><Icon name="alert" />{String((issue as Record<string, unknown>).label || 'Pendiente')}</li>)}</ul> : <div className="success-strip"><Icon name="check" /><span>Sin incidencias de cierre.</span></div>}</SectionCard> : null}</> : null}{tab === 'evidence' ? <><EvidencePanel detail={detail} calculation={calculation} editable={calculation.editable && !captureBusy} periodId={periodId} onNewItem={() => setNewItemOpen(true)} onCapture={(item) => setCaptureItem(item.id)} />{newItemOpen ? <SectionCard><div className="section-heading"><div><span className="eyebrow">NUEVA EVIDENCIA</span><h2>Actividad manual</h2></div><button className="button ghost" type="button" onClick={() => setNewItemOpen(false)}>Cerrar</button></div><div className="form-grid four"><label>Título<input value={itemTitle} onChange={(event) => setItemTitle(event.target.value)} /></label><label>Categoría<select value={itemCategory} onChange={(event) => setItemCategory(event.target.value)}>{manualCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label><label>Máximo<input type="number" min="0.01" max="10000" step="0.01" value={itemMax} onChange={(event) => setItemMax(Number(event.target.value))} /></label><label>Fecha<input type="date" value={itemDate} onChange={(event) => setItemDate(event.target.value)} /></label></div><footer className="gradebook-editor-footer"><button className="button primary" type="button" disabled={item.isPending || !calculation.editable || !itemTitle.trim() || !itemCategory} onClick={() => item.mutate()}>{item.isPending ? 'Guardando…' : 'Crear actividad'}</button></footer></SectionCard> : null}{captureItem ? <ScoreCapture key={captureItem} detail={detail} periodId={periodId} itemId={captureItem} onClose={() => setCaptureItem(null)} /> : null}<SectionCard><div className="section-heading"><div><span className="eyebrow">MATRIZ DE EVIDENCIAS</span><h2>Fuente, captura y resultado</h2><p>Permite localizar exactamente qué actividad origina cada calificación.</p></div></div><div className="gradebook-table-wrap"><table className="gradebook-table evidence"><thead><tr><th>Alumno</th>{calculation.items.map((evidence) => <th key={evidence.id}>{evidence.title}<small>/{Number(evidence.max_score).toFixed(1)}</small></th>)}<th>Promedio</th></tr></thead><tbody>{calculation.students.map((student) => <tr key={student.student.id}><td><b>{student.student.full_name}</b><small>{student.student.enrollment}</small></td>{calculation.items.map((evidence) => <td key={evidence.id}>{student.itemScores[evidence.id] == null ? '—' : Number(student.itemScores[evidence.id]).toFixed(2)}</td>)}<td className="gradebook-final"><b>{grade(student.displayedGrade)}</b></td></tr>)}</tbody></table></div></SectionCard></> : null}{tab === 'config' ? <CategoriesEditor detail={detail} periodId={periodId} /> : null}{tab === 'history' ? <History revisions={detail.revisions} /> : null}</>}
+      <section className="gradebook-next-phase"><Icon name="route" /><div><span className="eyebrow">SEGUIMIENTO ACADÉMICO</span><h2>Consulta la trayectoria de cada alumno.</h2><p>Revisa asistencia, evaluaciones y evolución por periodo en Alumno 360°.</p></div><Link className="button secondary" to="/students">Abrir Alumno 360°</Link></section>
     </div>
   );
 }
@@ -257,10 +205,10 @@ export function GradebookPage() {
   const auth = useAuth();
   const { groupId } = useParams();
   const [params, setParams] = useSearchParams();
-  const workspace = useQuery({ queryKey: gradebookWorkspaceKey(auth.user?.id), queryFn: () => { if (!auth.user) throw new Error('No hay una sesión docente activa.'); return fetchGradebookWorkspace(auth.user); }, enabled: Boolean(auth.user) });
+  const workspace = useQuery({ gcTime: Infinity, queryKey: gradebookWorkspaceKey(auth.user?.id), queryFn: () => { if (!auth.user) throw new Error('No hay una sesión docente activa.'); return fetchGradebookWorkspace(auth.user); }, enabled: Boolean(auth.user) });
   const requested = params.get('period');
   const periodId = requested && requested !== 'course' ? requested : null;
-  const detail = useQuery({ queryKey: gradebookDetailKey(auth.user?.id, groupId, periodId), queryFn: () => { if (!auth.user || !groupId) throw new Error('No se puede abrir el Libro.'); return fetchGradebookDetail(auth.user, groupId, periodId); }, enabled: Boolean(auth.user && groupId) });
+  const detail = useQuery({ gcTime: Infinity, queryKey: gradebookDetailKey(auth.user?.id, groupId, periodId), queryFn: () => { if (!auth.user || !groupId) throw new Error('No se puede abrir el Libro.'); return fetchGradebookDetail(auth.user, groupId, periodId); }, enabled: Boolean(auth.user && groupId) });
 
   useEffect(() => {
     if (!groupId || requested || !detail.data?.periods.length) return;
@@ -268,12 +216,12 @@ export function GradebookPage() {
     if (next) setParams({ period: next }, { replace: true });
   }, [detail.data?.periods, groupId, requested, setParams]);
 
-  if (workspace.isLoading) return <LoadingScreen label="Abriendo el Libro…" />;
-  if (workspace.isError) return <ErrorPanel title="No pude cargar el Libro" detail={workspace.error.message} onRetry={() => workspace.refetch()} />;
-  if (!workspace.data) return <ErrorPanel title="Libro no disponible" detail="No se recibió el espacio académico." />;
-  if (!groupId) return <Landing workspace={workspace.data} />;
+  if (!groupId && workspace.isLoading) return <LoadingScreen label="Abriendo el Libro…" />;
+  if (!groupId && workspace.isError && !workspace.data) return <ErrorPanel title="No pude cargar el Libro" detail={workspace.error.message} onRetry={() => workspace.refetch()} />;
+  if (!groupId && !workspace.data) return <ErrorPanel title="Libro no disponible" detail="No se recibió el espacio académico." />;
+  if (!groupId) return <Landing workspace={workspace.data!} />;
   if (detail.isLoading) return <LoadingScreen label="Calculando evidencias…" />;
-  if (detail.isError) return <ErrorPanel title="No pude abrir el grupo" detail={detail.error.message} onRetry={() => detail.refetch()} />;
+  if (detail.isError && !detail.data) return <ErrorPanel title="No pude abrir el grupo" detail={detail.error.message} onRetry={() => detail.refetch()} />;
   if (!detail.data) return <ErrorPanel title="Grupo no disponible" detail="No se encontró el Libro solicitado." />;
-  return <DetailView detail={detail.data} periodId={periodId} onPeriod={(next) => setParams(next ? { period: next } : { period: 'course' })} />;
+  return <>{detail.isError ? <ErrorPanel title="No pude actualizar el libro" detail="Tu captura pendiente se conserva. Vuelve a intentarlo cuando tengas conexión." onRetry={() => detail.refetch()} /> : null}<DetailView key={`${auth.user?.id}:${groupId}:${periodId || 'course'}`} detail={detail.data} periodId={periodId} onPeriod={(next) => setParams(next ? { period: next } : { period: 'course' })} /></>;
 }

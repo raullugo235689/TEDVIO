@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: '.',
-  testMatch: 'phase6-cutover.spec.mjs',
+  testMatch: ['phase6-cutover.spec.mjs', 'phase6-attendance.spec.mjs', 'phase6-gradebook.spec.mjs', 'phase6-exams-omr.spec.mjs'],
   timeout: 45_000,
   expect: { timeout: 8_000 },
   fullyParallel: false,

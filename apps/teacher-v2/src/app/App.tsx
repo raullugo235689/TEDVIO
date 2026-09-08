@@ -15,6 +15,7 @@ import {
   loadClassroomPage,
   loadDashboardPage,
   loadExamsPage,
+  loadExamPrintPage,
   loadGradebookPage,
   loadGroupDetailPage,
   loadGroupsPage,
@@ -35,6 +36,7 @@ const GroupDetailPage = lazy(() => loadGroupDetailPage().then((module) => ({ def
 const AttendancePage = lazy(() => loadAttendancePage().then((module) => ({ default: module.AttendancePage })));
 const ClassroomPage = lazy(() => loadClassroomPage().then((module) => ({ default: module.ClassroomPage })));
 const BankPage = lazy(() => loadBankPage().then((module) => ({ default: module.BankPage })));
+const ExamPrintPage = lazy(() => loadExamPrintPage().then((module) => ({ default: module.ExamPrintPage })));
 const ExamsPage = lazy(() => loadExamsPage().then((module) => ({ default: module.ExamsPage })));
 const OmrPage = lazy(() => loadOmrPage().then((module) => ({ default: module.OmrPage })));
 const OmrSheetsPage = lazy(() => loadOmrSheetsPage().then((module) => ({ default: module.OmrSheetsPage })));
@@ -84,7 +86,8 @@ export function App() {
         <Route path="classroom/:sessionId/health" element={tool(<PilotHealthPage />, 'Calculando salud del piloto…')} />
         <Route path="bank" element={tool(<BankPage />, 'Abriendo Question Studio…')} />
         <Route path="exams" element={tool(<ExamsPage />, 'Abriendo Evaluaciones…')} />
-        <Route path="exams/new" element={tool(<ExamsPage />, 'Preparando la evaluación…')} />
+        <Route path="exams/new" element={tool(<ExamsPage create />, 'Preparando la evaluación…')} />
+        <Route path="exams/:examId/print" element={tool(<ExamPrintPage />, 'Preparando cuadernillo…')} />
         <Route path="exams/:examId" element={tool(<ExamsPage />, 'Abriendo la evaluación…')} />
         <Route path="omr" element={tool(<OmrPage />, 'Abriendo OMR…')} />
         <Route path="omr/:examId" element={tool(<OmrPage />, 'Abriendo OMR…')} />

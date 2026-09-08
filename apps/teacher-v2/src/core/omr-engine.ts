@@ -55,25 +55,9 @@ type JsQr = (
   options?: { inversionAttempts?: 'dontInvert' | 'onlyInvert' | 'attemptBoth' | 'invertFirst' },
 ) => JsQrResult | null;
 
-interface QrCodeConstructor {
-  new (
-    element: HTMLElement,
-    options: {
-      text: string;
-      width: number;
-      height: number;
-      colorDark?: string;
-      colorLight?: string;
-      correctLevel?: number;
-    },
-  ): unknown;
-  CorrectLevel?: { M?: number };
-}
-
 declare global {
   interface Window {
     jsQR?: JsQr;
-    QRCode?: QrCodeConstructor;
   }
 }
 
@@ -126,28 +110,13 @@ export async function loadQrDecoder(): Promise<boolean> {
   }
 }
 
-export async function renderQrCode(container: HTMLElement, text: string): Promise<boolean> {
-  container.textContent = '';
-  try {
-    await loadScript(
-      'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js',
-      () => typeof window.QRCode === 'function',
-    );
-    if (!window.QRCode) return false;
-    const correctLevel = window.QRCode.CorrectLevel?.M;
-    new window.QRCode(container, {
-      text,
-      width: 96,
-      height: 96,
-      colorDark: '#000000',
-      colorLight: '#ffffff',
-      ...(correctLevel == null ? {} : { correctLevel }),
-    });
-    return true;
-  } catch {
-    container.textContent = text;
-    return false;
-  }
+export async function renderQrCode(text: string): Promise<string> {
+  const { toDataURL } = await import('qrcode');
+  const source = await toDataURL(text, { width: 320, margin: 4, errorCorrectionLevel: 'M', color: { dark: '#000000', light: '#ffffff' } });
+  const image = new Image();
+  image.src = source;
+  await image.decode();
+  return source;
 }
 
 export function omrLayout(questionCount: number, optionCount: number): OmrLayoutRow[] {
