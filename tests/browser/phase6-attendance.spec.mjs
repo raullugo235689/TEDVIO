@@ -2,6 +2,9 @@ import { test, expect } from '@playwright/test';
 
 // Every API call is intercepted. These tests never use a real account or database.
 async function attendanceFixture(page) {
+  const diagnostics = [];
+  page.on('pageerror', (error) => diagnostics.push(error.message));
+  page.on('requestfailed', (request) => diagnostics.push(`${request.method()} ${new URL(request.url()).pathname}: ${request.failure()?.errorText}`));
   const userId = '11111111-1111-4111-8111-111111111111';
   const groupId = '22222222-2222-4222-8222-222222222222';
   const students = ['a', 'b'].map((id) => ({ id, group_id: groupId, teacher_id: userId, enrollment: id.toUpperCase(), full_name: `Alumno ${id.toUpperCase()}`, active: true }));
@@ -26,6 +29,17 @@ async function attendanceFixture(page) {
   await page.route('**/config.js*', (route) => route.fulfill({ contentType: 'application/javascript', body: 'window.TEDVIO_CONFIG={SUPABASE_URL:"https://attendance-fixture.supabase.test",SUPABASE_PUBLISHABLE_KEY:"synthetic-publishable-key"};' }));
   await page.route('https://attendance-fixture.supabase.test/**', async (route) => {
     const request = route.request(), url = new URL(request.url());
+    // WebKit enforces CORS for the synthetic cross-origin API, including preflight.
+    const headers = {
+      'access-control-allow-origin': request.headers().origin || 'http://127.0.0.1:4174',
+      'access-control-allow-credentials': 'true',
+      'access-control-allow-methods': 'GET, POST, PATCH, DELETE, OPTIONS',
+      'access-control-allow-headers': request.headers()['access-control-request-headers'] || 'authorization, apikey, content-type, x-client-info, prefer, accept-profile, content-profile',
+    };
+    if (request.method() === 'OPTIONS') {
+      await route.fulfill({ status: 204, headers, body: '' });
+      return;
+    }
     const table = url.pathname.split('/').at(-1);
     const eq = (key) => (url.searchParams.get(key) || '').replace(/^eq\./, '');
     let rows = [];
@@ -43,7 +57,7 @@ async function attendanceFixture(page) {
       if (request.method() === 'POST') {
         state.writes += 1;
         if (state.failWrite) {
-          await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ message: 'Guardado simulado fallido' }) });
+          await route.fulfill({ status: 503, headers, contentType: 'application/json', body: JSON.stringify({ message: 'Guardado simulado fallido' }) });
           return;
         }
         const input = request.postDataJSON();
@@ -52,10 +66,15 @@ async function attendanceFixture(page) {
       } else rows = state.records[eq('attendance_session_id')] || [];
     }
     if (request.headers().accept?.includes('vnd.pgrst.object+json') && Array.isArray(rows)) rows = rows[0] ?? null;
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) });
+    await route.fulfill({ status: 200, headers, contentType: 'application/json', body: JSON.stringify(rows) });
   });
   await page.goto(`/teacher#/attendance/${groupId}?date=2026-09-08`);
-  await expect(page.getByRole('heading', { name: 'Grupo de prueba' })).toBeVisible();
+  try {
+    await expect(page.getByRole('heading', { name: 'Grupo de prueba' })).toBeVisible();
+  } catch (error) {
+    console.error('Attendance fixture diagnostics:', diagnostics, await page.locator('body').innerText());
+    throw error;
+  }
   return state;
 }
 
