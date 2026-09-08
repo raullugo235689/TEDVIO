@@ -406,7 +406,7 @@ function ExamEditor({
           <label>Periodo<select value={draft.periodId} disabled={!draft.groupId} onChange={(event) => setDraft({ ...draft, periodId: event.target.value })}><option value="">Asignación automática por fecha</option>{periods.map((period) => <option key={period.id} value={period.id}>{period.name} · {shortDate(period.starts_on)}–{shortDate(period.ends_on)}</option>)}</select></label>
           <label>Calificación aprobatoria<input type="number" min="0" max="10" step="0.1" value={draft.passingScore} onChange={(event) => setDraft({ ...draft, passingScore: Number(event.target.value) })} /></label>
         </div>
-        <label className="wide-field">Instrucciones<textarea rows={3} value={draft.instructions} onChange={(event) => setDraft({ ...draft, instructions: event.target.value })} placeholder="Indicaciones que acompañarán la evaluación" /></label>
+        <label className="wide-field">Instrucciones<textarea aria-label="Instrucciones" rows={3} value={draft.instructions} onChange={(event) => setDraft({ ...draft, instructions: event.target.value })} placeholder="Indicaciones que acompañarán la evaluación" /></label>
         {selectedGroup ? <div className="context-strip"><Icon name="groups" /><span><b>{groupLabel(selectedGroup)}</b><small>{selectedGroup.school_cycle || selectedGroup.term || 'Sin ciclo escolar'}</small></span></div> : null}
       </SectionCard>
 
