@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { useIsMutating, useQueryClient } from '@tanstack/react-query';
+import { hasPendingAttendance, useAttendanceDraftGuard } from '../core/useAttendanceDraftGuard';
+import { ActionDialog } from '../shared/ActionDialog';
 import { useAuth } from '../features/auth/AuthProvider';
 import { useReliability } from '../features/reliability/ReliabilityProvider';
 import { navigation, navigationTitle, type NavigationItem } from './navigation';
@@ -33,6 +36,10 @@ function NavItem({ item, mobile = false }: { item: NavigationItem; mobile?: bool
 
 export function AppShell() {
   const auth = useAuth();
+  const queryClient = useQueryClient();
+  useAttendanceDraftGuard(auth.user?.id);
+  const attendanceSaving = useIsMutating({ mutationKey: ['attendance-write', auth.user?.id] }) > 0;
+  const [confirmLogout, setConfirmLogout] = useState(false);
   const reliability = useReliability();
   const location = useLocation();
   const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light'));
@@ -69,7 +76,12 @@ export function AppShell() {
       : 'Sin conexión';
   const connectionTone = reliability.syncing ? 'syncing' : reliability.online ? (reliability.pendingCount ? 'pending' : 'online') : 'offline';
 
-  async function logout() {
+  async function logout(confirmed = false) {
+    if (!confirmed && hasPendingAttendance(queryClient, auth.user?.id)) {
+      setConfirmLogout(true);
+      return;
+    }
+    if (attendanceSaving) return;
     setSigningOut(true);
     try {
       await auth.signOut();
@@ -137,7 +149,7 @@ export function AppShell() {
               <span>{initials(auth.user?.email)}</span>
               <div><b>{auth.user?.email?.split('@')[0] || 'Docente'}</b><small>{auth.user?.email || ''}</small></div>
             </div>
-            <button className="icon-button" type="button" onClick={logout} disabled={signingOut} aria-label="Cerrar sesión" title="Cerrar sesión">
+            <button className="icon-button" type="button" onClick={() => void logout()} disabled={signingOut} aria-label="Cerrar sesión" title="Cerrar sesión">
               <Icon name="logout" />
             </button>
           </div>
@@ -179,6 +191,10 @@ export function AppShell() {
           </section>
         </div>
       ) : null}
+      {confirmLogout ? <ActionDialog eyebrow="TEDVIO · CUENTA" title="¿Salir con asistencia pendiente?"
+        detail="Hay una captura de asistencia sin guardar en esta pestaña. Al cerrar sesión se descartará; puedes cancelar y volver a guardarla."
+        confirmLabel="Salir sin guardar" danger busy={signingOut || attendanceSaving}
+        onDismiss={() => setConfirmLogout(false)} onConfirm={() => void logout(true)} /> : null}
     </div>
   );
 }

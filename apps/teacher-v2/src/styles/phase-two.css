@@ -143,3 +143,25 @@
   .attendance-date-controls .button, .attendance-date-controls .status-pill { grid-column: 1 / -1; }
   .editor-panel > header, .editor-panel > footer, .attendance-group-card > header, .attendance-group-card > footer, .attendance-history-card > header, .attendance-history-card > footer { align-items: stretch; flex-direction: column; }
 }
+
+/* Attendance capture: keep pending work and saved state easy to distinguish. */
+.attendance-work-status { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.25rem; border: 1px solid var(--border); border-left: 4px solid var(--brand); border-radius: 16px; background: var(--surface); }
+.attendance-work-status.warning { border-left-color: var(--amber); }
+.attendance-work-status b { display: block; color: var(--text-strong); font-size: 1rem; }
+.attendance-work-status p { margin: .35rem 0 0; color: var(--muted); font-size: .875rem; line-height: 1.6; }
+.attendance-work-status > div { min-width: 0; }
+.attendance-work-status .button { flex-shrink: 0; }
+.attendance-editor .button, .attendance-editor .icon-button, .attendance-status-control button { min-height: 44px; }
+.attendance-editor .button, .attendance-editor .attendance-options > label, .attendance-editor .attendance-savebar > div:first-child > span:last-child { font-size: .875rem; }
+.attendance-editor .attendance-student-name strong { font-size: 1rem; white-space: normal; overflow-wrap: anywhere; }
+.attendance-editor .attendance-student-name span { font-size: .875rem; }
+.attendance-editor .attendance-note, .attendance-editor .attendance-general-note input { font-size: 1rem; }
+.attendance-editor .attendance-status-control button span { font-size: .875rem; }
+.attendance-editor :is(button, input, a):focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; }
+@media (max-width: 760px) {
+  .attendance-work-status { align-items: stretch; flex-direction: column; }
+  .attendance-editor .attendance-status-control { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .attendance-editor .attendance-status-control button b { display: none; }
+  .attendance-editor .attendance-status-control button span { display: inline; }
+  .attendance-editor .attendance-savebar .button { white-space: normal; flex-basis: 40%; }
+}

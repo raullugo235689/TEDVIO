@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 
 /** Native modal semantics keep keyboard focus inside and the page behind inert. */
-export function ActionDialog({ title, detail, children, confirmLabel, onConfirm, onDismiss, busy = false, danger = false, error }: {
+export function ActionDialog({ title, detail, children, confirmLabel, onConfirm, onDismiss, busy = false, danger = false, error, eyebrow = 'TEDVIO · MODO CLASE' }: {
   title: string;
   detail: string;
   children?: ReactNode;
@@ -11,6 +11,7 @@ export function ActionDialog({ title, detail, children, confirmLabel, onConfirm,
   busy?: boolean;
   danger?: boolean;
   error?: string;
+  eyebrow?: string;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const dismiss = useRef<HTMLButtonElement>(null);
@@ -31,7 +32,7 @@ export function ActionDialog({ title, detail, children, confirmLabel, onConfirm,
     <dialog ref={dialog} className="classroom-dialog" aria-labelledby={`${id}-title`} aria-describedby={`${id}-detail`} aria-busy={busy}
       onCancel={(event) => { event.preventDefault(); if (!busy) onDismiss(); }}>
       <header>
-        <span className="eyebrow">TEDVIO · MODO CLASE</span>
+        <span className="eyebrow">{eyebrow}</span>
         <h2 id={`${id}-title`}>{title}</h2>
         <p id={`${id}-detail`}>{detail}</p>
       </header>
