@@ -122,6 +122,7 @@ function AttendanceEditor({ groupId, date }: { groupId: string; date: string }) 
 
   const day = useQuery({
     queryKey: attendanceDayKey(auth.user?.id, groupId, date),
+    gcTime: Infinity,
     queryFn: () => {
       if (!auth.user) throw new Error('Tu sesión expiró.');
       return fetchAttendanceDay(auth.user, groupId, date);
@@ -243,7 +244,7 @@ function AttendanceEditor({ groupId, date }: { groupId: string; date: string }) 
 
   if (day.isLoading) return <LoadingScreen label="Cargando la lista…" />;
   if (day.isError && !day.data) return <ErrorPanel title="No pude abrir la asistencia" detail={day.error.message} onRetry={() => day.refetch()} />;
-  if (!day.data) return null;
+  if (!day.data) return <ErrorPanel title="Lista no disponible en esta pestaña" detail="Conéctate para consultar esta fecha. La captura pendiente de las otras listas se conserva durante esta sesión." onRetry={() => day.refetch()} />;
 
   const { group, session, students } = day.data;
   const locked = session?.status === 'closed';

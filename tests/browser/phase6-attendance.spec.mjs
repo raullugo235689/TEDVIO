@@ -76,6 +76,10 @@ test('asistencia conserva la captura al navegar, perder conexión y reintentar u
   await context.setOffline(true);
   await expect(page.locator('.attendance-work-status')).toContainText('Sin conexión');
   await expect(page.getByRole('button', { name: 'Guardar', exact: true })).toBeDisabled();
+  await date.fill('2026-09-10');
+  await expect(page.getByRole('heading', { name: 'Lista no disponible en esta pestaña' })).toBeVisible();
+  await page.goBack();
+  await expect(page.getByLabel('Observación de Alumno A')).toHaveValue('Avisó al docente');
   await context.setOffline(false);
   await expect(page.getByRole('button', { name: 'Guardar', exact: true })).toBeEnabled();
   state.failWrite = true;
