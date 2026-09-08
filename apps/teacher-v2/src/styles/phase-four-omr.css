@@ -556,7 +556,7 @@
   .omr-validation-controls { grid-template-columns: 1fr; }
   .omr-validation-links { justify-content: flex-start; }
   .omr-answer-options { grid-template-columns: repeat(6, minmax(34px, 1fr)); }
-  .omr-confirm-dock { left: 10px; right: 10px; grid-template-columns: 1fr; }
+  .omr-confirm-dock { position: static; left: auto; right: auto; grid-template-columns: 1fr; }
   .omr-confirm-dock .button { width: 100%; }
   .omr-results-head,
   .omr-results-table > div { min-width: 850px; }
