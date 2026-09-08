@@ -13,7 +13,7 @@ export function omrPublication(detail: GradebookDetail, exam: GradebookExam) {
     return { studentId: student.id, name: student.full_name, expected, saved, current, duplicates: results.length > 1 };
   });
   const linked = Boolean(item && exam.grade_item_id === item.id);
-  const metadataMatches = Boolean(item && item.title === exam.title && Number(item.max_score) === Number(exam.max_score) && (item.period_id || null) === (exam.period_id || null) && (item.item_date || null) === (exam.exam_date || null));
+  const metadataMatches = Boolean(item && item.source_type === 'omr' && item.source_id === exam.id && item.title === exam.title && Number(item.max_score) === Number(exam.max_score) && (item.period_id || null) === (exam.period_id || null) && (item.item_date || null) === (exam.exam_date || null));
   const changed = rows.filter(row => !row.current);
   return {
     linked, metadata: [exam.title, exam.max_score, exam.period_id, exam.exam_date, item?.category_id], current: linked && metadataMatches && changed.length === 0,

@@ -82,7 +82,7 @@ export function OmrSheetsPage() {
       </header>
 
       <section className="omr-paper-controls">
-        <label>Papel<select value={paper} onChange={event => { const next = new URLSearchParams(params); next.set('paper', event.target.value); setParams(next); }}><option value="a4">A4 · 210 × 297 mm</option><option value="letter">Carta · 216 × 279 mm</option></select></label>
+        <label>Papel<select aria-label="Papel" value={paper} onChange={event => { const next = new URLSearchParams(params); next.set('paper', event.target.value); setParams(next); }}><option value="a4">A4 · 210 × 297 mm</option><option value="letter">Carta · 216 × 279 mm</option></select></label>
         <div><b>{printReady ? 'Hojas listas para imprimir' : 'Preparando identificación de las hojas'}</b><p>Imprime al 100%, sin encabezados ni pies del navegador, en papel blanco. Conserva las cuatro marcas negras completas.</p></div>
         {qrState.failed && qrState.key === printKey ? <button className="button secondary" onClick={() => setAttempt(value => value + 1)}>Reintentar códigos</button> : null}
       </section>

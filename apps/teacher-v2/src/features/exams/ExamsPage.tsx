@@ -669,9 +669,10 @@ function ExamDetailView({
   );
 }
 
-export function ExamsPage() {
+export function ExamsPage({ create = false }: { create?: boolean }) {
   const auth = useAuth();
-  const { examId } = useParams();
+  const { examId: routeExamId } = useParams();
+  const examId = create ? 'new' : routeExamId;
   const [searchParams] = useSearchParams();
   const [editing, setEditing] = useState(false);
 

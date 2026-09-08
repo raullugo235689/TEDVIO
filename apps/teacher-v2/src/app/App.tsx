@@ -86,7 +86,7 @@ export function App() {
         <Route path="classroom/:sessionId/health" element={tool(<PilotHealthPage />, 'Calculando salud del piloto…')} />
         <Route path="bank" element={tool(<BankPage />, 'Abriendo Question Studio…')} />
         <Route path="exams" element={tool(<ExamsPage />, 'Abriendo Evaluaciones…')} />
-        <Route path="exams/new" element={tool(<ExamsPage />, 'Preparando la evaluación…')} />
+        <Route path="exams/new" element={tool(<ExamsPage create />, 'Preparando la evaluación…')} />
         <Route path="exams/:examId/print" element={tool(<ExamPrintPage />, 'Preparando cuadernillo…')} />
         <Route path="exams/:examId" element={tool(<ExamsPage />, 'Abriendo la evaluación…')} />
         <Route path="omr" element={tool(<OmrPage />, 'Abriendo OMR…')} />

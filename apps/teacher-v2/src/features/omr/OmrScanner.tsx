@@ -150,6 +150,7 @@ export function OmrScanner({ detail, initialResult = null, onSaved, onCancel }: 
       throw new Error('El QR corresponde a otra evaluación. Abre el examen correcto o toma otra fotografía.');
     }
     if (parsed && !detail.exam.versions.includes(parsed.version)) throw new Error('La versión del QR no pertenece a esta evaluación.');
+    if (parsed?.studentId && detail.roster.length && !detail.roster.some(student => student.id === parsed.studentId)) throw new Error('El alumno del QR no pertenece al padrón activo de esta evaluación.');
     if (parsed && initialResult && parsed.studentId && parsed.studentId !== initialResult.student_id) throw new Error('La hoja pertenece a otro alumno. Abre su resultado antes de corregirla.');
     if (!initialResult) { setStudentId(''); setEnrollment(''); setStudentName(''); }
     if (parsed?.version) setVersion(parsed.version);
@@ -175,9 +176,9 @@ export function OmrScanner({ detail, initialResult = null, onSaved, onCancel }: 
     setQrValue(analysis.qr || '');
     setSourceFingerprint(fingerprint);
     setAnalysisSize({ width: analysis.width, height: analysis.height });
-    setNotice(warnings.size
+    setNotice((parsed ? '' : 'QR no reconocido. Selecciona al alumno y verifica la versión. ') + (warnings.size
       ? `${warnings.size} reactivo${warnings.size === 1 ? '' : 's'} requieren confirmación manual.`
-      : 'Lectura completa sin marcas dudosas. Confirma los datos del alumno y guarda.');
+      : 'Lectura completa sin marcas dudosas. Confirma los datos del alumno y guarda.'));
   }
 
   function startManualCapture() {
@@ -278,14 +279,14 @@ export function OmrScanner({ detail, initialResult = null, onSaved, onCancel }: 
 
           <div className="form-grid two omr-meta-form">
             {detail.roster.length ? (
-              <label>Alumno<select value={studentId} onChange={(event) => setStudentId(event.target.value)}><option value="">Selecciona del padrón</option>{detail.roster.map((student) => <option key={student.id} value={student.id}>{student.enrollment} · {student.full_name}</option>)}</select></label>
+              <label>Alumno<select aria-label="Alumno" value={studentId} onChange={(event) => setStudentId(event.target.value)}><option value="">Selecciona del padrón</option>{detail.roster.map((student) => <option key={student.id} value={student.id}>{student.enrollment} · {student.full_name}</option>)}</select></label>
             ) : (
               <>
                 <label>Matrícula<input value={enrollment} onChange={(event) => setEnrollment(event.target.value)} placeholder="Matrícula" /></label>
                 <label>Nombre<input value={studentName} onChange={(event) => setStudentName(event.target.value)} placeholder="Nombre completo" /></label>
               </>
             )}
-            <label>Versión<select value={version} onChange={(event) => setVersion(event.target.value)}>{detail.exam.versions.map((item) => <option key={item} value={item}>Versión {item}</option>)}</select></label>
+            <label>Versión<select aria-label="Versión" value={version} onChange={(event) => setVersion(event.target.value)}>{detail.exam.versions.map((item) => <option key={item} value={item}>Versión {item}</option>)}</select></label>
             <label>Método<input value={methodLabel(captureMethod)} readOnly /></label>
           </div>
 

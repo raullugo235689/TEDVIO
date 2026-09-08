@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
-test.use({ serviceWorkers: 'block' });
+test.use({ serviceWorkers: 'block', actionTimeout: 10000 });
 const groupId = '22222222-2222-4222-8222-222222222222', examId = '33333333-3333-4333-8333-333333333333', userId = '11111111-1111-4111-8111-111111111111';
 async function fixture(page, path = `/omr/${examId}`) {
   const state = {
@@ -130,11 +130,11 @@ test('lector óptico distingue marcas, dobles y blancos en hojas sintéticas A4 
     for (const [widthMm, heightMm] of [[210, 297], [215.9, 279.4]]) {
       const canvas = document.createElement('canvas'); canvas.width = Math.round(widthMm * 4); canvas.height = Math.round(heightMm * 4); const ctx = canvas.getContext('2d'); const w = canvas.width, h = canvas.height;
       ctx.fillStyle = 'white'; ctx.fillRect(0, 0, w, h); ctx.fillStyle = 'black';
-      for (const [x, y] of [[.055, .045], [.945, .045], [.945, .955], [.055, .955]]) ctx.fillRect(x*w-14, y*h-14, 28, 28);
+      for (const [x, y] of [[.055, .045], [.945, .045], [.945, .955], [.055, .955]]) ctx.fillRect(x*w-15, y*h-15, 30, 30);
       const expected = [];
       omrLayout(60, 5).forEach((row, index) => {
         const selected = index % 5; expected.push(index === 3 || index === 4 ? null : 'ABCDE'[selected]);
-        row.answerXs.forEach((x, option) => { ctx.beginPath(); ctx.arc(x*w, row.y*h, 8.4, 0, Math.PI*2); ctx.strokeStyle = 'black'; ctx.lineWidth = 1.4; ctx.stroke(); if (index !== 3 && (option === selected || (index === 4 && option === 0))) { ctx.fillStyle = 'black'; ctx.fill(); } });
+        row.answerXs.forEach((x, option) => { ctx.beginPath(); ctx.arc(x*w, row.y*h, 7.7, 0, Math.PI*2); ctx.strokeStyle = 'black'; ctx.lineWidth = 1.4; ctx.stroke(); if (index !== 3 && (option === selected || (index === 4 && option === 0))) { ctx.fillStyle = 'black'; ctx.fill(); } });
       });
       const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png')); const result = await analyzeOmrFile(new File([blob], 'synthetic.png', { type: 'image/png' }), 60, 5);
       output.push({ answers: result.answers, expected, blank: result.quality[3].status, double: result.quality[4].status });
