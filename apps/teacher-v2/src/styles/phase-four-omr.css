@@ -332,6 +332,122 @@
 .omr-confirm-dock > div:first-child small { color: var(--muted); font-size: 10px; }
 .omr-confirm-context { display: flex; gap: 6px; flex-wrap: wrap; }
 
+.omr-workflow-actions,
+.omr-premium-actions,
+.omr-validation-actions,
+.omr-validation-links {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.omr-workflow-actions { display: grid; }
+.omr-batch-progress {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(180px, .8fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 17px;
+  border: 1px solid color-mix(in srgb, var(--brand) 26%, var(--border));
+  border-radius: 18px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 8%, var(--surface)), var(--surface));
+}
+.omr-batch-progress-copy { display: grid; gap: 3px; }
+.omr-batch-progress-copy b { color: var(--text-strong); font-size: 15px; }
+.omr-batch-progress-copy small { color: var(--muted); font-size: 10px; line-height: 1.4; }
+.omr-batch-track { height: 10px; overflow: hidden; border-radius: 999px; background: color-mix(in srgb, var(--brand) 10%, var(--surface-strong)); }
+.omr-batch-track span { display: block; height: 100%; min-width: 2px; border-radius: inherit; background: linear-gradient(90deg, var(--brand), var(--green)); transition: width .25s ease; }
+.omr-batch-counts { display: flex; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
+.omr-batch-progress > .warning-strip { grid-column: 1 / -1; margin: 0; }
+
+.omr-quality-rejected {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--amber) 42%, var(--border));
+  border-radius: 17px;
+  background: color-mix(in srgb, var(--amber) 8%, var(--surface));
+}
+.omr-quality-rejected > div:first-child,
+.omr-photo-quality > div:first-child,
+.omr-identity-proof > div,
+.omr-local-only {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.omr-quality-rejected svg { color: var(--amber); }
+.omr-quality-rejected span,
+.omr-photo-quality span,
+.omr-identity-proof span,
+.omr-local-only span { display: grid; gap: 2px; }
+.omr-quality-rejected b,
+.omr-photo-quality b,
+.omr-identity-proof b,
+.omr-local-only b { color: var(--text-strong); font-size: 12px; }
+.omr-quality-rejected small,
+.omr-photo-quality small,
+.omr-identity-proof small,
+.omr-local-only small { color: var(--muted); font-size: 10px; line-height: 1.4; }
+.omr-quality-rejected ul { margin: 0; padding-left: 22px; color: var(--text); font-size: 11px; line-height: 1.55; }
+.omr-quality-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+.omr-quality-metrics span { display: grid; gap: 2px; padding: 8px; border-radius: 10px; background: color-mix(in srgb, var(--surface) 82%, transparent); }
+.omr-quality-metrics small { color: var(--muted); font-size: 8px; font-weight: 850; text-transform: uppercase; }
+.omr-quality-metrics b { color: var(--text-strong); font-size: 11px; }
+.omr-photo-quality { display: grid; gap: 10px; margin-top: 10px; padding: 12px; border: 1px solid color-mix(in srgb, var(--green) 25%, var(--border)); border-radius: 13px; background: color-mix(in srgb, var(--green) 6%, var(--surface)); }
+.omr-photo-quality svg,
+.omr-identity-proof.verified svg,
+.omr-local-only svg { color: var(--green); }
+.omr-identity-proof { display: grid; gap: 10px; margin-bottom: 14px; padding: 12px; border: 1px solid color-mix(in srgb, var(--amber) 28%, var(--border)); border-radius: 13px; background: color-mix(in srgb, var(--amber) 6%, var(--surface)); }
+.omr-identity-proof.verified { border-color: color-mix(in srgb, var(--green) 25%, var(--border)); background: color-mix(in srgb, var(--green) 6%, var(--surface)); }
+.omr-identity-proof > div > svg { flex: 0 0 auto; }
+.omr-identity-proof > label { display: flex; gap: 9px; align-items: flex-start; color: var(--text); font-size: 11px; font-weight: 750; line-height: 1.45; }
+.omr-identity-proof input { width: 18px; height: 18px; flex: 0 0 auto; }
+
+.omr-premium-panel { border-color: color-mix(in srgb, var(--violet) 24%, var(--border)); }
+.omr-premium-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.omr-premium-metrics > span { display: grid; gap: 4px; padding: 13px; border-radius: 13px; background: var(--surface-soft); }
+.omr-premium-metrics small { color: var(--muted); font-size: 9px; font-weight: 850; text-transform: uppercase; }
+.omr-premium-metrics b { color: var(--text-strong); font-size: 20px; }
+.omr-premium-metrics em { color: var(--muted); font-size: 9px; font-style: normal; }
+
+.omr-validation-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(330px, .85fr); gap: 18px; align-items: start; }
+.omr-validation-steps { display: grid; gap: 9px; margin: 0 0 16px; padding: 0; list-style: none; }
+.omr-validation-steps li { display: grid; grid-template-columns: 80px minmax(0, 1fr); gap: 9px; padding: 10px; border-radius: 12px; background: var(--surface-soft); }
+.omr-validation-steps b { color: var(--text-strong); font-size: 11px; }
+.omr-validation-steps span { color: var(--muted); font-size: 10px; line-height: 1.45; }
+.omr-validation-controls { align-items: end; margin-bottom: 14px; }
+.omr-validation-controls label { display: grid; gap: 6px; color: var(--muted); font-size: 10px; font-weight: 850; text-transform: uppercase; }
+.omr-validation-controls select { width: 100%; min-height: 44px; padding: 9px 11px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-soft); color: var(--text-strong); }
+.omr-validation-links { justify-content: flex-end; }
+.omr-validation-actions { margin-bottom: 13px; }
+.omr-validation-actions .button svg { width: 16px; height: 16px; }
+.omr-local-only { padding: 11px; border-radius: 12px; background: color-mix(in srgb, var(--green) 6%, var(--surface)); }
+.omr-target-list { display: grid; gap: 9px; }
+.omr-target-list > div { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 11px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-soft); }
+.omr-target-list span:first-child { display: grid; gap: 2px; }
+.omr-target-list b { color: var(--text-strong); font-size: 11px; }
+.omr-target-list small { color: var(--muted); font-size: 9px; }
+.omr-validation-empty { display: grid; place-items: center; gap: 6px; min-height: 160px; margin-top: 12px; padding: 18px; border: 1px dashed var(--border-strong); border-radius: 14px; color: var(--muted); text-align: center; }
+.omr-validation-empty svg { width: 34px; height: 34px; color: var(--violet); }
+.omr-validation-empty b { color: var(--text-strong); font-size: 12px; }
+.omr-validation-empty span { max-width: 300px; font-size: 10px; line-height: 1.45; }
+.omr-validation-results { overflow-x: auto; border: 1px solid var(--border); border-radius: 14px; }
+.omr-validation-results > div { min-width: 830px; display: grid; grid-template-columns: 80px 100px 110px 60px 80px minmax(300px, 1fr); gap: 10px; align-items: center; padding: 11px 12px; border-bottom: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 11px; }
+.omr-validation-results > div:first-child { background: var(--surface-strong); color: var(--muted); font-size: 9px; font-weight: 900; text-transform: uppercase; }
+.omr-validation-results > div:last-child { border-bottom: 0; }
+.omr-validation-results > div > span:last-child { display: grid; gap: 2px; }
+.omr-validation-results small { color: var(--muted); font-size: 9px; }
+
 .omr-print-view { max-width: 100%; }
 .omr-print-toolbar {
   position: sticky;
@@ -402,7 +518,8 @@
 
 @media (max-width: 1180px) {
   .omr-top-grid,
-  .omr-review-layout { grid-template-columns: 1fr; }
+  .omr-review-layout,
+  .omr-validation-grid { grid-template-columns: 1fr; }
   .omr-print-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .omr-preview-card { max-width: 780px; }
 }
@@ -412,6 +529,9 @@
   .omr-toolbar { grid-template-columns: 1fr 1fr; }
   .omr-toolbar .search-field { grid-column: 1 / -1; max-width: none; }
   .omr-capture-actions { grid-template-columns: 1fr; }
+  .omr-batch-progress { grid-template-columns: 1fr; }
+  .omr-batch-counts { justify-content: flex-start; }
+  .omr-premium-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .omr-confirm-dock { bottom: calc(76px + env(safe-area-inset-bottom, 0px)); grid-template-columns: 1fr 1fr; }
   .omr-confirm-dock > div:first-child { grid-column: 1 / -1; }
   .omr-confirm-context { justify-content: flex-start; }
@@ -431,8 +551,12 @@
   .omr-privacy-note,
   .omr-next-phase { grid-template-columns: 1fr; }
   .omr-answer-row { grid-template-columns: 1fr; }
+  .omr-quality-metrics,
+  .omr-premium-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .omr-validation-controls { grid-template-columns: 1fr; }
+  .omr-validation-links { justify-content: flex-start; }
   .omr-answer-options { grid-template-columns: repeat(6, minmax(34px, 1fr)); }
-  .omr-confirm-dock { left: 10px; right: 10px; grid-template-columns: 1fr; }
+  .omr-confirm-dock { position: static; left: auto; right: auto; grid-template-columns: 1fr; }
   .omr-confirm-dock .button { width: 100%; }
   .omr-results-head,
   .omr-results-table > div { min-width: 850px; }

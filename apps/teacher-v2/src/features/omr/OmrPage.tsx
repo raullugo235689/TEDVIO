@@ -14,6 +14,7 @@ import {
 } from '../../core/omr';
 import type { PaperExam } from '../../core/exams';
 import type { GroupRecord } from '../../core/types';
+import { omrOperationalMetrics } from '../../core/omr-premium';
 import {
   EmptyState,
   ErrorPanel,
@@ -26,6 +27,7 @@ import {
 import { Icon } from '../../shared/icons';
 import { useAuth } from '../auth/AuthProvider';
 import { OmrScanner } from './OmrScanner';
+import { OmrValidationCenter } from './OmrValidationCenter';
 
 function groupLabel(group?: GroupRecord | null): string {
   if (!group) return 'Sin grupo';
@@ -198,7 +200,7 @@ function PrintPanel({ detail }: { detail: OmrExamDetail }) {
   return (
     <SectionCard className="omr-print-panel">
       <div className="section-heading">
-        <div><span className="eyebrow">1 · PREPARAR HOJAS</span><h2>Impresión A4</h2><p>Genera hojas genéricas o personalizadas con QR, versión y cuatro marcas de registro.</p></div>
+        <div><span className="eyebrow">1 · PREPARAR HOJAS</span><h2>Impresión A4 o Carta</h2><p>Genera hojas genéricas o personalizadas con QR, versión y cuatro marcas de registro.</p></div>
         <StatusPill tone="blue">{sheetCount} hoja{sheetCount === 1 ? '' : 's'}</StatusPill>
       </div>
       <div className="omr-print-options">
@@ -209,6 +211,30 @@ function PrintPanel({ detail }: { detail: OmrExamDetail }) {
       </div>
       <div className="omr-print-summary"><Icon name="exam" /><span><b>{detail.exam.question_count} reactivos · {detail.exam.option_count} opciones</b><small>{mode === 'roster' ? `${detail.roster.length} alumnos activos` : `${sheetCount} copias genéricas`} · {alternate ? detail.exam.versions.join('/') : version}</small></span></div>
       <button className="button primary wide" type="button" onClick={openSheets}>Abrir hojas para imprimir</button>
+    </SectionCard>
+  );
+}
+
+function OmrQualityPanel({ detail, onValidate }: { detail: OmrExamDetail; onValidate: () => void }) {
+  const metrics = omrOperationalMetrics(detail.results, detail.exam.question_count);
+  const rate = (value: number | null) => value == null ? '—' : `${Math.round(value * 100)}%`;
+  const duration = metrics.medianDurationMs == null ? '—' : `${(metrics.medianDurationMs / 1000).toFixed(1)} s`;
+  return (
+    <SectionCard className="omr-premium-panel">
+      <div className="section-heading">
+        <div><span className="eyebrow">OMR PREMIUM · CONTROL</span><h2>Calidad operativa del grupo</h2><p>Indicadores calculados con capturas del lector nuevo; las lecturas anteriores no distorsionan la muestra.</p></div>
+        <StatusPill tone={metrics.measuredScans ? 'blue' : 'neutral'}>{metrics.measuredScans} medidas</StatusPill>
+      </div>
+      <div className="omr-premium-metrics">
+        <span><small>Fotos aceptadas</small><b>{rate(metrics.photoAcceptance)}</b><em>meta ≥ 95%</em></span>
+        <span><small>Identidad verificada</small><b>{rate(metrics.verifiedIdentity)}</b><em>meta 100%</em></span>
+        <span><small>Corrección manual</small><b>{rate(metrics.correctionRate)}</b><em>meta &lt; 5%</em></span>
+        <span><small>Tiempo mediano</small><b>{duration}</b><em>meta ≤ 10 s</em></span>
+      </div>
+      <div className="omr-premium-actions">
+        <button className="button secondary" type="button" onClick={onValidate}>Abrir centro de validación</button>
+        <Link className="button ghost" to={detail.group?.id ? `/gradebook/${detail.group.id}` : '/gradebook'}>Publicar en el Libro</Link>
+      </div>
     </SectionCard>
   );
 }
@@ -281,7 +307,7 @@ function ResultsPanel({
   return (
     <SectionCard>
       <div className="section-heading">
-        <div><span className="eyebrow">HISTORIAL OMR</span><h2>Resultados y revisiones</h2><p>Las correcciones guardan una fotografía anterior; los resultados se archivan, nunca se eliminan.</p></div>
+        <div><span className="eyebrow">HISTORIAL OMR</span><h2>Resultados y revisiones</h2><p>Las correcciones conservan la versión de datos anterior; los resultados se archivan, nunca se eliminan.</p></div>
         <div className="page-actions"><label className="toggle-field"><input type="checkbox" checked={showArchived} onChange={(event) => setShowArchived(event.target.checked)} /> Mostrar archivados</label><button className="button secondary" type="button" disabled={!activeResults(detail).length} onClick={() => exportOmrResultsCsv(detail.exam, detail.results)}>Exportar CSV</button></div>
       </div>
       {notice ? <div className="success-strip"><Icon name="check" /><span>{notice}</span><button type="button" onClick={() => setNotice('')}>×</button></div> : null}
@@ -303,6 +329,10 @@ function OmrDetailView({ detail, refetch }: { detail: OmrExamDetail; refetch: ()
   const queryClient = useQueryClient();
   const [scannerOpen, setScannerOpen] = useState(false);
   const [editing, setEditing] = useState<OmrResult | null>(null);
+  const [batchMode, setBatchMode] = useState(false);
+  const [scanRound, setScanRound] = useState(0);
+  const [batchNotice, setBatchNotice] = useState('');
+  const [validationOpen, setValidationOpen] = useState(false);
   const active = activeResults(detail);
   const confirmed = active.filter((result) => result.review_status === 'confirmed' || result.reviewed);
   const pending = active.filter((result) => result.review_status === 'needs_review' && !result.reviewed);
@@ -325,19 +355,36 @@ function OmrDetailView({ detail, refetch }: { detail: OmrExamDetail; refetch: ()
     ]);
   }
 
+  function closeScanner() {
+    setScannerOpen(false);
+    setEditing(null);
+    setBatchMode(false);
+    setBatchNotice('');
+  }
+
+  if (validationOpen) {
+    return <OmrValidationCenter detail={detail} onClose={() => setValidationOpen(false)} />;
+  }
+
   if (scannerOpen || editing) {
     return (
       <div className="view-stack omr-page">
-        <PageHeader eyebrow="OMR · CAPTURA" title={detail.exam.title} detail={`${groupLabel(detail.group)} · ${detail.exam.question_count} reactivos`} actions={<button className="button secondary" type="button" onClick={() => { setScannerOpen(false); setEditing(null); }}>← Evaluación</button>} />
+        <PageHeader eyebrow={batchMode ? 'OMR · LOTE' : 'OMR · CAPTURA'} title={detail.exam.title} detail={`${groupLabel(detail.group)} · ${detail.exam.question_count} reactivos`} actions={<button className="button secondary" type="button" onClick={closeScanner}>← Evaluación</button>} />
         <OmrScanner
-          key={`${detail.exam.id}:${editing?.id || 'new'}`}
+          key={`${detail.exam.id}:${editing?.id || 'new'}:${scanRound}`}
           detail={detail}
           initialResult={editing}
-          onCancel={() => { setScannerOpen(false); setEditing(null); }}
-          onSaved={async () => {
+          batchMode={batchMode && !editing}
+          batchNotice={batchNotice}
+          onCancel={closeScanner}
+          onSaved={async (result, continueBatch) => {
             await refreshAll();
-            setScannerOpen(false);
-            setEditing(null);
+            if (continueBatch && batchMode && !editing) {
+              setBatchNotice(`${studentLabel(result)} quedó ${result.review_status === 'confirmed' || result.reviewed ? 'confirmado' : 'pendiente'}. La siguiente captura está limpia.`);
+              setScanRound((current) => current + 1);
+            } else {
+              closeScanner();
+            }
           }}
         />
       </div>
@@ -369,18 +416,17 @@ function OmrDetailView({ detail, refetch }: { detail: OmrExamDetail; refetch: ()
             <li><b>Revisa</b><span>TEDVIO señala blancos y respuestas ambiguas.</span></li>
             <li><b>Confirma</b><span>PostgreSQL recalcula la calificación y guarda el resultado.</span></li>
           </ol>
-          <button className="button primary wide" type="button" onClick={() => setScannerOpen(true)}>Abrir escáner OMR</button>
+          <div className="omr-workflow-actions">
+            <button className="button primary wide" type="button" onClick={() => { setBatchMode(true); setBatchNotice(''); setScannerOpen(true); }}>Iniciar captura por lote</button>
+            <button className="button secondary wide" type="button" onClick={() => { setBatchMode(false); setBatchNotice(''); setScannerOpen(true); }}>Abrir escáner OMR</button>
+          </div>
           <div className="omr-zero-cost"><Icon name="shield" /><div><b>Costo de inferencia: $0</b><span>Visión computacional determinista; sin IA generativa ni tokens.</span></div></div>
         </SectionCard>
       </section>
 
-      <ResultsPanel detail={detail} onEdit={(result) => setEditing(result)} onChanged={refreshAll} />
+      <OmrQualityPanel detail={detail} onValidate={() => setValidationOpen(true)} />
 
-      <section className="omr-next-phase">
-        <Icon name="route" />
-        <div><span className="eyebrow">SIGUIENTE BLOQUE · 4C</span><h2>Los resultados ya están listos para el Libro.</h2><p>La Fase 4C conectará estas capturas con categorías, ponderaciones, evidencias y publicación académica.</p></div>
-        <Link className="button secondary" to="/gradebook">Ver preparación del Libro</Link>
-      </section>
+      <ResultsPanel detail={detail} onEdit={(result) => { setBatchMode(false); setEditing(result); }} onChanged={refreshAll} />
     </div>
   );
 }

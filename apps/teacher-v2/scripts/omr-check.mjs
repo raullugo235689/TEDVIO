@@ -11,8 +11,10 @@ const api = fs.readFileSync(path.join(src, 'core/omr.ts'), 'utf8');
 const engine = fs.readFileSync(path.join(src, 'core/omr-engine.ts'), 'utf8');
 const page = fs.readFileSync(path.join(src, 'features/omr/OmrPage.tsx'), 'utf8');
 const scanner = fs.readFileSync(path.join(src, 'features/omr/OmrScanner.tsx'), 'utf8');
+const validation = fs.readFileSync(path.join(src, 'features/omr/OmrValidationCenter.tsx'), 'utf8');
 const sheets = fs.readFileSync(path.join(src, 'features/omr/OmrSheetsPage.tsx'), 'utf8');
 const css = fs.readFileSync(path.join(src, 'styles/phase-four-omr.css'), 'utf8');
+const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 const failures = [];
 
 function must(condition, message) {
@@ -40,10 +42,11 @@ must(!api.includes('.delete(') && !page.includes('.delete(') && !scanner.include
 must(engine.includes('analyzeOmrFile') && engine.includes('findCorner') && engine.includes('mapPoint'), 'el motor local detecta marcas, perspectiva y burbujas');
 must(engine.includes("'topLeft' | 'topRight' | 'bottomRight' | 'bottomLeft'"), 'el lector exige las cuatro marcas de alineación');
 must(engine.includes('crypto.subtle.digest') && scanner.includes('fingerprintFile'), 'la captura genera una huella local sin subir la fotografía');
-must(engine.includes('jsqr@1.4.0') && engine.includes("import('qrcode')"), 'QR se carga solo al utilizar lectura o impresión');
+must(packageJson.dependencies.jsqr === '^1.4.0' && engine.includes("import jsQR from 'jsqr'") && !engine.includes('cdn.jsdelivr.net'), 'el lector QR viaja dentro de TEDVIO y no depende de un CDN');
 must(scanner.includes('capture="environment"') && scanner.includes('accept="image/*"'), 'el escáner abre la cámara trasera y también admite archivo');
 must(scanner.includes('unresolvedWarnings') && scanner.includes('Guardar pendiente') && scanner.includes('Confirmar y calificar'), 'las marcas dudosas requieren revisión antes de confirmar');
-must(scanner.includes('La fotografía se analiza en este dispositivo') && page.includes('La fotografía no se sube a Supabase'), 'la interfaz explica el tratamiento local de la imagen');
+must(scanner.includes('se analizan en este dispositivo') && page.includes('La fotografía no se sube a Supabase') && validation.includes('no se guardan ni se envían al servidor'), 'la interfaz explica el tratamiento local de la imagen');
+must(scanner.includes('Confirmar y siguiente') && scanner.includes('identityConfirmed') && scanner.includes('persistInSession: true') && validation.includes('Centro de calidad'), 'OMR Premium incluye lote, identidad explícita, recuperación y validación previa');
 
 must(sheets.includes('omr-fid top-left') && sheets.includes('omr-fid top-right') && sheets.includes('omr-fid bottom-right') && sheets.includes('omr-fid bottom-left'), 'las hojas imprimen cuatro marcas negras');
 must(sheets.includes('buildOmrPayload') && sheets.includes('data-omr-qr'), 'cada hoja personalizada contiene identidad y versión en QR');

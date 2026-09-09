@@ -49,7 +49,7 @@ async function fixture(page, path = `/omr/${examId}`) {
 }
 const navigate = (page, path) => page.evaluate(path => { window.location.hash = path; }, path);
 const answer = (page, number, letter) => page.getByRole('group', { name: `Respuesta ${number}`, exact: true }).getByRole('button', { name: letter, exact: true });
-async function capture(page) { await page.getByRole('button', { name: 'Abrir escáner OMR' }).click(); await page.getByRole('button', { name: /Captura manual/ }).click(); await page.getByLabel('Alumno', { exact: true }).selectOption('a'); }
+async function capture(page) { await page.getByRole('button', { name: 'Abrir escáner OMR' }).click(); await page.getByRole('button', { name: /Captura manual/ }).click(); await page.getByLabel('Alumno', { exact: true }).selectOption('a'); await page.getByRole('checkbox', { name: /Verifiqué que la hoja pertenece/ }).click(); }
 
 test('impresión separa cuadernillo y clave y conserva centros de burbujas en A4 y Carta', async ({ page }) => {
   await fixture(page, `/exams/${examId}/print?version=all`);
@@ -83,6 +83,7 @@ test('revisión conserva respuestas, bloquea dudas y permite recuperar un fallo 
   await expect(page.getByRole('button', { name: 'Confirmar y calificar' })).toBeDisabled();
   await page.getByLabel('Nota de revisión').fill('Revisar hoja original');
   await page.getByRole('button', { name: 'Cerrar escáner' }).click(); await page.getByRole('dialog').getByRole('button', { name: 'Conservar y cerrar' }).click();
+  await page.reload(); await expect(page.getByRole('heading', { name: 'Parcial de prueba', exact: true }).first()).toBeVisible();
   await page.getByRole('button', { name: 'Abrir escáner OMR' }).click(); await expect(answer(page, 1, 'A')).toHaveAttribute('aria-pressed', 'true'); await expect(page.getByLabel('Nota de revisión')).toHaveValue('Revisar hoja original');
   await answer(page, 3, 'C').click(); await answer(page, 4, 'En blanco').click();
   await context.setOffline(true); await expect(page.getByRole('button', { name: 'Confirmar y calificar' })).toBeDisabled(); await context.setOffline(false);
@@ -122,10 +123,10 @@ test('borrador de examen conserva instrucciones al navegar y protege la salida',
 test('lector óptico distingue marcas, dobles y blancos en hojas sintéticas A4 y Carta', async ({ page }) => {
   await fixture(page);
   // Execute the actual optical engine with synthetic pixels; QR decoding is outside this test.
-  const source = stripTypeScriptTypes(readFileSync(new URL('../../apps/teacher-v2/src/core/omr-engine.ts', import.meta.url), 'utf8'));
+  const source = stripTypeScriptTypes(readFileSync(new URL('../../apps/teacher-v2/src/core/omr-engine.ts', import.meta.url), 'utf8')).replace("import jsQR from 'jsqr';", 'const jsQR = () => null;');
   await page.route('**/omr-engine-fixture.js', route => route.fulfill({ contentType: 'application/javascript', body: source }));
   const results = await page.evaluate(async () => {
-    const { analyzeOmrFile, omrLayout } = await import('/omr-engine-fixture.js'); window.jsQR = () => null;
+    const { analyzeOmrFile, omrLayout } = await import('/omr-engine-fixture.js');
     const output = [];
     for (const [widthMm, heightMm] of [[210, 297], [215.9, 279.4]]) {
       const canvas = document.createElement('canvas'); canvas.width = Math.round(widthMm * 4); canvas.height = Math.round(heightMm * 4); const ctx = canvas.getContext('2d'); const w = canvas.width, h = canvas.height;
@@ -136,10 +137,44 @@ test('lector óptico distingue marcas, dobles y blancos en hojas sintéticas A4 
         const selected = index % 5; expected.push(index === 3 || index === 4 ? null : 'ABCDE'[selected]);
         row.answerXs.forEach((x, option) => { ctx.beginPath(); ctx.arc(x*w, row.y*h, 7.7, 0, Math.PI*2); ctx.strokeStyle = 'black'; ctx.lineWidth = 1.4; ctx.stroke(); if (index !== 3 && (option === selected || (index === 4 && option === 0))) { ctx.fillStyle = 'black'; ctx.fill(); } });
       });
-      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png')); const result = await analyzeOmrFile(new File([blob], 'synthetic.png', { type: 'image/png' }), 60, 5);
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png')); const result = await analyzeOmrFile(new File([blob], 'synthetic.png', { type: 'image/png' }), 60, 5, { decodeQr: false });
       output.push({ answers: result.answers, expected, blank: result.quality[3].status, double: result.quality[4].status });
     }
+    const tiny = document.createElement('canvas'); tiny.width = 300; tiny.height = 424; const tinyContext = tiny.getContext('2d'); tinyContext.fillStyle = 'white'; tinyContext.fillRect(0, 0, tiny.width, tiny.height); tinyContext.fillStyle = 'black'; tinyContext.fillRect(8, 8, 35, 35);
+    const tinyBlob = await new Promise(resolve => tiny.toBlob(resolve, 'image/png')); let rejected = '';
+    try { await analyzeOmrFile(new File([tinyBlob], 'tiny.png', { type: 'image/png' }), 4, 4, { decodeQr: false }); } catch (error) { rejected = error.message; }
+    output.push({ rejected });
     return output;
   });
-  for (const result of results) { expect(result.answers).toEqual(result.expected); expect(result.blank).toBe('blank'); expect(result.double).toBe('ambiguous'); }
+  for (const result of results.slice(0, 2)) { expect(result.answers).toEqual(result.expected); expect(result.blank).toBe('blank'); expect(result.double).toBe('ambiguous'); }
+  expect(results.at(-1).rejected).toContain('Acerca la cámara');
+});
+
+test('captura por lote guarda, avanza y nunca preselecciona al siguiente alumno', async ({ page }) => {
+  const state = await fixture(page);
+  await page.getByRole('button', { name: 'Iniciar captura por lote' }).click();
+  await expect(page.getByRole('heading', { name: 'Escanear grupo completo' })).toBeVisible();
+  await expect(page.locator('.omr-confirm-dock')).toHaveCount(0);
+  await page.getByRole('button', { name: /Captura manual/ }).click();
+  await expect(page.locator('.omr-confirm-dock')).toBeVisible();
+  if ((page.viewportSize()?.width ?? Infinity) <= 720) await expect(page.locator('.omr-confirm-dock')).toHaveCSS('position', 'static');
+  await page.getByLabel('Alumno', { exact: true }).selectOption('a');
+  await page.getByRole('checkbox', { name: /Verifiqué que la hoja pertenece/ }).click();
+  for (const [number, letter] of [[1, 'A'], [2, 'B'], [3, 'C'], [4, 'D']]) await answer(page, number, letter).click();
+  await page.getByRole('button', { name: 'Confirmar y siguiente' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Confirmar y siguiente' }).click();
+  await expect(page.getByText('1 de 2 alumnos capturados')).toBeVisible();
+  await expect(page.getByLabel('Alumno', { exact: true })).toHaveValue('');
+  await expect(page.getByText(/Alumno A quedó confirmado/)).toBeVisible();
+  expect(state.results).toHaveLength(1);
+  expect(await page.evaluate(() => Object.keys(sessionStorage).filter((key) => key.startsWith('tedvio-academic-draft|omr-draft')))).toEqual([]);
+});
+
+test('centro de calidad expone metas y mantiene las fotografías fuera del servidor', async ({ page }) => {
+  await fixture(page);
+  await page.getByRole('button', { name: 'Abrir centro de validación' }).click();
+  await expect(page.getByRole('heading', { name: 'Centro de calidad' })).toBeVisible();
+  await expect(page.getByText('Prueba privada y local')).toBeVisible();
+  await expect(page.getByText('Exactitud de burbujas')).toBeVisible();
+  await expect(page.getByText('meta ≥ 99%', { exact: false })).toBeVisible();
 });

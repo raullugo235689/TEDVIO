@@ -16,6 +16,7 @@ import {
   isValidEmail,
   type LegalAcceptanceInput,
 } from '../../core/auth-security';
+import { clearAcademicDraftStorage } from '../../core/useAcademicDraft';
 import { supabase } from '../../core/supabase';
 
 type AuthStatus = 'loading' | 'authenticated' | 'anonymous';
@@ -130,6 +131,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       if (event === 'PASSWORD_RECOVERY') setRecoveryMode(true);
       if (event === 'SIGNED_OUT') {
         setRecoveryMode(false);
+        clearAcademicDraftStorage();
         queryClient.clear();
       }
     });
@@ -236,6 +238,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const { error: localError } = await supabase.auth.signOut({ scope: 'local' });
     if (localError) throw localError;
     setRecoveryMode(false);
+    clearAcademicDraftStorage();
     queryClient.clear();
   }, [queryClient, recoveryMode, session?.user.email]);
 
@@ -254,6 +257,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     authEventRevision.current += 1;
     setRecoveryMode(false);
     setAccessIssue(null);
+    clearAcademicDraftStorage();
     queryClient.clear();
     applySession(null);
   }, [applySession, queryClient]);
@@ -262,6 +266,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const { error } = await supabase.auth.signOut({ scope: 'local' });
     if (error) throw error;
     setRecoveryMode(false);
+    clearAcademicDraftStorage();
     queryClient.clear();
   }, [queryClient]);
 
