@@ -25,13 +25,13 @@
     "test:exam-creator": "node --experimental-strip-types --test scripts/exam-creator-premium.test.mjs"
   },
   "dependencies": {
-    "@supabase/supabase-js": "2.112.4",
-    "@tanstack/react-query": "5.102.2",
+    "@supabase/supabase-js": "2.116.0",
+    "@tanstack/react-query": "5.102.8",
     "jsqr": "^1.4.0",
     "qrcode": "1.5.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "react-router-dom": "7.18.2"
+    "react-router-dom": "7.18.3"
   },
   "devDependencies": {
     "@types/node": "22.15.30",
