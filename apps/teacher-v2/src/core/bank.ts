@@ -189,6 +189,32 @@ export function bankDraftFromQuestion(question: BankQuestion): BankQuestionDraft
   };
 }
 
+function bankQuestionPayload(draft: BankQuestionDraft) {
+  const options = normalizeOptions(draft);
+  const correctAnswer = normalizeCorrectAnswer(draft, options);
+  validateDraft(draft, options, correctAnswer);
+  const prompt = text(draft.prompt);
+  return {
+    title: text(draft.title) || prompt.slice(0, 110),
+    subject: text(draft.subject) || null,
+    topic: text(draft.topic) || null,
+    question_type: draft.questionType,
+    prompt,
+    options,
+    correct_answer: correctAnswer,
+    media_url: text(draft.mediaUrl) || null,
+    media_type: draft.mediaType || null,
+    explanation: text(draft.explanation) || null,
+    difficulty: draft.difficulty || null,
+    folder: text(draft.folder) || null,
+    tags: unique(draft.tags),
+    bloom: draft.bloom || null,
+    favorite: Boolean(draft.favorite),
+    archived: Boolean(draft.archived),
+    updated_at: new Date().toISOString(),
+  };
+}
+
 export function bankWorkspaceKey(userId?: string) {
   return ['teacher-bank', userId || 'anonymous'] as const;
 }
@@ -213,30 +239,7 @@ export async function fetchBankWorkspace(user: User): Promise<BankWorkspace> {
 }
 
 export async function saveBankQuestion(user: User, draft: BankQuestionDraft): Promise<BankQuestion> {
-  const options = normalizeOptions(draft);
-  const correctAnswer = normalizeCorrectAnswer(draft, options);
-  validateDraft(draft, options, correctAnswer);
-
-  const prompt = text(draft.prompt);
-  const payload = {
-    title: text(draft.title) || prompt.slice(0, 110),
-    subject: text(draft.subject) || null,
-    topic: text(draft.topic) || null,
-    question_type: draft.questionType,
-    prompt,
-    options,
-    correct_answer: correctAnswer,
-    media_url: text(draft.mediaUrl) || null,
-    media_type: draft.mediaType || null,
-    explanation: text(draft.explanation) || null,
-    difficulty: draft.difficulty || null,
-    folder: text(draft.folder) || null,
-    tags: unique(draft.tags),
-    bloom: draft.bloom || null,
-    favorite: Boolean(draft.favorite),
-    archived: Boolean(draft.archived),
-    updated_at: new Date().toISOString(),
-  };
+  const payload = bankQuestionPayload(draft);
 
   if (draft.id) {
     const { data, error } = await supabase
@@ -257,6 +260,15 @@ export async function saveBankQuestion(user: User, draft: BankQuestionDraft): Pr
     .single();
   if (error) throw new Error(`No se pudo guardar la pregunta: ${errorMessage(error)}`);
   return data as BankQuestion;
+}
+
+export async function saveBankQuestions(user: User, drafts: BankQuestionDraft[]): Promise<BankQuestion[]> {
+  if (!drafts.length) return [];
+  if (drafts.some((draft) => draft.id)) throw new Error('La importación masiva solo admite reactivos nuevos.');
+  const rows = drafts.map((draft) => ({ ...bankQuestionPayload(draft), teacher_id: user.id }));
+  const { data, error } = await supabase.from('v2_question_bank').insert(rows).select('*');
+  if (error) throw new Error(`No se pudieron importar las preguntas: ${errorMessage(error)}`);
+  return (data || []) as BankQuestion[];
 }
 
 export async function duplicateBankQuestion(user: User, questionId: string): Promise<BankQuestion> {

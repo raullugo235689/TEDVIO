@@ -28,6 +28,8 @@ import {
   type PaperExamQuestion,
 } from '../../core/exams';
 import type { BankQuestion } from '../../core/bank';
+import { selectBalancedQuestions } from '../../core/exam-creator';
+import { ExamImportPanel, ExamQualityPanel, useExamQuality } from './ExamCreatorPanels';
 import type { GroupRecord } from '../../core/types';
 import {
   EmptyState,
@@ -273,18 +275,26 @@ function ExamEditor({
   const [topicFilter, setTopicFilter] = useState('');
   const [previewVersion, setPreviewVersion] = useState(initialDraft.versions[0] || 'A');
   const [notice, setNotice] = useState('');
+  const [importedQuestions, setImportedQuestions] = useState<BankQuestion[]>([]);
+  const [balancedCount, setBalancedCount] = useState(20);
+
+  const allBankQuestions = useMemo(() => {
+    const merged = new Map(workspace.bankQuestions.map((question) => [question.id, question]));
+    importedQuestions.forEach((question) => merged.set(question.id, question));
+    return [...merged.values()];
+  }, [importedQuestions, workspace.bankQuestions]);
 
   useEffect(() => {
     if (!draft.versions.includes(previewVersion)) setPreviewVersion(draft.versions[0] || 'A');
   }, [draft.versions, previewVersion]);
 
   const selectedMap = useMemo(() => new Map(draft.questions.map((item) => [item.bankQuestionId, item])), [draft.questions]);
-  const bankMap = useMemo(() => new Map(workspace.bankQuestions.map((question) => [question.id, question])), [workspace.bankQuestions]);
-  const subjects = useMemo(() => [...new Set(workspace.bankQuestions.map((question) => question.subject).filter(Boolean) as string[])].sort(), [workspace.bankQuestions]);
-  const topics = useMemo(() => [...new Set(workspace.bankQuestions.map((question) => question.topic).filter(Boolean) as string[])].sort(), [workspace.bankQuestions]);
+  const bankMap = useMemo(() => new Map(allBankQuestions.map((question) => [question.id, question])), [allBankQuestions]);
+  const subjects = useMemo(() => [...new Set(allBankQuestions.map((question) => question.subject).filter(Boolean) as string[])].sort(), [allBankQuestions]);
+  const topics = useMemo(() => [...new Set(allBankQuestions.map((question) => question.topic).filter(Boolean) as string[])].sort(), [allBankQuestions]);
   const available = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase('es-MX');
-    return workspace.bankQuestions.filter((question) => {
+    return allBankQuestions.filter((question) => {
       if (subjectFilter && question.subject !== subjectFilter) return false;
       if (topicFilter && question.topic !== topicFilter) return false;
       if (!needle) return true;
@@ -294,7 +304,7 @@ function ExamEditor({
         .toLocaleLowerCase('es-MX')
         .includes(needle);
     });
-  }, [query, subjectFilter, topicFilter, workspace.bankQuestions]);
+  }, [allBankQuestions, query, subjectFilter, topicFilter]);
 
   const selectedGroup = workspace.groups.find((group) => group.id === draft.groupId) || null;
   const periods = workspace.periods.filter((period) => period.group_id === draft.groupId && (period.status === 'open' || period.id === draft.periodId));
@@ -304,11 +314,13 @@ function ExamEditor({
 
   const preview = useMemo(() => {
     try {
-      return { data: buildExamBlueprint(draft, workspace.bankQuestions), error: '' };
+      return { data: buildExamBlueprint(draft, allBankQuestions), error: '' };
     } catch (error) {
       return { data: {} as ReturnType<typeof buildExamBlueprint>, error: (error as Error).message };
     }
-  }, [draft, workspace.bankQuestions]);
+  }, [allBankQuestions, draft]);
+
+  const quality = useExamQuality(draft, allBankQuestions);
 
   const totalPoints = draft.questions.reduce((sum, question) => sum + (Number(question.points) || 0), 0);
 
@@ -320,7 +332,7 @@ function ExamEditor({
         const latest = await fetchExamDetail(auth.user, value.draft.id);
         if (latest.exam.status !== 'draft' || latest.exam.updated_at !== value.updatedAt) throw new Error('La evaluación cambió o ya está lista. Tu borrador se conserva; revisa la versión guardada antes de continuar.');
       }
-      const examId = await saveExamDraft(auth.user, value.draft, workspace.bankQuestions);
+      const examId = await saveExamDraft(auth.user, value.draft, allBankQuestions);
       academic.set({ draft: { ...value.draft, id: examId }, updatedAt: '' });
       const saved = await fetchExamDetail(auth.user, examId);
       if (queryClient.getQueryState(draftKey)) queryClient.setQueryData(examDetailKey(auth.user.id, examId), saved);
@@ -380,6 +392,47 @@ function ExamEditor({
     }));
   }
 
+  function addImported(questions: BankQuestion[]) {
+    setImportedQuestions((current) => [...current, ...questions]);
+    setDraft((current) => {
+      const ids = new Set(current.questions.map((question) => question.bankQuestionId));
+      const additions = questions.filter((question) => !ids.has(question.id)).slice(0, Math.max(0, 60 - current.questions.length));
+      return { ...current, questions: [...current.questions, ...additions.map((question) => ({ bankQuestionId: question.id, points: 1 }))] };
+    });
+    setNotice(`${questions.length} reactivo${questions.length === 1 ? '' : 's'} importado${questions.length === 1 ? '' : 's'} al Banco y a la evaluación.`);
+    queryClient.invalidateQueries({ queryKey: examWorkspaceKey(auth.user?.id) });
+  }
+
+  function fillBalanced() {
+    const candidates = available.filter((question) => !selectedMap.has(question.id));
+    const chosen = selectBalancedQuestions(candidates, Math.min(balancedCount, 60 - draft.questions.length));
+    setDraft((current) => ({ ...current, questions: [...current.questions, ...chosen.map((question) => ({ bankQuestionId: question.id, points: 1 }))] }));
+    setNotice(chosen.length ? `Se agregaron ${chosen.length} reactivos alternando tema y dificultad.` : 'No hay más reactivos disponibles con estos filtros.');
+  }
+
+  function groupByTopic() {
+    setDraft((current) => ({ ...current, questions: [...current.questions].sort((left, right) => {
+      const a = bankMap.get(left.bankQuestionId)?.topic || 'Sin tema';
+      const b = bankMap.get(right.bankQuestionId)?.topic || 'Sin tema';
+      return a.localeCompare(b, 'es-MX');
+    }) }));
+    setNotice('Reactivos agrupados por tema; el cuadernillo mostrará cada sección.');
+  }
+
+  function applyTemplate(count: number, versionCount: number, label: string) {
+    const candidates = available.filter((question) => !selectedMap.has(question.id));
+    const additions = selectBalancedQuestions(candidates, Math.max(0, Math.min(count - draft.questions.length, 60 - draft.questions.length)));
+    setDraft((current) => ({
+      ...current,
+      title: current.title || label,
+      instructions: current.instructions || 'Lee cuidadosamente cada reactivo. Selecciona una sola respuesta y regístrala en la hoja correspondiente a tu versión.',
+      versions: versionLabels(versionCount),
+      versionStrategy: 'balanced',
+      questions: [...current.questions, ...additions.map((question) => ({ bankQuestionId: question.id, points: 1 }))],
+    }));
+    setNotice(additions.length ? `${label}: configuración aplicada y ${additions.length} reactivos agregados.` : `${label}: configuración aplicada; revisa los filtros para agregar reactivos.`);
+  }
+
   const error = saveMutation.error as Error | null;
 
   return (
@@ -398,6 +451,7 @@ function ExamEditor({
 
       <SectionCard className="exam-config-card">
         <div className="section-heading"><div><span className="eyebrow">1 · CONFIGURACIÓN</span><h2>Datos académicos</h2><p>El periodo se vincula al grupo y respeta los cierres protegidos.</p></div><StatusPill tone="amber">Borrador editable</StatusPill></div>
+        {!draft.id ? <div className="exam-template-strip"><span><b>Plantillas rápidas</b><small>Configuran extensión, instrucciones y versiones; puedes editar todo después.</small></span><button className="button ghost compact" type="button" onClick={() => applyTemplate(10, 1, 'Evaluación rápida')}>Rápida · 10</button><button className="button secondary compact" type="button" onClick={() => applyTemplate(20, 2, 'Examen parcial')}>Parcial · 20 · A/B</button><button className="button ghost compact" type="button" onClick={() => applyTemplate(40, 3, 'Evaluación integral')}>Integral · 40 · A/B/C</button></div> : null}
         <div className="form-grid three">
           <label>Título<input value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} placeholder="Parcial 1 · Anatomía" /></label>
           <label>Materia<input value={draft.subject} onChange={(event) => setDraft({ ...draft, subject: event.target.value })} placeholder="Anatomía Humana" /></label>
@@ -413,6 +467,7 @@ function ExamEditor({
       <section className="exam-builder-grid">
         <SectionCard className="exam-selection-panel">
           <div className="section-heading"><div><span className="eyebrow">2 · COMPOSICIÓN</span><h2>Reactivos seleccionados</h2><p>Este orden define la versión A. Cada reactivo queda congelado al guardar.</p></div><StatusPill tone="blue">{draft.questions.length} / 60</StatusPill></div>
+          <div className="exam-composer-tools"><label>Selección equilibrada<input type="number" min="1" max="60" value={balancedCount} onChange={(event) => setBalancedCount(Number(event.target.value) || 1)} /></label><button className="button secondary compact" type="button" disabled={!available.length || draft.questions.length >= 60} onClick={fillBalanced}>Completar desde filtros</button><button className="button ghost compact" type="button" disabled={draft.questions.length < 2} onClick={groupByTopic}>Agrupar por tema</button></div>
           {selectedQuestions.length ? (
             <div className="exam-selected-list">
               {selectedQuestions.map(({ selection, question }, index) => (
@@ -437,6 +492,7 @@ function ExamEditor({
 
         <SectionCard className="exam-bank-panel">
           <div className="section-heading"><div><span className="eyebrow">QUESTION STUDIO</span><h2>Banco compatible</h2><p>Solo se muestran preguntas que pueden producir una clave OMR inequívoca.</p></div><Link className="button ghost compact" to="/bank">Editar Banco</Link></div>
+          {auth.user ? <ExamImportPanel user={auth.user} existing={allBankQuestions} subject={draft.subject} disabled={busy || !online || draft.questions.length >= 60} onImported={addImported} /> : null}
           <div className="exam-bank-filters">
             <label className="search-field"><Icon name="search" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar reactivo" /></label>
             <select value={subjectFilter} onChange={(event) => setSubjectFilter(event.target.value)}><option value="">Todas las materias</option>{subjects.map((value) => <option key={value}>{value}</option>)}</select>
@@ -459,10 +515,10 @@ function ExamEditor({
       </section>
 
       <SectionCard className="exam-version-panel">
-        <div className="section-heading"><div><span className="eyebrow">3 · VERSIONES</span><h2>Equivalencia y clave</h2><p>TEDVIO conserva el mismo conjunto de reactivos y cambia únicamente el orden.</p></div><StatusPill tone={preview.error ? 'red' : 'green'}>{preview.error || 'Composición válida'}</StatusPill></div>
+        <div className="section-heading"><div><span className="eyebrow">3 · VERSIONES</span><h2>Equivalencia y clave</h2><p>TEDVIO conserva el contenido y redistribuye preguntas y opciones sin alterar la respuesta correcta.</p></div><StatusPill tone={preview.error ? 'red' : 'green'}>{preview.error || 'Composición válida'}</StatusPill></div>
         <div className="exam-version-config">
           <label>Número de versiones<select value={draft.versions.length} onChange={(event) => setDraft({ ...draft, versions: versionLabels(Number(event.target.value)) })}><option value="1">A</option><option value="2">A y B</option><option value="3">A, B y C</option></select></label>
-          <label>Estrategia<select value={draft.versionStrategy} onChange={(event) => setDraft({ ...draft, versionStrategy: event.target.value as ExamDraft['versionStrategy'] })}><option value="balanced">Orden alternado</option><option value="same">Mismo orden</option></select></label>
+          <label>Estrategia<select value={draft.versionStrategy} onChange={(event) => setDraft({ ...draft, versionStrategy: event.target.value as ExamDraft['versionStrategy'] })}><option value="balanced">Preguntas y opciones alternadas</option><option value="same">Mismo orden</option></select></label>
           <div className="exam-version-tabs">{draft.versions.map((version) => <button type="button" className={previewVersion === version ? 'active' : ''} key={version} onClick={() => setPreviewVersion(version)}>Versión {version}</button>)}</div>
         </div>
         <div className="exam-version-preview">
@@ -477,12 +533,14 @@ function ExamEditor({
         </div>
       </SectionCard>
 
+      <ExamQualityPanel report={quality} />
+
       </fieldset>
       <section className="exam-save-dock">
         <div><span className="eyebrow">BORRADOR</span><b>{draft.title || 'Evaluación sin título'}</b><small>{draft.questions.length} reactivos · {draft.versions.length} versión{draft.versions.length === 1 ? '' : 'es'} · escala 0–10</small></div>
         <button className="button ghost" disabled={busy} onClick={leave}>Conservar y volver</button>
         <button className="button secondary" type="button" disabled={busy || !online || Boolean(preview.error)} onClick={() => saveMutation.mutate({ markReady: false, value: academic.value })}>{saveMutation.isPending ? 'Guardando…' : 'Guardar borrador'}</button>
-        <button className="button primary" type="button" disabled={busy || !online || Boolean(preview.error)} onClick={() => saveMutation.mutate({ markReady: true, value: academic.value })}>{saveMutation.isPending ? 'Preparando…' : 'Guardar y marcar lista'}</button>
+        <button className="button primary" type="button" disabled={busy || !online || Boolean(preview.error) || Boolean(quality.blockers.length)} onClick={() => saveMutation.mutate({ markReady: true, value: academic.value })}>{saveMutation.isPending ? 'Preparando…' : 'Guardar y marcar lista'}</button>
       </section>
       {discard ? <ActionDialog eyebrow="TEDVIO · EVALUACIONES" title="¿Descartar este borrador?" detail="Se eliminarán los cambios pendientes de esta pestaña y se recuperará la versión disponible." confirmLabel="Descartar borrador" danger onDismiss={() => setDiscard(false)} onConfirm={() => { academic.clear(); setDiscard(false); }} /> : null}
     </div>
