@@ -10,6 +10,7 @@ async function fixture(page, path = `/omr/${examId}`) {
     period: { id: 'p1', teacher_id: userId, group_id: groupId, name: 'Primer parcial', status: 'open', starts_on: '2026-09-01', ends_on: '2026-09-30', order_index: 1, course_weight: 100 },
     results: [], scores: [],
   };
+  state.bank = Array.from({ length: 8 }, (_, index) => ({ id: `bank-${index + 1}`, teacher_id: userId, title: `Pregunta ${index + 1}`, prompt: `Pregunta de banco ${index + 1}`, subject: 'Ciencias', topic: index % 2 ? 'Fisiología' : 'Anatomía', question_type: 'multiple_choice', options: ['Correcta', 'Distractor B', 'Distractor C', 'Distractor D'], correct_answer: 'Correcta', explanation: '', difficulty: index % 3 === 0 ? 'alta' : 'media', bloom: index % 2 ? 'aplicar' : 'comprender', folder: '', tags: [], favorite: false, archived: false, created_at: '2026-09-01T10:00:00Z', updated_at: '2026-09-01T10:00:00Z' }));
   const students = ['a', 'b'].map(id => ({ id, group_id: groupId, teacher_id: userId, full_name: `Alumno ${id.toUpperCase()}`, enrollment: id.toUpperCase(), active: true }));
   await page.addInitScript(({ userId }) => localStorage.setItem('sb-exams-fixture-auth-token', JSON.stringify({ access_token: 'synthetic-access-token', refresh_token: 'synthetic-refresh-token', expires_at: Math.floor(Date.now()/1000)+3600, expires_in: 3600, token_type: 'bearer', user: { id: userId, email: 'teacher@example.test', aud: 'authenticated', role: 'authenticated' } })), { userId });
   await page.route('**/config.js*', route => route.fulfill({ contentType: 'application/javascript', body: 'window.TEDVIO_CONFIG={SUPABASE_URL:"https://exams-fixture.supabase.test",SUPABASE_PUBLISHABLE_KEY:"synthetic-publishable-key"};' }));
@@ -23,6 +24,13 @@ async function fixture(page, path = `/omr/${examId}`) {
     else if (table === 'v2_group_students') rows = students;
     else if (table === 'v2_academic_periods') rows = [state.period];
     else if (table === 'v2_paper_exams') rows = [state.exam];
+    else if (table === 'v2_question_bank') {
+      if (request.method() === 'POST') {
+        const input = request.postDataJSON();
+        const additions = (Array.isArray(input) ? input : [input]).map((row, index) => ({ ...row, id: `imported-${state.bank.length + index + 1}`, created_at: '2026-09-10T10:00:00Z' }));
+        state.bank = [...state.bank, ...additions]; rows = additions;
+      } else rows = state.bank;
+    }
     else if (table === 'v2_paper_exam_questions') rows = state.exam.versions.flatMap(version => Array.from({ length: state.exam.question_count }, (_, i) => ({ id: `${version}-${i}`, exam_id: examId, version, position: i + 1, source_position: i + 1, prompt: `Reactivo de prueba ${i + 1}`, question_type: 'mcq', options: ['Opción uno', 'Opción dos', 'Opción tres', 'Opción cuatro'], correct_answer: ['Opción uno', 'Opción dos', 'Opción tres', 'Opción cuatro'][state.exam.answer_keys[version][i]?.charCodeAt(0) - 65], explanation: 'EXPLICACIÓN SOLO DOCENTE', points: 1 })));
     else if (table === 'v2_paper_exam_results') rows = state.results;
     else if (table === 'v2_grade_categories') rows = [{ id: 'c1', group_id: groupId, name: 'Exámenes', kind: 'omr', weight: 100 }];
@@ -118,6 +126,23 @@ test('borrador de examen conserva instrucciones al navegar y protege la salida',
   await page.getByRole('button', { name: 'Conservar y volver' }).click(); await navigate(page, '/exams/new');
   await expect(page.getByLabel('Título', { exact: true })).toHaveValue('Nuevo parcial'); await expect(page.getByLabel('Instrucciones', { exact: true })).toHaveValue('Lee con atención.');
   await page.getByRole('button', { name: 'Cerrar sesión', exact: true }).click(); await expect(page.getByRole('dialog', { name: '¿Salir con trabajo pendiente?' })).toBeVisible(); await page.getByRole('dialog').getByRole('button', { name: 'Cancelar' }).click();
+});
+
+test('creador premium aplica plantilla, importa sin duplicados y revisa calidad', async ({ page }) => {
+  const state = await fixture(page, '/exams/new');
+  await page.getByRole('button', { name: 'Parcial · 20 · A/B' }).click();
+  await expect(page.getByLabel('Título', { exact: true })).toHaveValue('Examen parcial');
+  await expect(page.getByLabel('Número de versiones')).toHaveValue('2');
+  await expect(page.getByText('8 / 60', { exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Control de calidad del examen' })).toContainText('2 temas representados');
+  await page.getByRole('button', { name: '＋ Importar preguntas' }).click();
+  await page.getByLabel('Preguntas para importar').fill('pregunta\topcion_a\topcion_b\topcion_c\topcion_d\trespuesta\ttema\tdificultad\tbloom\nPregunta de banco 1\tCorrecta\tDistractor B\tDistractor C\tDistractor D\tA\tAnatomía\talta\taplicar\nPregunta inédita\tRespuesta nueva\tDistractor 1\tDistractor 2\tDistractor 3\tA\tPatología\tmedia\tanalizar');
+  await expect(page.getByText('1 listas', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Importar 1 y agregar' }).click();
+  await expect(page.getByText('9 / 60', { exact: true })).toBeVisible();
+  expect(state.bank).toHaveLength(9);
+  await page.getByRole('button', { name: 'Agrupar por tema' }).click();
+  await expect(page.getByText(/cuadernillo mostrará cada sección/)).toBeVisible();
 });
 
 test('lector óptico distingue marcas, dobles y blancos en hojas sintéticas A4 y Carta', async ({ page }) => {

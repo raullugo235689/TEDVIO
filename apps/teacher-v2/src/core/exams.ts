@@ -2,6 +2,7 @@ import type { User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import type { GroupRecord, StudentRecord } from './types';
 import type { BankQuestion } from './bank';
+import { reorderExamOptions } from './exam-creator';
 
 export type ExamStatus = 'draft' | 'ready' | 'closed' | 'archived';
 export type ExamVersionStrategy = 'same' | 'balanced';
@@ -294,7 +295,13 @@ function orderForVersion<T>(items: T[], versionIndex: number, totalVersions: num
   return versionIndex > 1 ? [...rotated].reverse() : rotated;
 }
 
+function optionsForVersion(item: ExamBlueprintItem, versionIndex: number, strategy: ExamVersionStrategy): ExamBlueprintItem {
+  if (strategy === 'same' || versionIndex === 0 || item.options.length < 2) return { ...item, options: [...item.options] };
+  return { ...item, options: reorderExamOptions(item.options, item.source_position, versionIndex) };
+}
+
 export function buildExamBlueprint(draft: ExamDraft, bankQuestions: BankQuestion[]): Record<string, ExamBlueprintItem[]> {
+  if (!draft.title.trim()) throw new Error('Agrega un título a la evaluación.');
   if (!draft.questions.length) throw new Error('Selecciona al menos un reactivo.');
   if (draft.questions.length > 60) throw new Error('La evaluación admite un máximo de 60 reactivos.');
   const bank = new Map(bankQuestions.map((question) => [question.id, question]));
@@ -326,7 +333,8 @@ export function buildExamBlueprint(draft: ExamDraft, bankQuestions: BankQuestion
   return Object.fromEntries(
     draft.versions.map((version, versionIndex) => [
       version,
-      orderForVersion(base, versionIndex, draft.versions.length, draft.versionStrategy),
+      orderForVersion(base, versionIndex, draft.versions.length, draft.versionStrategy)
+        .map((item) => optionsForVersion(item, versionIndex, draft.versionStrategy)),
     ]),
   );
 }

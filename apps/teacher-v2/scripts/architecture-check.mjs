@@ -25,12 +25,14 @@ const bankApi = fs.readFileSync(path.join(sourceRoot, 'core/bank.ts'), 'utf8');
 const classroomApi = fs.readFileSync(path.join(sourceRoot, 'core/classroom.ts'), 'utf8');
 const supabaseApi = fs.readFileSync(path.join(sourceRoot, 'core/supabase.ts'), 'utf8');
 const examsApi = fs.readFileSync(path.join(sourceRoot, 'core/exams.ts'), 'utf8');
+const examCreatorApi = fs.readFileSync(path.join(sourceRoot, 'core/exam-creator.ts'), 'utf8');
 const groupsPage = fs.readFileSync(path.join(sourceRoot, 'features/groups/GroupsPage.tsx'), 'utf8');
 const groupDetail = fs.readFileSync(path.join(sourceRoot, 'features/groups/GroupDetailPage.tsx'), 'utf8');
 const attendancePage = fs.readFileSync(path.join(sourceRoot, 'features/attendance/AttendancePage.tsx'), 'utf8');
 const bankPage = fs.readFileSync(path.join(sourceRoot, 'features/bank/BankPage.tsx'), 'utf8');
 const classroomPage = fs.readFileSync(path.join(sourceRoot, 'features/classroom/ClassroomPage.tsx'), 'utf8');
 const examsPage = fs.readFileSync(path.join(sourceRoot, 'features/exams/ExamsPage.tsx'), 'utf8');
+const examCreatorPanels = fs.readFileSync(path.join(sourceRoot, 'features/exams/ExamCreatorPanels.tsx'), 'utf8');
 
 function must(condition, message) {
   if (condition) console.log('OK  ', message);
@@ -124,6 +126,11 @@ must(examsApi.includes("rpc('v2_duplicate_paper_exam'"), 'Evaluaciones duplica s
 must((examsApi.match(/\.eq\('teacher_id', user\.id\)/g) || []).length >= 10, 'lecturas de Evaluaciones se restringen al docente autenticado');
 must(!examsApi.includes('.delete(') && !examsPage.includes('.delete('), 'Fase 4A archiva evaluaciones y conserva evidencia histórica');
 must(examsApi.includes("'multiple_choice', 'true_false'") && examsApi.includes('compatibleExamQuestion'), 'la composición objetiva solo acepta reactivos con clave OMR inequívoca');
+must(examCreatorApi.includes('parseQuestionImport') && examCreatorApi.includes('questionFingerprint') && bankApi.includes('saveBankQuestions'), 'Creador Premium importa reactivos con validación y control de duplicados');
+must(examCreatorApi.includes('assessExamQuality') && examsPage.includes('ExamQualityPanel'), 'Creador Premium revisa calidad antes de preparar la evaluación');
+must(examCreatorApi.includes('selectBalancedQuestions') && examsPage.includes('Plantillas rápidas'), 'Creador Premium ofrece plantillas y selección equilibrada reutilizando el Banco');
+must(examsApi.includes('reorderExamOptions') && examsPage.includes('Preguntas y opciones alternadas'), 'versiones A/B/C redistribuyen preguntas y opciones sin alterar la clave');
+must(examCreatorPanels.includes('CSV/TXT') && examCreatorPanels.includes('Excel/Sheets'), 'importación masiva funciona sin servicios ni dependencias de pago');
 
 if (failures.length) {
   console.error(`\n${failures.length} regla(s) de arquitectura fallaron.`);

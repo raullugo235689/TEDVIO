@@ -5,6 +5,17 @@ import { answerLetter, examDetailKey, fetchExamDetail } from '../../core/exams';
 import { ErrorPanel, LoadingScreen } from '../../shared/components';
 import { useAuth } from '../auth/AuthProvider';
 
+function questionSections<T extends { topic?: string | null }>(rows: T[]): { topic: string; rows: T[] }[] {
+  const sections: { topic: string; rows: T[] }[] = [];
+  rows.forEach((row) => {
+    const topic = row.topic?.trim() || 'Reactivos generales';
+    const current = sections[sections.length - 1];
+    if (!current || current.topic !== topic) sections.push({ topic, rows: [row] });
+    else current.rows.push(row);
+  });
+  return sections;
+}
+
 export function ExamPrintPage() {
   const auth = useAuth(), { examId = '' } = useParams(), [params, setParams] = useSearchParams();
   const [loaded, setLoaded] = useState<Set<string>>(() => new Set()), [broken, setBroken] = useState(false);
@@ -39,7 +50,7 @@ export function ExamPrintPage() {
       {teacher ? <><p className="exam-key-warning">CONFIDENCIAL · No entregar al alumno.</p><div className="exam-answer-key">{keyFor(label).map((answer, index) => <div key={index}><span>{index + 1}</span><b>{answer}</b></div>)}</div></> : <>
         <div className="exam-student-fields"><span>Nombre: __________________________________________________</span><span>Matrícula: ____________________ Fecha: ____________________</span></div>
         <section className="exam-paper-instructions"><b>INSTRUCCIONES</b><p>{exam.instructions || 'Lee cada reactivo y selecciona una respuesta. Registra tus respuestas en la hoja correspondiente a esta versión.'}</p></section>
-        <ol className="exam-paper-questions">{questions.filter(row => row.version === label).sort((a, b) => a.position - b.position).map(row => <li key={row.id} value={row.position}><div className="exam-paper-prompt">{row.prompt}</div>{row.media_url && row.media_type === 'image' ? <img src={row.media_url} alt={`Imagen del reactivo ${row.position}`} onLoad={() => setLoaded(current => new Set(current).add(row.media_url!))} onError={() => setBroken(true)} /> : null}<ol type="A">{(Array.isArray(row.options) ? row.options : []).map((option, index) => <li key={index}>{String(option)}</li>)}</ol></li>)}</ol>
+        <div className="exam-paper-sections">{questionSections(questions.filter(row => row.version === label).sort((a, b) => a.position - b.position)).map((section, sectionIndex) => <section className="exam-paper-section" key={`${section.topic}-${sectionIndex}`}><h2>{section.topic}</h2><ol className="exam-paper-questions" start={section.rows[0]?.position}>{section.rows.map(row => <li key={row.id} value={row.position}><div className="exam-paper-prompt">{row.prompt}</div>{row.media_url && row.media_type === 'image' ? <img src={row.media_url} alt={`Imagen del reactivo ${row.position}`} onLoad={() => setLoaded(current => new Set(current).add(row.media_url!))} onError={() => setBroken(true)} /> : null}<ol type="A">{(Array.isArray(row.options) ? row.options : []).map((option, index) => <li key={index}>{String(option)}</li>)}</ol></li>)}</ol></section>)}</div>
       </>}
       <footer className="exam-document-footer">TEDVIO · {exam.id.slice(0, 8)} · Versión {label} · {teacher ? 'Clave docente' : 'Cuadernillo del alumno'}</footer>
     </article>)}</main>
