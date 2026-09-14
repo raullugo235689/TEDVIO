@@ -23,6 +23,8 @@ const groupsApi = fs.readFileSync(path.join(sourceRoot, 'core/groups.ts'), 'utf8
 const attendanceApi = fs.readFileSync(path.join(sourceRoot, 'core/attendance.ts'), 'utf8');
 const bankApi = fs.readFileSync(path.join(sourceRoot, 'core/bank.ts'), 'utf8');
 const classroomApi = fs.readFileSync(path.join(sourceRoot, 'core/classroom.ts'), 'utf8');
+const deletionApi = fs.readFileSync(path.join(sourceRoot, 'core/academic-deletion.ts'), 'utf8');
+const deletionDialog = fs.readFileSync(path.join(sourceRoot, 'shared/AcademicDeleteButton.tsx'), 'utf8');
 const supabaseApi = fs.readFileSync(path.join(sourceRoot, 'core/supabase.ts'), 'utf8');
 const examsApi = fs.readFileSync(path.join(sourceRoot, 'core/exams.ts'), 'utf8');
 const examCreatorApi = fs.readFileSync(path.join(sourceRoot, 'core/exam-creator.ts'), 'utf8');
@@ -81,7 +83,7 @@ for (const table of ['v2_groups', 'v2_group_students', 'v2_attendance_sessions',
 }
 must((groupsApi.match(/\.eq\('teacher_id', user\.id\)/g) || []).length >= 6, 'operaciones de grupos restringen lecturas y cambios al docente autenticado');
 must((attendanceApi.match(/\.eq\('teacher_id', user\.id\)/g) || []).length >= 6, 'operaciones de asistencia restringen lecturas y cambios al docente autenticado');
-must(!groupsApi.includes('.delete(') && !attendanceApi.includes('.delete('), 'Fase 2 no elimina grupos, alumnos ni listas');
+must(!groupsApi.includes('.delete(') && !attendanceApi.includes('.delete('), 'grupos y asistencia no utilizan DELETE directo que borre historial en cascada');
 must(groupsApi.includes("onConflict: 'group_id,enrollment'") && attendanceApi.includes("onConflict: 'attendance_session_id,student_id'"), 'importación y asistencia respetan las claves únicas existentes');
 must(attendanceApi.includes("'present' | 'late' | 'absent' | 'justified'") || fs.readFileSync(path.join(sourceRoot, 'core/types.ts'), 'utf8').includes("'present' | 'late' | 'absent' | 'justified'"), 'estados de asistencia coinciden con las restricciones de base de datos');
 
@@ -107,7 +109,10 @@ must(bankApi.includes("onConflict: 'group_id,student_id'") === false, 'Banco no 
 must(classroomApi.includes("onConflict: 'group_id,student_id'"), 'Notas docentes respetan la clave única del expediente');
 must((bankApi.match(/\.eq\('teacher_id', user\.id\)/g) || []).length >= 5, 'operaciones del banco restringen datos al docente autenticado');
 must((classroomApi.match(/\.eq\('teacher_id', user\.id\)/g) || []).length >= 5 && classroomApi.includes("supabase.rpc('v2_teacher_classroom_command'"), 'operaciones de Modo Clase restringen datos al docente autenticado');
-must(!bankApi.includes('.delete(') && !classroomApi.includes('.delete('), 'Fase 3 archiva preguntas y conserva sesiones en lugar de eliminarlas');
+must(!bankApi.includes('.delete(') && !classroomApi.includes('.delete('), 'banco y sesiones no utilizan DELETE directo que borre historial en cascada');
+must(deletionApi.includes("rpc('v2_academic_delete'") && !deletionApi.includes('.delete('), 'la eliminación pasa exclusivamente por el RPC con comprobación de propietario y dependencias');
+must(deletionDialog.includes("confirmation !== 'ELIMINAR'") && deletionDialog.includes('confirmDisabled') && deletionDialog.includes("networkMode: 'always'") && deletionDialog.includes('retry: false'), 'confirmación explícita sin reintentos automáticos ni cola offline de borrados');
+must([groupsPage, bankPage, classroomPage].every(text => text.includes('AcademicDeleteButton')), 'las pantallas académicas comparten la misma eliminación segura');
 must(classroomApi.includes(".channel(channelName)") && classroomApi.includes("table: 'v2_responses'"), 'Modo Clase usa Supabase Realtime sin polling permanente');
 must(classroomApi.includes('/student-v2/?code=') && classroomApi.includes('/projection-v2/?code='), 'Modo Clase abre directamente Student 2.x y Projection 2.x');
 

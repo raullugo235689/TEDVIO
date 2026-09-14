@@ -14,6 +14,7 @@ import { useTeacherHome } from '../../core/useTeacherHome';
 import type { DashboardGroup, GroupRecord } from '../../core/types';
 import { EmptyState, ErrorPanel, LoadingScreen, PageHeader, SectionCard, StatusPill } from '../../shared/components';
 import { Icon } from '../../shared/icons';
+import { AcademicDeleteButton } from '../../shared/AcademicDeleteButton';
 import { useAuth } from '../auth/AuthProvider';
 
 function tone(group?: DashboardGroup): string {
@@ -147,7 +148,24 @@ export function GroupsPage() {
             <form onSubmit={(event) => { event.preventDefault(); programMutation.mutate(); }}>
               <span className="eyebrow">NUEVO PROGRAMA</span><label>Institución<select value={programUniversityId} onChange={(event) => setProgramUniversityId(event.target.value)} required><option value="">Selecciona</option>{universities.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label><label>Programa<input value={programName} onChange={(event) => setProgramName(event.target.value)} placeholder="Licenciatura en Medicina General" required /></label><button className="button secondary" type="submit" disabled={programMutation.isPending || !universities.length}>{programMutation.isPending ? 'Guardando…' : 'Agregar programa'}</button>
             </form>
-            <div className="structure-catalog"><span className="eyebrow">CATÁLOGO</span>{programs.length ? programs.map((program) => <article key={program.id}><b>{program.name}</b><small>{universities.find((item) => item.id === program.university_id)?.name || 'Institución'}</small></article>) : <p>Aún no hay programas.</p>}</div>
+            <div className="structure-catalog">
+              <span className="eyebrow">INSTITUCIONES</span>
+              {universities.length ? universities.map((university) => <article key={university.id}>
+                <b>{university.name}</b><small>{programs.filter((program) => program.university_id === university.id).length} programas</small>
+                <AcademicDeleteButton target={{ kind: 'university', id: university.id, label: university.name }} onDeleted={() => {
+                  setProgramUniversityId((current) => current === university.id ? '' : current);
+                  setNotice(`Institución «${university.name}» eliminada.`);
+                }} />
+              </article>) : <p>Aún no hay instituciones.</p>}
+              <span className="eyebrow">PROGRAMAS</span>
+              {programs.length ? programs.map((program) => <article key={program.id}>
+                <b>{program.name}</b><small>{universities.find((item) => item.id === program.university_id)?.name || 'Institución'}</small>
+                <AcademicDeleteButton target={{ kind: 'program', id: program.id, label: program.name }} onDeleted={() => {
+                  setEditor((current) => current?.programId === program.id ? { ...current, programId: '' } : current);
+                  setNotice(`Programa «${program.name}» eliminado.`);
+                }} />
+              </article>) : <p>Aún no hay programas.</p>}
+            </div>
           </div>
         </SectionCard>
       ) : null}
@@ -194,6 +212,10 @@ export function GroupsPage() {
                 </div>
                 <footer>
                   <button className="button ghost compact" type="button" onClick={() => editGroup(group)}>Editar</button>
+                  <AcademicDeleteButton target={{ kind: 'group', id: group.id, label: group.group_name || group.name }} onDeleted={() => {
+                    setEditor((current) => current?.id === group.id ? null : current);
+                    setNotice(`Grupo «${group.group_name || group.name}» eliminado.`);
+                  }} />
                   <Link className="button secondary" to={`/groups/${group.id}`}>Abrir grupo</Link>
                   <Link className="button primary" to={`/attendance/${group.id}`}>Asistencia</Link>
                 </footer>

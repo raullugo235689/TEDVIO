@@ -19,6 +19,7 @@ import { groupName, groupSubject } from '../../core/academic';
 import { useTeacherHome } from '../../core/useTeacherHome';
 import { EmptyState, ErrorPanel, LoadingScreen, PageHeader, SectionCard, StatusPill } from '../../shared/components';
 import { Icon } from '../../shared/icons';
+import { AcademicDeleteButton } from '../../shared/AcademicDeleteButton';
 import { useAuth } from '../auth/AuthProvider';
 
 const typeLabels: Record<BankQuestionType, string> = {
@@ -179,6 +180,7 @@ function QuestionCard({
   onDuplicate,
   onFavorite,
   onArchive,
+  onDeleted,
 }: {
   question: BankQuestion;
   selected: boolean;
@@ -188,6 +190,7 @@ function QuestionCard({
   onDuplicate: () => void;
   onFavorite: () => void;
   onArchive: () => void;
+  onDeleted: () => void;
 }) {
   const options = Array.isArray(question.options) ? question.options.map(String) : [];
   return (
@@ -199,7 +202,7 @@ function QuestionCard({
       {question.media_url ? <div className="question-media-note"><Icon name="layout" />Incluye {question.media_type || 'recurso multimedia'}</div> : null}
       {options.length ? <div className="question-option-preview">{options.slice(0, 5).map((option, index) => <span key={`${option}-${index}`}><b>{String.fromCharCode(65 + index)}</b>{option}</span>)}</div> : null}
       <div className="question-metrics"><span><small>Usos</small><b>{metric?.times_used || 0}</b></span><span><small>Acierto</small><b>{accuracy(metric?.accuracy_pct)}</b></span><span><small>Discriminación</small><b>{metric?.discrimination == null ? '—' : Number(metric.discrimination).toFixed(2)}</b></span></div>
-      <footer><button className="button ghost compact" type="button" onClick={onFavorite}>{question.favorite ? '★ Quitar favorita' : '☆ Favorita'}</button><button className="button ghost compact" type="button" onClick={onDuplicate}>Duplicar</button><button className="button ghost compact" type="button" onClick={onArchive}>{question.archived ? 'Restaurar' : 'Archivar'}</button><button className="button secondary compact" type="button" onClick={onEdit}>Editar</button></footer>
+      <footer><button className="button ghost compact" type="button" onClick={onFavorite}>{question.favorite ? '★ Quitar favorita' : '☆ Favorita'}</button><button className="button ghost compact" type="button" onClick={onDuplicate}>Duplicar</button><button className="button ghost compact" type="button" onClick={onArchive}>{question.archived ? 'Restaurar' : 'Archivar'}</button><AcademicDeleteButton target={{ kind: 'question', id: question.id, label: question.title || question.prompt }} onDeleted={onDeleted} /><button className="button secondary compact" type="button" onClick={onEdit}>Editar</button></footer>
     </article>
   );
 }
@@ -330,7 +333,11 @@ export function BankPage() {
         </div>
       </SectionCard>
 
-      {filtered.length ? <section className="bank-question-grid">{filtered.map((question) => <QuestionCard key={question.id} question={question} selected={selected.has(question.id)} metric={bank.data?.metrics[question.id]} onSelect={() => toggleSelected(question.id)} onEdit={() => setDraft(bankDraftFromQuestion(question))} onDuplicate={() => duplicateMutation.mutate(question.id)} onFavorite={() => flagsMutation.mutate({ questionId: question.id, changes: { favorite: !question.favorite } })} onArchive={() => flagsMutation.mutate({ questionId: question.id, changes: { archived: !question.archived } })} />)}</section> : <EmptyState icon="bank" title={questions.length ? 'No hay coincidencias' : 'Tu banco está vacío'} detail={questions.length ? 'Ajusta los filtros o incluye reactivos archivados.' : 'Crea la primera pregunta para utilizarla en Modo Clase y futuras evaluaciones.'} action={<button className="button primary" type="button" onClick={() => setDraft(emptyBankDraft())}>Crear pregunta</button>} />}
+      {filtered.length ? <section className="bank-question-grid">{filtered.map((question) => <QuestionCard key={question.id} question={question} selected={selected.has(question.id)} metric={bank.data?.metrics[question.id]} onSelect={() => toggleSelected(question.id)} onEdit={() => setDraft(bankDraftFromQuestion(question))} onDuplicate={() => duplicateMutation.mutate(question.id)} onFavorite={() => flagsMutation.mutate({ questionId: question.id, changes: { favorite: !question.favorite } })} onArchive={() => flagsMutation.mutate({ questionId: question.id, changes: { archived: !question.archived } })} onDeleted={() => {
+        setSelected((current) => new Set([...current].filter((id) => id !== question.id)));
+        setDraft((current) => current?.id === question.id ? null : current);
+        setNotice('Pregunta eliminada del banco.');
+      }} />)}</section> : <EmptyState icon="bank" title={questions.length ? 'No hay coincidencias' : 'Tu banco está vacío'} detail={questions.length ? 'Ajusta los filtros o incluye reactivos archivados.' : 'Crea la primera pregunta para utilizarla en Modo Clase y futuras evaluaciones.'} action={<button className="button primary" type="button" onClick={() => setDraft(emptyBankDraft())}>Crear pregunta</button>} />}
 
       {selectedCount ? (
         <section className="selection-dock" aria-label="Preguntas seleccionadas">
