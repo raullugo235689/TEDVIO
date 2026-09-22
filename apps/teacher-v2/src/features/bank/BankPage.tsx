@@ -21,6 +21,8 @@ import { EmptyState, ErrorPanel, LoadingScreen, PageHeader, SectionCard, StatusP
 import { Icon } from '../../shared/icons';
 import { AcademicDeleteButton } from '../../shared/AcademicDeleteButton';
 import { useAuth } from '../auth/AuthProvider';
+import { ExamImportPanel } from '../exams/ExamCreatorPanels';
+import { BankOrganization, downloadBankBackup } from './BankOrganization';
 
 const typeLabels: Record<BankQuestionType, string> = {
   multiple_choice: 'Opción múltiple',
@@ -141,7 +143,7 @@ function QuestionEditor({
           <div className="section-heading compact"><div><span className="eyebrow">OPCIONES</span><h3>{draft.questionType === 'ordering' ? 'Orden correcto' : 'Respuestas disponibles'}</h3><p>{draft.questionType === 'poll' || draft.questionType === 'scale_5' ? 'Esta actividad no tiene una respuesta correcta.' : draft.questionType === 'ordering' ? 'El orden visible será la solución esperada.' : 'Marca la opción o las opciones correctas.'}</p></div>{!['true_false', 'scale_5'].includes(draft.questionType) ? <button className="button ghost compact" type="button" onClick={() => onChange({ ...draft, options: [...draft.options, ''] })}>＋ Opción</button> : null}</div>
           <div className="bank-option-list">
             {draft.options.map((option, index) => (
-              <div className="bank-option-row" key={`${index}-${option}`}>
+              <div className="bank-option-row" key={index}>
                 {answerTypes.has(draft.questionType) && draft.questionType !== 'ordering' ? <input type={draft.questionType === 'multiple_select' ? 'checkbox' : 'radio'} name="correct-answer" checked={draft.correctAnswers.includes(option) && Boolean(option.trim())} onChange={() => toggleAnswer(option)} aria-label={`Marcar opción ${index + 1} como correcta`} /> : <span className="option-index">{index + 1}</span>}
                 <input value={option} disabled={['true_false', 'scale_5'].includes(draft.questionType)} onChange={(event) => setOption(index, event.target.value)} placeholder={`Opción ${index + 1}`} />
                 {draft.questionType === 'ordering' ? <><button className="icon-button compact-icon" type="button" onClick={() => moveOption(index, -1)} disabled={index === 0} aria-label="Subir">↑</button><button className="icon-button compact-icon" type="button" onClick={() => moveOption(index, 1)} disabled={index === draft.options.length - 1} aria-label="Bajar">↓</button></> : null}
@@ -322,6 +324,8 @@ export function BankPage() {
       {anyError ? <ErrorPanel title="No se pudo completar la operación" detail={(anyError as Error).message || 'Intenta nuevamente.'} /> : null}
       {draft ? <QuestionEditor draft={draft} busy={saveMutation.isPending} onChange={setDraft} onCancel={() => setDraft(null)} onSave={() => saveMutation.mutate()} /> : null}
 
+      <SectionCard><div className="exam-import-actions"><button className="button secondary" type="button" disabled={!questions.length} onClick={() => downloadBankBackup(questions)}>Respaldar banco JSON</button><span>Incluye preguntas archivadas y claves; guarda este archivo en un lugar privado.</span></div>{auth.user ? <ExamImportPanel user={auth.user} existing={questions} subject={subject} disabled={false} destination="bank" onImported={async (saved) => { setNotice(`${saved.length} preguntas importadas al banco.`); await invalidate(); }} /> : null}</SectionCard>
+
       <SectionCard>
         <div className="bank-toolbar">
           <label className="search-field"><Icon name="search" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar por pregunta, tema, carpeta o etiqueta" /></label>
@@ -330,8 +334,11 @@ export function BankPage() {
           <select value={type} onChange={(event) => setType(event.target.value)}><option value="">Todos los tipos</option>{Object.entries(typeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
           <label className="toggle-field"><input type="checkbox" checked={showArchived} onChange={(event) => setShowArchived(event.target.checked)} /> Mostrar archivadas</label>
           <StatusPill tone="blue">{filtered.length} de {questions.length}</StatusPill>
+          <button className="button ghost compact" type="button" disabled={!filtered.length} onClick={() => setSelected((current) => new Set([...current, ...filtered.map((question) => question.id)]))}>Seleccionar visibles</button>
         </div>
       </SectionCard>
+
+      {selectedCount && auth.user ? <BankOrganization user={auth.user} questions={questions.filter((question) => selected.has(question.id))} onSaved={async (message) => { setNotice(message); setSelected(new Set()); await invalidate(); }} /> : null}
 
       {filtered.length ? <section className="bank-question-grid">{filtered.map((question) => <QuestionCard key={question.id} question={question} selected={selected.has(question.id)} metric={bank.data?.metrics[question.id]} onSelect={() => toggleSelected(question.id)} onEdit={() => setDraft(bankDraftFromQuestion(question))} onDuplicate={() => duplicateMutation.mutate(question.id)} onFavorite={() => flagsMutation.mutate({ questionId: question.id, changes: { favorite: !question.favorite } })} onArchive={() => flagsMutation.mutate({ questionId: question.id, changes: { archived: !question.archived } })} onDeleted={() => {
         setSelected((current) => new Set([...current].filter((id) => id !== question.id)));
