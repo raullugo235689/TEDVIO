@@ -133,8 +133,8 @@ function OmrLanding({ workspace }: { workspace: OmrWorkspace }) {
   return (
     <div className="view-stack omr-page">
       <PageHeader
-        eyebrow="ETAPA 4B · OMR"
-        title="Captura óptica de respuestas"
+        eyebrow="PREGUNTAS Y EXÁMENES · LECTOR OMR"
+        title="Calificar hojas"
         detail="Imprime hojas, usa la cámara, revisa las marcas dudosas y confirma resultados dentro del frontend unificado."
         actions={<Link className="button secondary" to="/exams">Evaluaciones</Link>}
       />
@@ -165,7 +165,7 @@ function OmrLanding({ workspace }: { workspace: OmrWorkspace }) {
         <EmptyState
           icon="exam"
           title={workspace.exams.length ? 'No hay coincidencias' : 'No hay evaluaciones listas para OMR'}
-          detail={workspace.exams.length ? 'Ajusta la búsqueda o el filtro de grupo.' : 'Crea una evaluación desde Question Studio y márcala como Lista.'}
+          detail={workspace.exams.length ? 'Ajusta la búsqueda o el filtro de grupo.' : 'Crea una evaluación desde tu banco de preguntas y márcala como Lista.'}
           action={<Link className="button primary" to="/exams/new">Crear evaluación</Link>}
         />
       )}

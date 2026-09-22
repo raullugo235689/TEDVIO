@@ -63,7 +63,7 @@ function AgendaFocus({ occurrence, label }: { occurrence: AgendaOccurrence | nul
       <p>{groupName(occurrence.group)} · {formatTime(occurrence.slot.start_time)}–{formatTime(occurrence.slot.end_time)}</p>
       <small>{[occurrence.slot.room, occurrence.slot.modality].filter(Boolean).join(' · ') || 'Ubicación sin especificar'}</small>
       <div className="hero-actions">
-        <Link className="button primary compact" to={`/classroom?group=${encodeURIComponent(occurrence.slot.group_id)}`}>Iniciar Modo Clase</Link>
+        <Link className="button primary compact" to={`/classroom?group=${encodeURIComponent(occurrence.slot.group_id)}`}>Iniciar clase</Link>
         <Link className="button ghost compact" to={`/attendance/${occurrence.slot.group_id}`}>Preparar asistencia</Link>
       </div>
     </article>
@@ -74,7 +74,7 @@ function GroupCard({ group }: { group: DashboardGroup }) {
   return (
     <article className="group-card-v2">
       <header>
-        <div><span className="eyebrow">{groupSubject(group)}</span><h3>{groupName(group)}</h3><p>{group.university || 'TEDVIO'}{group.term ? ` · ${group.term}` : ''}</p></div>
+        <div><span className="eyebrow">{groupSubject(group)}</span><h3><Link to={`/groups/${group.id}`}>{groupName(group)}</Link></h3><p>{group.university || 'TEDVIO'}{group.term ? ` · ${group.term}` : ''}</p></div>
         <StatusPill tone={attendanceTone(group)}>{attendanceLabel(group)}</StatusPill>
       </header>
       <div className="group-mini-metrics">
@@ -82,7 +82,7 @@ function GroupCard({ group }: { group: DashboardGroup }) {
         <span><small>Asistencia</small><b>{formatPercent(group.attendance_rate)}</b></span>
         <span><small>Promedio</small><b>{formatGrade(group.grade_avg)}</b></span>
       </div>
-      <footer><small>Última actividad: {formatActivity(group.last_activity)}</small><div><Link className="button ghost compact" to={`/groups/${group.id}`}>Abrir grupo</Link><Link className="button ghost compact" to={`/attendance/${group.id}`}>Asistencia</Link><Link className="button primary compact" to={`/classroom?group=${encodeURIComponent(group.id)}`}>Modo Clase</Link></div></footer>
+      <footer><small>Última actividad: {formatActivity(group.last_activity)}</small><div><Link className="button secondary compact" to={`/groups/${group.id}`}>Abrir grupo <Icon name="arrow" /></Link><Link className="button ghost compact" to={`/attendance/${group.id}`}>Asistencia</Link><Link className="button ghost compact" to={`/classroom?group=${encodeURIComponent(group.id)}`}>Modo Clase</Link></div></footer>
     </article>
   );
 }
@@ -105,17 +105,19 @@ export function DashboardPage() {
   }
 
   const currentOrNext = agenda.current || agenda.next;
-  const plan = data.entitlements?.display_name || data.entitlements?.plan || data.profile.plan || 'Free';
   const risk = Number(data.dashboard.risk_students || 0);
   const watch = Number(data.dashboard.watch_students || 0);
   const pending = Number(data.dashboard.pending_attendance || 0);
+  const nextActionPath = action.groupId
+    ? (action.eyebrow === 'ASISTENCIA EN CURSO' || action.eyebrow === 'SIGUIENTE ACCIÓN' ? `/attendance/${action.groupId}` : `/groups/${action.groupId}`)
+    : '/groups';
 
   return (
-    <div className="view-stack">
+    <div className="view-stack dashboard-workspace">
       <PageHeader
-        eyebrow="CENTRO DOCENTE"
+        eyebrow={new Intl.DateTimeFormat('es-MX', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()).toUpperCase()}
         title={`${greeting()}, ${firstName(data.user.email)}.`}
-        detail="Organiza tu jornada, atiende pendientes y continúa el trabajo de tus grupos desde un solo lugar."
+        detail="Tu jornada, tus grupos y lo que sigue. Todo en su lugar."
         actions={
           <div className="hero-actions">
             <button className="button primary" type="button" onClick={() => navigate(currentOrNext ? `/classroom?group=${encodeURIComponent(currentOrNext.slot.group_id)}` : '/classroom')}>
@@ -132,22 +134,12 @@ export function DashboardPage() {
         <div className="warning-strip"><Icon name="alert" /><span>Algunos datos complementarios no pudieron cargarse: {data.warnings.join(' · ')}</span></div>
       ) : null}
 
-      <section className={`hero-command tone-${action.tone}`}>
-        <div className="hero-copy">
-          <span className="eyebrow">{action.eyebrow}</span>
-          <h2>{action.title}</h2>
-          <p>{action.detail}</p>
-          <div className="hero-actions">
-            {action.groupId ? <button className="button primary" type="button" onClick={() => navigate(`/attendance/${action.groupId}`)}>Abrir siguiente acción</button> : <button className="button primary" type="button" onClick={() => navigate('/groups')}>Ver grupos</button>}
-            <button className="button ghost" type="button" onClick={() => navigate(currentOrNext ? `/classroom?group=${encodeURIComponent(currentOrNext.slot.group_id)}` : '/classroom')}>Modo Clase</button>
-            <button className="button ghost" type="button" onClick={() => navigate('/agenda')}>Abrir agenda</button>
-          </div>
-        </div>
-        <div className="hero-context">
-          <span>PLAN ACTIVO</span><b>TEDVIO {String(plan).toUpperCase()}</b>
-          <small>{currentOrNext ? `${untilLabel(currentOrNext)} · ${groupName(currentOrNext.group)}` : 'Sin clase programada en la agenda'}</small>
-        </div>
-      </section>
+      <nav className="workspace-quick-actions" aria-label="Acciones rápidas">
+        <Link to={currentOrNext ? `/attendance/${currentOrNext.slot.group_id}` : '/attendance'}><Icon name="attendance" /><span>Tomar asistencia<small>Comienza con tu grupo</small></span><Icon name="arrow" /></Link>
+        <Link to="/bank"><Icon name="bank" /><span>Banco de preguntas<small>Organiza y reutiliza</small></span><Icon name="arrow" /></Link>
+        <Link to="/exams/new"><Icon name="exam" /><span>Crear examen<small>Prepara tu evaluación</small></span><Icon name="arrow" /></Link>
+        <Link to="/omr"><Icon name="grades" /><span>Calificar hojas<small>Escanea y revisa</small></span><Icon name="arrow" /></Link>
+      </nav>
 
       <section className="metrics-grid">
         <MetricCard icon="groups" label="Grupos" value={String(data.dashboard.groups_count ?? groups.length)} detail="Activos en tu espacio" tone="blue" />
@@ -156,20 +148,20 @@ export function DashboardPage() {
         <MetricCard icon="shield" label="Seguimiento" value={String(watch)} detail="Vigilancia preventiva" tone={watch ? 'violet' : 'neutral'} />
       </section>
 
-      <SectionCard className="agenda-section">
-        <div className="section-heading"><div><span className="eyebrow">AGENDA ACADÉMICA</span><h2>{agenda.current ? 'Clase en curso' : 'Tu jornada'}</h2><p>{agenda.today.length ? `${agenda.today.length} clase${agenda.today.length === 1 ? '' : 's'} programada${agenda.today.length === 1 ? '' : 's'} hoy.` : 'No hay clases programadas para hoy.'}</p></div><button className="button ghost" type="button" onClick={() => navigate('/agenda')}>Ver semana <Icon name="arrow" /></button></div>
-        <div className="agenda-focus-grid"><AgendaFocus occurrence={agenda.current || agenda.next} label={agenda.current ? 'AHORA' : 'SIGUIENTE'} /><AgendaFocus occurrence={agenda.current ? agenda.next : agenda.after} label={agenda.current ? 'DESPUÉS' : 'A CONTINUACIÓN'} /></div>
-      </SectionCard>
-
       <div className="dashboard-columns">
-        <SectionCard>
-          <div className="section-heading"><div><span className="eyebrow">OPERACIÓN ACADÉMICA</span><h2>Tus grupos</h2><p>Resumen y acceso directo al padrón, asistencia y Modo Clase.</p></div><button className="button ghost" type="button" onClick={() => navigate('/groups')}>Ver todos</button></div>
+        <SectionCard className="dashboard-groups-section">
+          <div className="section-heading"><div><span className="eyebrow">TU AULA, A UN CLIC</span><h2>Mis grupos</h2><p>Continúa donde lo dejaste.</p></div><Link className="button ghost" to="/groups">Ver todos <Icon name="arrow" /></Link></div>
+          <div className={`workspace-next-action tone-${action.tone}`}><Icon name={pending ? 'clock' : 'check'} /><div><b>{action.title}</b><p>{action.detail}</p></div><Link to={nextActionPath} className="button ghost compact">{action.groupId ? 'Revisar' : 'Ver grupos'}</Link></div>
           <div className="groups-grid-v2">
             {groups.length ? groups.slice(0, 4).map((group) => <GroupCard group={group} key={group.id} />) : <div className="empty-inline"><Icon name="groups" /><div><b>Aún no hay grupos</b><span>Crea la estructura y el primer grupo para comenzar.</span></div><button className="button primary compact" type="button" onClick={() => navigate('/groups')}>Crear grupo</button></div>}
           </div>
         </SectionCard>
 
         <div className="side-column">
+          <SectionCard className="agenda-section">
+            <div className="section-heading"><div><span className="eyebrow">EN TU AGENDA</span><h2>{agenda.current ? 'Clase en curso' : 'Tu próxima clase'}</h2><p>{agenda.today.length ? `${agenda.today.length} clase${agenda.today.length === 1 ? '' : 's'} hoy.` : 'Hoy no tienes clases programadas.'}</p></div><Link className="button ghost compact" to="/agenda">Ver agenda</Link></div>
+            <AgendaFocus occurrence={currentOrNext} label={agenda.current ? 'AHORA' : 'SIGUIENTE'} />
+          </SectionCard>
           <SectionCard>
             <div className="section-heading compact"><div><span className="eyebrow">PRIORIDADES</span><h2>Necesitan atención</h2></div></div>
             <div className="priority-list-v2">

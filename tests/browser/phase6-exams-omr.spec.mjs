@@ -76,6 +76,8 @@ test('impresión separa cuadernillo y clave y conserva centros de burbujas en A4
   for (const paper of ['a4', 'letter']) {
     await page.getByLabel('Papel', { exact: true }).selectOption(paper);
     await page.emulateMedia({ media: 'print' });
+    await expect(page.locator('.workspace-guide-footer')).toBeHidden();
+    await expect(page.locator('.workspace-skip-link')).toBeHidden();
     const metrics = await page.locator('.omr-sheet-page').first().evaluate(sheet => {
       const box = sheet.getBoundingClientRect(), wrap = sheet.querySelector('.omr-bubble-wrap'), circle = wrap.querySelector('i').getBoundingClientRect();
       return { width: box.width * 25.4 / 96, height: box.height * 25.4 / 96, transform: getComputedStyle(sheet).transform, x: (circle.x + circle.width/2 - box.x)/box.width, y: (circle.y + circle.height/2 - box.y)/box.height, qrLoaded: sheet.querySelector('[data-omr-qr] img').naturalWidth > 0 };

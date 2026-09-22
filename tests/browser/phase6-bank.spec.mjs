@@ -32,7 +32,7 @@ async function fixture(page) {
     await route.fulfill({ json: rows });
   });
   await page.goto('/teacher#/bank');
-  await expect(page.getByRole('heading', { name: 'Banco de Reactivos', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Banco de preguntas', exact: true })).toBeVisible();
   return state;
 }
 const csv = 'pregunta,a,b,respuesta\nCapital de Francia,París,Roma,A';

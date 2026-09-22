@@ -308,7 +308,7 @@ export function BankPage() {
     });
   }
 
-  if (bank.isLoading || home.isLoading) return <LoadingScreen label="Abriendo Question Studio…" />;
+  if (bank.isLoading || home.isLoading) return <LoadingScreen label="Abriendo banco de preguntas…" />;
   if (bank.isError) return <ErrorPanel title="No pude cargar el banco" detail={bank.error.message} onRetry={() => bank.refetch()} />;
   if (home.isError) return <ErrorPanel title="No pude cargar tus grupos" detail={home.error.message} onRetry={() => home.refetch()} />;
 
@@ -318,7 +318,7 @@ export function BankPage() {
 
   return (
     <div className="view-stack bank-page">
-      <PageHeader eyebrow="QUESTION STUDIO" title="Banco de Reactivos" detail="Crea, clasifica, analiza y reutiliza preguntas sin salir del frontend unificado." actions={<button className="button primary" type="button" onClick={() => setDraft(emptyBankDraft())}>＋ Nueva pregunta</button>} />
+      <PageHeader eyebrow="PREGUNTAS Y EXÁMENES" title="Banco de preguntas" detail="Crea, importa y organiza tus preguntas para reutilizarlas en clase y en tus exámenes." actions={<button className="button primary" type="button" onClick={() => setDraft(emptyBankDraft())}>＋ Nueva pregunta</button>} />
 
       {notice ? <div className="success-strip"><Icon name="check" /><span>{notice}</span><button type="button" onClick={() => setNotice('')}>×</button></div> : null}
       {anyError ? <ErrorPanel title="No se pudo completar la operación" detail={(anyError as Error).message || 'Intenta nuevamente.'} /> : null}

@@ -171,6 +171,14 @@ export function GroupDetailPage() {
         }
       />
 
+      <nav className="group-workflow" aria-label="Trabajar con este grupo">
+        <Link to={`/classroom?group=${encodeURIComponent(groupId)}`}><Icon name="classroom" /><span>Iniciar clase</span></Link>
+        <Link to={`/attendance/${groupId}`}><Icon name="attendance" /><span>Asistencia</span></Link>
+        <Link to={`/exams/new?group=${encodeURIComponent(groupId)}`}><Icon name="exam" /><span>Crear examen</span></Link>
+        <Link to={`/gradebook/${groupId}`}><Icon name="grades" /><span>Calificaciones</span></Link>
+        <Link to={`/reports/${groupId}`}><Icon name="reports" /><span>Reportes</span></Link>
+      </nav>
+
       {notice ? <div className="success-strip"><Icon name="check" /><span>{notice}</span><button type="button" onClick={() => setNotice('')}>×</button></div> : null}
       {saveMutation.isError || importMutation.isError || activeMutation.isError ? (
         <ErrorPanel title="No se pudo completar la operación" detail={(saveMutation.error || importMutation.error || activeMutation.error)?.message || 'Intenta nuevamente.'} />
@@ -183,15 +191,15 @@ export function GroupDetailPage() {
         <MetricCard icon="clock" label="Última lista" value={data.attendance_sessions[0] ? formatDate(data.attendance_sessions[0].attendance_date) : '—'} detail={data.attendance_sessions[0] ? sessionLabel(data.attendance_sessions[0].status) : 'Sin registros'} tone="neutral" />
       </section>
 
-      <div className="module-tabs" role="tablist" aria-label="Secciones del grupo">
-        <button type="button" className={tab === 'students' ? 'active' : ''} onClick={() => setTab('students')}>Alumnos</button>
-        <button type="button" className={tab === 'attendance' ? 'active' : ''} onClick={() => setTab('attendance')}>Historial de asistencia</button>
+      <div className="module-tabs" role="group" aria-label="Secciones del grupo">
+        <button type="button" aria-pressed={tab === 'students'} className={tab === 'students' ? 'active' : ''} onClick={() => setTab('students')}>Alumnos</button>
+        <button type="button" aria-pressed={tab === 'attendance'} className={tab === 'attendance' ? 'active' : ''} onClick={() => setTab('attendance')}>Historial de asistencia</button>
       </div>
 
       {tab === 'students' ? (
         <SectionCard>
           <div className="section-heading">
-            <div><span className="eyebrow">PADRÓN</span><h2>Alumnos del grupo</h2><p>Agrega, corrige, importa o desactiva alumnos sin salir del frontend unificado.</p></div>
+            <div><span className="eyebrow">PADRÓN</span><h2>Alumnos del grupo</h2><p>Administra tu lista o abre el perfil de un alumno para consultar su seguimiento.</p></div>
             <div className="page-actions"><button className="button ghost" type="button" onClick={() => setBulkOpen((value) => !value)}>Importar lista</button><button className="button primary" type="button" onClick={() => setStudentDraft({ enrollment: '', fullName: '', active: true })}>＋ Alumno</button></div>
           </div>
 
@@ -230,7 +238,7 @@ export function GroupDetailPage() {
                     return (
                       <tr key={student.id} className={student.active ? '' : 'inactive-row'}>
                         <td data-label="Matrícula"><strong>{student.enrollment}</strong></td>
-                        <td data-label="Alumno">{student.full_name}</td>
+                        <td data-label="Alumno"><Link className="student-profile-link" to={`/students/${groupId}/${student.id}`}>{student.full_name}</Link></td>
                         <td data-label="Asistencia">{rate === null ? '—' : `${rate}%`}</td>
                         <td data-label="Estado"><StatusPill tone={student.active ? 'green' : 'neutral'}>{student.active ? 'Activo' : 'Inactivo'}</StatusPill></td>
                         <td className="row-actions">

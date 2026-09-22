@@ -90,7 +90,7 @@ must(attendanceApi.includes("'present' | 'late' | 'absent' | 'justified'") || fs
 must(app.includes('path="classroom"') && app.includes('path="classroom/:sessionId"') && app.includes('<ClassroomPage />'), 'Modo Clase tiene rutas React propias');
 must(app.includes('path="bank"') && app.includes('<BankPage />'), 'Banco de Reactivos tiene una ruta React propia');
 must(!app.includes('module="classroom"') && !app.includes('module="bank"'), 'Modo Clase y Banco fueron retirados de los placeholders heredados');
-must(navigation.includes("label: 'Modo Clase'") && navigation.includes("label: 'Banco'") && (navigation.match(/migrated: true/g) || []).length >= 6, 'la navegación marca Fase 3 como migrada');
+must(navigation.includes("label: 'Modo Clase'") && navigation.includes("label: 'Banco de preguntas'") && (navigation.match(/migrated: true/g) || []).length >= 6, 'la navegación conserva Modo Clase y Banco de preguntas');
 must(main.includes("import './styles/phase-three.css'"), 'los estilos de Fase 3 se cargan desde un módulo único');
 
 must(bankPage.includes('saveBankQuestion') && bankPage.includes('duplicateBankQuestion') && bankPage.includes('launchClassroomSession') && bankPage.includes('appendBankQuestionsToSession'), 'Question Studio cubre autoría, reutilización y lanzamiento');
@@ -121,7 +121,7 @@ must(!app.includes('module="exams"'), 'Evaluaciones fue retirada de los placehol
 must(navigation.includes("label: 'Evaluaciones'") && (navigation.match(/migrated: true/g) || []).length >= 7, 'la navegación marca Fase 4A como migrada');
 must(main.includes("import './styles/phase-four.css'"), 'los estilos de Fase 4A se cargan desde un módulo único');
 must(examsPage.includes('saveExamDraft') && examsPage.includes('setExamStatus') && examsPage.includes('duplicateExam') && examsPage.includes('analyzeExam'), 'Evaluaciones cubre composición, estados, duplicación y lectura académica');
-must(examsPage.includes('buildExamBlueprint') && examsPage.includes('Question Studio'), 'Evaluaciones reutiliza el Banco en lugar de crear otro editor de reactivos');
+must(examsPage.includes('buildExamBlueprint') && examsPage.includes('Banco de preguntas'), 'Evaluaciones reutiliza el Banco en lugar de crear otro editor de reactivos');
 for (const table of ['v2_paper_exams', 'v2_paper_exam_questions', 'v2_paper_exam_results', 'v2_question_bank', 'v2_academic_periods', 'v2_groups', 'v2_group_students']) {
   must(examsApi.includes(`from('${table}')`), `capa de Evaluaciones utiliza ${table}`);
 }

@@ -27,8 +27,8 @@ function must(condition, message) {
 
 must(app.includes('path="omr"') && app.includes('path="omr/:examId"') && app.includes('path="omr/:examId/sheets"'), 'OMR tiene listado, evaluación y hojas en rutas React propias');
 must(app.includes('<OmrPage />') && app.includes('<OmrSheetsPage />'), 'OMR utiliza componentes nativos del frontend unificado');
-must(navigation.includes("to: '/omr'") && navigation.includes("label: 'OMR'") && navigation.includes("migrated: true"), 'la navegación marca OMR como migrado');
-must(shell.includes('const moreItems = navigation.filter'), 'el menú móvil no depende de índices frágiles al incorporar OMR');
+must(navigation.includes("to: '/omr'") && navigation.includes("label: 'Calificar hojas'") && navigation.includes("migrated: true"), 'Calificar hojas conserva la ruta OMR');
+must(shell.includes('navigationGroups.map') && navigation.includes("children: ['/bank', '/exams', '/omr']"), 'el menú agrupado mantiene Calificar hojas junto a preguntas y exámenes');
 must(main.includes("import './styles/phase-four-omr.css'"), 'OMR carga un único módulo visual dedicado');
 
 for (const table of ['v2_paper_exams', 'v2_paper_exam_results', 'v2_groups', 'v2_group_students']) {

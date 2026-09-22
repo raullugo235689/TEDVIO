@@ -137,6 +137,8 @@ export function OnboardingExperience({ children }: PropsWithChildren) {
       {children}
 
       {snapshot ? (
+        <footer className="workspace-guide-footer">
+          <span>Tu guía de inicio, siempre disponible.</span>
         <button
           className={`onboarding-launcher ${snapshot.completed ? 'complete' : ''}`}
           type="button"
@@ -146,6 +148,7 @@ export function OnboardingExperience({ children }: PropsWithChildren) {
           <span>{snapshot.completed ? '✓' : score}</span>
           <b>{snapshot.completed ? 'TEDVIO listo' : `Configuración ${score}/5`}</b>
         </button>
+        </footer>
       ) : null}
 
       {open ? (

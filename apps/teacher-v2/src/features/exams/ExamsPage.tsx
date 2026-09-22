@@ -174,7 +174,7 @@ function ExamsHome({ workspace }: { workspace: ExamWorkspace }) {
       <PageHeader
         eyebrow="ETAPA 4A · EVALUACIÓN"
         title="Evaluaciones"
-        detail="Construye exámenes desde Question Studio, genera versiones y conserva una fotografía estable de cada reactivo."
+        detail="Construye exámenes desde tu banco de preguntas, prepara versiones e imprime el material para tus alumnos."
         actions={<Link className="button primary" to="/exams/new">＋ Nueva evaluación</Link>}
       />
 
@@ -210,7 +210,7 @@ function ExamsHome({ workspace }: { workspace: ExamWorkspace }) {
 
       <section className="exam-integration-note">
         <Icon name="bank" />
-        <div><span className="eyebrow">QUESTION STUDIO → EVALUACIÓN</span><h2>El examen guarda una copia estable de cada reactivo.</h2><p>Editar después una pregunta del Banco no cambia una evaluación ya preparada. Los resultados históricos siguen apuntando a la versión exacta aplicada.</p></div>
+        <div><span className="eyebrow">BANCO DE PREGUNTAS → EVALUACIÓN</span><h2>El examen guarda una copia estable de cada reactivo.</h2><p>Editar después una pregunta del Banco no cambia una evaluación ya preparada. Los resultados históricos siguen apuntando a la versión exacta aplicada.</p></div>
         <Link className="button secondary" to="/bank">Abrir Banco</Link>
       </section>
     </div>
@@ -456,7 +456,7 @@ function ExamEditor({
           <label>Título<input value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} placeholder="Parcial 1 · Anatomía" /></label>
           <label>Materia<input value={draft.subject} onChange={(event) => setDraft({ ...draft, subject: event.target.value })} placeholder="Anatomía Humana" /></label>
           <label>Fecha<input type="date" value={draft.examDate} onChange={(event) => setDraft({ ...draft, examDate: event.target.value })} /></label>
-          <label>Grupo<select value={draft.groupId} onChange={(event) => setGroup(event.target.value)}><option value="">Sin grupo / plantilla general</option>{workspace.groups.map((group) => <option key={group.id} value={group.id}>{groupLabel(group)}</option>)}</select></label>
+          <label>Grupo<select aria-label="Grupo" value={draft.groupId} onChange={(event) => setGroup(event.target.value)}><option value="">Sin grupo / plantilla general</option>{workspace.groups.map((group) => <option key={group.id} value={group.id}>{groupLabel(group)}</option>)}</select></label>
           <label>Periodo<select value={draft.periodId} disabled={!draft.groupId} onChange={(event) => setDraft({ ...draft, periodId: event.target.value })}><option value="">Asignación automática por fecha</option>{periods.map((period) => <option key={period.id} value={period.id}>{period.name} · {shortDate(period.starts_on)}–{shortDate(period.ends_on)}</option>)}</select></label>
           <label>Calificación aprobatoria<input type="number" min="0" max="10" step="0.1" value={draft.passingScore} onChange={(event) => setDraft({ ...draft, passingScore: Number(event.target.value) })} /></label>
         </div>
@@ -491,7 +491,7 @@ function ExamEditor({
         </SectionCard>
 
         <SectionCard className="exam-bank-panel">
-          <div className="section-heading"><div><span className="eyebrow">QUESTION STUDIO</span><h2>Banco compatible</h2><p>Solo se muestran preguntas que pueden producir una clave OMR inequívoca.</p></div><Link className="button ghost compact" to="/bank">Editar Banco</Link></div>
+          <div className="section-heading"><div><span className="eyebrow">BANCO DE PREGUNTAS</span><h2>Banco compatible</h2><p>Solo se muestran preguntas con una respuesta correcta única, compatibles con el lector de hojas.</p></div><Link className="button ghost compact" to="/bank">Editar Banco</Link></div>
           {auth.user ? <ExamImportPanel user={auth.user} existing={allBankQuestions} subject={draft.subject} maxImport={60 - draft.questions.length} disabled={busy || !online || draft.questions.length >= 60} onImported={addImported} /> : null}
           <div className="exam-bank-filters">
             <label className="search-field"><Icon name="search" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar reactivo" /></label>
@@ -509,7 +509,7 @@ function ExamEditor({
                 </article>
               );
             })}
-            {!available.length ? <EmptyState icon="search" title="No hay coincidencias" detail="Ajusta los filtros o crea reactivos objetivos en Question Studio." /> : null}
+            {!available.length ? <EmptyState icon="search" title="No hay coincidencias" detail="Ajusta los filtros o crea reactivos objetivos en tu banco de preguntas." /> : null}
           </div>
         </SectionCard>
       </section>
@@ -616,7 +616,7 @@ function OverviewTab({ detail, analytics }: { detail: ExamDetail; analytics: Exa
           <div><dt>Fecha</dt><dd>{shortDate(detail.exam.exam_date)}</dd></div>
           <div><dt>Versiones</dt><dd>{detail.exam.versions.join(', ')}</dd></div>
           <div><dt>Aprobatoria</dt><dd>{grade(detail.exam.passing_score)}</dd></div>
-          <div><dt>Origen</dt><dd>{detail.exam.source_mode === 'bank' ? 'Question Studio' : 'Clave heredada'}</dd></div>
+          <div><dt>Origen</dt><dd>{detail.exam.source_mode === 'bank' ? 'Banco de preguntas' : 'Clave heredada'}</dd></div>
         </dl>
       </SectionCard>
       <SectionCard>
