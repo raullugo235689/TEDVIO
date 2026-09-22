@@ -73,7 +73,9 @@ function fieldIndex(headers: string[], name: keyof typeof aliases): number {
 }
 
 function optionIndexes(headers: string[]): number[] {
-  return headers.map((header, index) => (/^(opcion_?)?[a-e]$/.test(header) || /^option_?[a-e]$/.test(header) ? index : -1)).filter((index) => index >= 0);
+  const indexes = ['a', 'b', 'c', 'd', 'e'].map((letter) => headers.findIndex((header) => [letter, `opcion_${letter}`, `opcion${letter}`, `option_${letter}`, `option${letter}`].includes(header)));
+  while (indexes.at(-1) === -1) indexes.pop();
+  return indexes;
 }
 
 function difficulty(value: string): QuestionDifficulty {
@@ -92,9 +94,11 @@ function bloom(value: string): BloomLevel {
 function makeDraft(values: Record<string, string>, options: string[], row: number, issues: ImportIssue[]): BankQuestionDraft | null {
   const prompt = clean(values.prompt);
   const answerRaw = clean(values.answer);
-  const uniqueOptions = [...new Set(options.map(clean).filter(Boolean))];
+  const uniqueOptions = Array.from(options, clean);
+  while (uniqueOptions.length && !uniqueOptions.at(-1)) uniqueOptions.pop();
   if (!prompt) { issues.push({ row, severity: 'error', message: 'Falta el enunciado.' }); return null; }
   if (uniqueOptions.length < 2 || uniqueOptions.length > 5) { issues.push({ row, severity: 'error', message: 'Debe contener entre 2 y 5 opciones distintas.' }); return null; }
+  if (uniqueOptions.some((option) => !option) || new Set(uniqueOptions.map(normalized)).size !== uniqueOptions.length) { issues.push({ row, severity: 'error', message: 'Hay opciones vacías entre letras o repetidas. Corrígelas para conservar la clave.' }); return null; }
   const letter = /^[A-E]$/i.test(answerRaw) ? answerRaw.toUpperCase().charCodeAt(0) - 65 : -1;
   const correct = letter >= 0 ? uniqueOptions[letter] : uniqueOptions.find((option) => normalized(option) === normalized(answerRaw));
   if (!correct) { issues.push({ row, severity: 'error', message: 'La clave no coincide con una opción (usa A–E o el texto exacto).' }); return null; }
@@ -106,7 +110,19 @@ function makeDraft(values: Record<string, string>, options: string[], row: numbe
 }
 
 function parseTable(text: string, existing: BankQuestion[]): ImportReport | null {
-  const lines = text.replace(/\r/g, '').split('\n').filter((line) => line.trim());
+  const lines: string[] = [];
+  let record = '', quoted = false;
+  const source = text.replace(/\r/g, '');
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index];
+    if (character === '"') {
+      if (quoted && source[index + 1] === '"') { record += '""'; index += 1; continue; }
+      quoted = !quoted;
+    }
+    if (character === '\n' && !quoted) { if (record.trim()) lines.push(record); record = ''; }
+    else record += character;
+  }
+  if (record.trim()) lines.push(record);
   if (lines.length < 2) return null;
   const headerLine = lines[0] || '';
   const delimiter = headerLine.includes('\t') ? '\t' : (headerLine.split(';').length > headerLine.split(',').length ? ';' : ',');
@@ -115,6 +131,7 @@ function parseTable(text: string, existing: BankQuestion[]): ImportReport | null
   const answerIndex = fieldIndex(headers, 'answer');
   const optionsAt = optionIndexes(headers);
   if (promptIndex < 0 || answerIndex < 0 || optionsAt.length < 2) return null;
+  if (quoted) return { questions: [], issues: [{ row: lines.length, severity: 'error', message: 'Hay comillas sin cerrar en el CSV.' }] };
   const issues: ImportIssue[] = [];
   const known = new Set(existing.map(questionFingerprint));
   const seen = new Set<string>();
@@ -176,7 +193,68 @@ function parseBlocks(text: string, existing: BankQuestion[]): ImportReport {
 
 export function parseQuestionImport(text: string, existing: BankQuestion[] = []): ImportReport {
   if (!text.trim()) return { questions: [], issues: [{ row: 0, severity: 'error', message: 'Pega preguntas o carga un archivo CSV/TXT.' }] };
+  if (/^[\s\uFEFF]*[\[{]/.test(text)) return parseBankJson(text, existing);
   return parseTable(text, existing) || parseBlocks(text, existing);
+}
+
+export function bankBackup(questions: BankQuestion[]): string {
+  return JSON.stringify({ format: 'tedvio-question-bank', version: 1, questions: questions.map(({ title, subject, topic, question_type, prompt, options, correct_answer, explanation, difficulty, folder, tags, bloom, media_url, media_type, favorite, archived }) => ({ title, subject, topic, question_type, prompt, options, correct_answer, explanation, difficulty, folder, tags, bloom, media_url, media_type, favorite, archived })) }, null, 2);
+}
+
+function parseBankJson(source: string, existing: BankQuestion[]): ImportReport {
+  const report: ImportReport = { questions: [], issues: [] };
+  try {
+    const parsed = JSON.parse(source.replace(/^\uFEFF/, ''));
+    if (!Array.isArray(parsed) && (parsed?.format !== 'tedvio-question-bank' || parsed?.version !== 1)) throw new Error('Usa un respaldo TEDVIO versión 1 o una lista JSON de preguntas.');
+    const rows = Array.isArray(parsed) ? parsed : parsed.questions;
+    if (!Array.isArray(rows) || !rows.length) throw new Error('El archivo debe contener una lista de preguntas.');
+    const known = new Set(existing.map(questionFingerprint));
+    rows.forEach((row: unknown, index: number) => {
+      try {
+        if (!row || typeof row !== 'object' || Array.isArray(row)) throw new Error('La pregunta debe ser un objeto.');
+        const value = row as Record<string, unknown>;
+        const string = (key: string, fallback = '') => {
+          const item = value[key];
+          if (item == null) return fallback;
+          if (typeof item !== 'string') throw new Error(`${key} debe ser texto.`);
+          return item.trim();
+        };
+        const list = (item: unknown, field: string): string[] => {
+          if (item == null) return [];
+          if (!Array.isArray(item) || item.some((entry) => typeof entry !== 'string')) throw new Error(`${field} debe contener textos.`);
+          return item.map((entry: string) => entry.trim());
+        };
+        const questionType = string('questionType', string('question_type', 'multiple_choice')) as BankQuestionDraft['questionType'];
+        if (!['multiple_choice','multiple_select','true_false','open_text','numeric','poll','scale_5','ordering','hotspot'].includes(questionType)) throw new Error('Tipo de pregunta desconocido.');
+        const rawAnswer = value.correctAnswers ?? value.correct_answer;
+        const correctAnswers = typeof rawAnswer === 'string' || (questionType === 'numeric' && typeof rawAnswer === 'number') ? [String(rawAnswer)] : list(rawAnswer, 'Respuesta');
+        const options = list(value.options, 'Opciones');
+        const prompt = string('prompt');
+        if (!prompt) throw new Error('Falta el enunciado.');
+        if (['multiple_choice','multiple_select','true_false','poll','scale_5','ordering'].includes(questionType)) {
+          if (options.length < 2 || options.some((option) => !option) || new Set(options).size !== options.length) throw new Error('Revisa las opciones vacías o repetidas.');
+          if (['multiple_choice','multiple_select','true_false'].includes(questionType) && (!correctAnswers.length || correctAnswers.some((answer) => !options.includes(answer)))) throw new Error('La clave no coincide con las opciones.');
+          if (['multiple_choice','true_false'].includes(questionType) && correctAnswers.length !== 1) throw new Error('Este tipo requiere una sola clave.');
+          if (questionType === 'true_false' && JSON.stringify(options) !== JSON.stringify(['Verdadero','Falso'])) throw new Error('Usa Verdadero y Falso, en ese orden.');
+          if (questionType === 'scale_5' && options.join('|') !== '1|2|3|4|5') throw new Error('La escala debe contener 1, 2, 3, 4 y 5.');
+        }
+        const level = string('difficulty') as QuestionDifficulty;
+        const cognitive = string('bloom') as BloomLevel;
+        const mediaType = string('mediaType', string('media_type')) as BankQuestionDraft['mediaType'];
+        const mediaUrl = string('mediaUrl', string('media_url'));
+        if (!['','baja','media','alta'].includes(level) || !['','recordar','comprender','aplicar','analizar','evaluar','crear'].includes(cognitive)) throw new Error('Dificultad o nivel Bloom no válido.');
+        if (!['','image','audio','video'].includes(mediaType) || (mediaType && !mediaUrl)) throw new Error('Revisa el recurso multimedia.');
+        for (const flag of ['favorite','archived']) if (value[flag] != null && typeof value[flag] !== 'boolean') throw new Error(`${flag} debe ser true o false.`);
+        const draft: BankQuestionDraft = { title: string('title', prompt.slice(0,110)), prompt, questionType, subject: string('subject'), topic: string('topic'), options, correctAnswers, explanation: string('explanation'), difficulty: level, bloom: cognitive, folder: string('folder'), tags: list(value.tags, 'Etiquetas'), mediaType, mediaUrl, favorite: value.favorite === true, archived: value.archived === true };
+        const fingerprint = questionFingerprint(draft);
+        const duplicate = known.has(fingerprint);
+        known.add(fingerprint);
+        if (duplicate) report.issues.push({ row: index + 1, severity: 'warning', message: 'Posible duplicado; no se importará automáticamente.' });
+        report.questions.push({ row: index + 1, draft, duplicate });
+      } catch (error) { report.issues.push({ row: index + 1, severity: 'error', message: (error as Error).message }); }
+    });
+  } catch (error) { report.issues.push({ row: 0, severity: 'error', message: `JSON no válido: ${(error as Error).message}` }); }
+  return report;
 }
 
 export function selectBalancedQuestions(questions: BankQuestion[], count: number): BankQuestion[] {

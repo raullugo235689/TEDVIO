@@ -19,3 +19,6 @@
 
 .gradebook-capture-fields>legend{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
 .omr-publication{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.omr-publication>small{flex-basis:100%}.omr-publication-summary{display:grid;gap:8px}.omr-publication-summary>div{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid var(--border)}.omr-publication-summary dd{margin:0;font-weight:800}
+/* Keep wide grade tables inside their own scroller instead of expanding the page. */
+.gradebook-page, .gradebook-page > * { min-width: 0; max-width: 100%; }
+@media (max-width: 640px) { .gradebook-page .gradebook-tabs { position: static; } }

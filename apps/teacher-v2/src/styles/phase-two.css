@@ -171,3 +171,10 @@
   .attendance-editor .attendance-status-control button span { display: inline; }
   .attendance-editor .attendance-savebar .button { white-space: normal; flex-basis: 40%; }
 }
+.bank-import-preview { display: grid; gap: 12px; max-height: 520px; overflow: auto; }
+.bank-page .selection-dock { position: static; width: auto; transform: none; }
+.bank-import-preview details { padding: 12px; border: 1px solid var(--border); border-radius: 12px; }
+.bank-import-preview summary { cursor: pointer; overflow-wrap: anywhere; }
+.bank-import-preview fieldset { display: grid; gap: 10px; min-width: 0; margin-top: 12px; border: 0; padding: 0; }
+.bank-import-preview label { display: grid; gap: 5px; }
+.exam-import-report { max-height: 200px; overflow: auto; }

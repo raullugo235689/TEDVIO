@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { assessExamQuality, parseQuestionImport, questionFingerprint, reorderExamOptions, selectBalancedQuestions } from '../src/core/exam-creator.ts';
+import { assessExamQuality, bankBackup, parseQuestionImport, questionFingerprint, reorderExamOptions, selectBalancedQuestions } from '../src/core/exam-creator.ts';
 
 function bank(id, prompt, topic = 'Tema 1', difficulty = 'media', answer = 'Correcta') {
   return {
@@ -22,6 +22,49 @@ test('importa tablas pegadas desde Excel y resuelve claves por letra', () => {
 test('acepta CSV de Excel separado por punto y coma', () => {
   const report = parseQuestionImport('pregunta;opcion_a;opcion_b;respuesta\n¿Dos más dos?;4;5;A');
   assert.equal(report.questions[0].draft.correctAnswers[0], '4');
+});
+
+test('preserva las letras con columnas desordenadas y bloquea huecos o repetidos', () => {
+  const report = parseQuestionImport('pregunta,opcion_b,opcion_a,respuesta\nCapital,Roma,París,A');
+  assert.equal(report.questions[0].draft.correctAnswers[0], 'París');
+  for (const row of ['Pregunta,Uno,,Tres,C', 'Pregunta,Uno,Uno,Tres,C']) {
+    const invalid = parseQuestionImport(`pregunta,a,b,c,respuesta\n${row}`);
+    assert.equal(invalid.questions.length, 0);
+    assert.match(invalid.issues[0].message, /vacías|repetidas/);
+  }
+  assert.equal(parseQuestionImport('Pregunta\nA) Uno\nC) Tres\nCLAVE: C').questions.length, 0);
+});
+
+test('respaldo JSON conserva contenido y clasificación sin identificadores privados', () => {
+  const question = { ...bank('q1', 'Pregunta con "comillas"\ny líneas'), folder: 'Unidad 2', tags: ['repaso'], explanation: 'Explicación', archived: true, favorite: true, media_url: 'https://example.test/img.png', media_type: 'image' };
+  const source = bankBackup([question]);
+  const stored = JSON.parse(source).questions[0];
+  assert.equal(stored.teacher_id, undefined);
+  assert.equal(stored.id, undefined);
+  const parsed = parseQuestionImport(source);
+  assert.deepEqual(parsed.issues, []);
+  assert.equal(parsed.questions[0].draft.id, undefined);
+  for (const field of ['prompt','folder','tags','archived','favorite','explanation']) assert.deepEqual(parsed.questions[0].draft[field], question[field]);
+  assert.equal(parsed.questions[0].draft.mediaUrl, question.media_url);
+  assert.equal(parseQuestionImport(source, [question]).questions[0].duplicate, true);
+});
+
+test('CSV conserva saltos de línea y comillas dentro de celdas', () => {
+  const parsed = parseQuestionImport('pregunta,a,b,respuesta\n"Caso clínico:\nDijo ""hola""",Sí,No,A');
+  assert.equal(parsed.questions[0].draft.prompt, 'Caso clínico:\nDijo "hola"');
+  assert.equal(parsed.questions[0].draft.correctAnswers[0], 'Sí');
+  assert.equal(parseQuestionImport('pregunta,a,b,respuesta\n"Texto sin cerrar,Sí,No,A').questions.length, 0);
+});
+
+test('JSON inválido, claves ajenas y tipos desconocidos no se guardan silenciosamente', () => {
+  const base = bank('a', 'Pregunta');
+  for (const change of [{ correct_answer: 'Inexistente' }, { question_type: 'otro' }, { archived: 'false' }, { options: { a: 'Texto' } }, { correct_answer: { x: 1 } }]) {
+    const report = parseQuestionImport(JSON.stringify([{ ...base, ...change }]));
+    assert.equal(report.questions.length, 0);
+    assert.equal(report.issues[0].severity, 'error');
+  }
+  assert.equal(parseQuestionImport('{mal').questions.length, 0);
+  assert.equal(parseQuestionImport(JSON.stringify({ format: 'tedvio-question-bank', version: 2, questions: [base] })).questions.length, 0);
 });
 
 test('importa bloques de Word y rechaza claves inválidas', () => {

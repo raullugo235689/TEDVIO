@@ -492,7 +492,7 @@ function ExamEditor({
 
         <SectionCard className="exam-bank-panel">
           <div className="section-heading"><div><span className="eyebrow">QUESTION STUDIO</span><h2>Banco compatible</h2><p>Solo se muestran preguntas que pueden producir una clave OMR inequívoca.</p></div><Link className="button ghost compact" to="/bank">Editar Banco</Link></div>
-          {auth.user ? <ExamImportPanel user={auth.user} existing={allBankQuestions} subject={draft.subject} disabled={busy || !online || draft.questions.length >= 60} onImported={addImported} /> : null}
+          {auth.user ? <ExamImportPanel user={auth.user} existing={allBankQuestions} subject={draft.subject} maxImport={60 - draft.questions.length} disabled={busy || !online || draft.questions.length >= 60} onImported={addImported} /> : null}
           <div className="exam-bank-filters">
             <label className="search-field"><Icon name="search" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar reactivo" /></label>
             <select value={subjectFilter} onChange={(event) => setSubjectFilter(event.target.value)}><option value="">Todas las materias</option>{subjects.map((value) => <option key={value}>{value}</option>)}</select>

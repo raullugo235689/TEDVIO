@@ -220,13 +220,19 @@ export function bankWorkspaceKey(userId?: string) {
 }
 
 export async function fetchBankWorkspace(user: User): Promise<BankWorkspace> {
+  async function fetchAllQuestions() {
+    const questions: BankQuestion[] = [];
+    for (let from = 0; ; from += 500) {
+      const { data, error } = await supabase.from('v2_question_bank').select('*').eq('teacher_id', user.id)
+        .order('id').range(from, from + 499);
+      if (error) return { data: null, error };
+      const page = (data || []) as BankQuestion[];
+      questions.push(...page);
+      if (page.length < 500) return { data: questions.sort((a, b) => Number(b.favorite) - Number(a.favorite) || (b.updated_at || '').localeCompare(a.updated_at || '')), error: null };
+    }
+  }
   const [questionsResult, metricsResult] = await Promise.all([
-    supabase
-      .from('v2_question_bank')
-      .select('*')
-      .eq('teacher_id', user.id)
-      .order('favorite', { ascending: false })
-      .order('updated_at', { ascending: false }),
+    fetchAllQuestions(),
     supabase.rpc('v2_teacher_question_bank_metrics'),
   ]);
 
@@ -264,11 +270,25 @@ export async function saveBankQuestion(user: User, draft: BankQuestionDraft): Pr
 
 export async function saveBankQuestions(user: User, drafts: BankQuestionDraft[]): Promise<BankQuestion[]> {
   if (!drafts.length) return [];
+  if (drafts.length > 500) throw new Error('Importa hasta 500 preguntas por lote.');
   if (drafts.some((draft) => draft.id)) throw new Error('La importación masiva solo admite reactivos nuevos.');
   const rows = drafts.map((draft) => ({ ...bankQuestionPayload(draft), teacher_id: user.id }));
   const { data, error } = await supabase.from('v2_question_bank').insert(rows).select('*');
   if (error) throw new Error(`No se pudieron importar las preguntas: ${errorMessage(error)}`);
   return (data || []) as BankQuestion[];
+}
+
+export async function organizeBankQuestions(user: User, ids: string[], changes: Partial<Pick<BankQuestion, 'subject' | 'topic' | 'folder' | 'archived'>>): Promise<number> {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) throw new Error('Sin conexión. Los cambios no se enviaron.');
+  const selected = unique(ids);
+  if (!selected.length || selected.length > 500) throw new Error('Selecciona entre 1 y 500 preguntas.');
+  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  for (const field of ['subject', 'topic', 'folder'] as const) if (changes[field] !== undefined) patch[field] = text(changes[field]) || null;
+  if (typeof changes.archived === 'boolean') patch.archived = changes.archived;
+  if (Object.keys(patch).length === 1) throw new Error('Elige un cambio para aplicar.');
+  const { data, error } = await supabase.from('v2_question_bank').update(patch).eq('teacher_id', user.id).in('id', selected).select('id');
+  if (error) throw new Error(`No se pudo organizar el banco: ${errorMessage(error)}`);
+  return (data || []).length;
 }
 
 export async function duplicateBankQuestion(user: User, questionId: string): Promise<BankQuestion> {
