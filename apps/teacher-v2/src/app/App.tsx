@@ -14,6 +14,7 @@ import {
   loadBankPage,
   loadClassroomPage,
   loadDashboardPage,
+  loadPreparePage,
   loadExamsPage,
   loadExamPrintPage,
   loadGradebookPage,
@@ -30,6 +31,7 @@ import {
 } from './route-loaders';
 
 const DashboardPage = lazy(() => loadDashboardPage().then((module) => ({ default: module.DashboardPage })));
+const PreparePage = lazy(() => loadPreparePage().then((module) => ({ default: module.PreparePage })));
 const AgendaPage = lazy(() => loadAgendaPage().then((module) => ({ default: module.AgendaPage })));
 const GroupsPage = lazy(() => loadGroupsPage().then((module) => ({ default: module.GroupsPage })));
 const GroupDetailPage = lazy(() => loadGroupDetailPage().then((module) => ({ default: module.GroupDetailPage })));
@@ -76,6 +78,7 @@ export function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route element={<ProtectedShell />}>
         <Route index element={tool(<DashboardPage />, 'Preparando tu centro docente…')} />
+        <Route path="prepare" element={tool(<PreparePage />, 'Abriendo preguntas y exámenes…')} />
         <Route path="agenda" element={tool(<AgendaPage />, 'Abriendo Agenda…')} />
         <Route path="groups" element={tool(<GroupsPage />, 'Abriendo Grupos…')} />
         <Route path="groups/:groupId" element={tool(<GroupDetailPage />, 'Abriendo el grupo…')} />
@@ -84,7 +87,7 @@ export function App() {
         <Route path="classroom" element={tool(<ClassroomPage />, 'Preparando Modo Clase…')} />
         <Route path="classroom/:sessionId" element={tool(<ClassroomPage />, 'Abriendo la sesión…')} />
         <Route path="classroom/:sessionId/health" element={tool(<PilotHealthPage />, 'Calculando salud del piloto…')} />
-        <Route path="bank" element={tool(<BankPage />, 'Abriendo Question Studio…')} />
+        <Route path="bank" element={tool(<BankPage />, 'Abriendo banco de preguntas…')} />
         <Route path="exams" element={tool(<ExamsPage />, 'Abriendo Evaluaciones…')} />
         <Route path="exams/new" element={tool(<ExamsPage create />, 'Preparando la evaluación…')} />
         <Route path="exams/:examId/print" element={tool(<ExamPrintPage />, 'Preparando cuadernillo…')} />
@@ -94,7 +97,7 @@ export function App() {
         <Route path="omr/:examId/sheets" element={tool(<OmrSheetsPage />, 'Preparando hojas OMR…')} />
         <Route path="gradebook" element={tool(<GradebookPage />, 'Abriendo Calificaciones…')} />
         <Route path="gradebook/:groupId" element={tool(<GradebookPage />, 'Abriendo el Libro…')} />
-        <Route path="students" element={tool(<Student360Page />, 'Abriendo Alumno 360°…')} />
+        <Route path="students" element={tool(<Student360Page />, 'Abriendo perfil del alumno…')} />
         <Route path="students/:groupId/:studentId" element={tool(<Student360Page />, 'Abriendo el expediente…')} />
         <Route path="periods" element={tool(<PeriodsPage />, 'Abriendo Periodos…')} />
         <Route path="periods/:groupId" element={tool(<PeriodsPage />, 'Abriendo Periodos…')} />

@@ -17,7 +17,7 @@ function must(condition, message) {
 }
 
 must(app.includes('path="students"') && app.includes('path="students/:groupId/:studentId"') && app.includes('<Student360Page />'), 'Alumno 360° tiene directorio y expediente en rutas React propias');
-must(navigation.includes("to: '/students'") && navigation.includes("label: 'Alumno 360°'") && navigation.includes('migrated: true'), 'la navegación marca Alumno 360° como migrado');
+must(navigation.includes("to: '/students'") && navigation.includes("label: 'Perfil del alumno'") && navigation.includes('migrated: true'), 'Perfil del alumno conserva la ruta del expediente');
 must(main.includes("import './styles/student360.css'"), 'Alumno 360° carga un módulo visual dedicado');
 
 must(api.includes('fetchGradebookDetail') && api.includes('calculateGradebook') && api.includes('recommendedPeriodId'), 'Alumno 360° reutiliza la única fuente de cálculo del Libro');

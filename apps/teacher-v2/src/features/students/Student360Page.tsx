@@ -121,7 +121,7 @@ function Directory({ workspace }: { workspace: Student360Directory }) {
     <div className="view-stack student360-page">
       <PageHeader
         eyebrow="ETAPA 4D · EXPEDIENTE"
-        title="Alumno 360°"
+        title="Perfil del alumno"
         detail="Consulta trayectoria, asistencia, OMR, evidencias, pendientes y observaciones desde una sola fuente académica."
       />
 
@@ -335,7 +335,7 @@ function StudentDetail({ groupId, studentId }: { groupId: string; studentId: str
     },
   });
 
-  if (profile.isLoading) return <LoadingScreen label="Construyendo Alumno 360°…" />;
+  if (profile.isLoading) return <LoadingScreen label="Abriendo perfil del alumno…" />;
   if (profile.isError) return <ErrorPanel title="No pude abrir el expediente" detail={profile.error.message} onRetry={() => profile.refetch()} />;
   if (!profile.data) return null;
 
@@ -347,7 +347,7 @@ function StudentDetail({ groupId, studentId }: { groupId: string; studentId: str
   return (
     <div className="view-stack student360-page">
       <PageHeader
-        eyebrow="ALUMNO 360°"
+        eyebrow="PERFIL DEL ALUMNO"
         title={data.student.full_name}
         detail={`${data.student.enrollment} · ${groupTitle}`}
         actions={<div className="page-actions"><Link className="button ghost" to="/students">← Directorio</Link><Link className="button ghost" to={`/groups/${groupId}`}>Grupo</Link><Link className="button secondary" to={`/gradebook/${groupId}`}>Libro</Link><button className="button primary" type="button" onClick={() => exportStudent360Csv(data, calculation)}>Exportar CSV</button></div>}
@@ -368,7 +368,7 @@ function StudentDetail({ groupId, studentId }: { groupId: string; studentId: str
         <MetricCard label="Peso con evidencia" value={`${calculation.current.evidenceWeight.toFixed(0)}%`} detail={`${calculation.pendingCount} pendientes`} icon="route" tone={calculation.pendingCount ? 'amber' : 'green'} />
       </section>
 
-      <div className="module-tabs student360-tabs" role="tablist" aria-label="Secciones de Alumno 360°">
+      <div className="module-tabs student360-tabs" role="tablist" aria-label="Secciones del perfil del alumno">
         <button type="button" className={tab === 'summary' ? 'active' : ''} onClick={() => setTab('summary')}>Resumen</button>
         <button type="button" className={tab === 'trajectory' ? 'active' : ''} onClick={() => setTab('trajectory')}>Trayectoria</button>
         <button type="button" className={tab === 'evidence' ? 'active' : ''} onClick={() => setTab('evidence')}>Evidencias</button>
@@ -398,6 +398,6 @@ export function Student360Page() {
 
   if (groupId && studentId) return <StudentDetail groupId={groupId} studentId={studentId} />;
   if (directory.isLoading) return <LoadingScreen label="Preparando el directorio académico…" />;
-  if (directory.isError) return <ErrorPanel title="No pude cargar Alumno 360°" detail={directory.error.message} onRetry={() => directory.refetch()} />;
+  if (directory.isError) return <ErrorPanel title="No pude cargar los perfiles de alumnos" detail={directory.error.message} onRetry={() => directory.refetch()} />;
   return directory.data ? <Directory workspace={directory.data} /> : null;
 }
