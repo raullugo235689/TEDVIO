@@ -32,6 +32,7 @@ import type { StudentRecord } from '../../core/types';
 import { EmptyState, ErrorPanel, LoadingScreen, MetricCard, PageHeader, SectionCard, StatusPill } from '../../shared/components';
 import { Icon } from '../../shared/icons';
 import { ActionDialog } from '../../shared/ActionDialog';
+import { AcademicDeleteButton } from '../../shared/AcademicDeleteButton';
 import { useAuth } from '../auth/AuthProvider';
 
 interface ScoreRow {
@@ -212,18 +213,19 @@ function useClock(active: boolean) {
   return now;
 }
 
-function SessionCard({ session, groupLabel }: { session: ClassroomSession; groupLabel: string }) {
+function SessionCard({ session, groupLabel, onDeleted }: { session: ClassroomSession; groupLabel: string; onDeleted: () => void }) {
   return (
     <article className="classroom-session-card">
       <header><div><span className="eyebrow">CÓDIGO {session.code}</span><h2>{session.title || 'Sesión TEDVIO'}</h2><p>{groupLabel}</p></div><StatusPill tone={sessionTone(session.status)}>{sessionLabel(session.status)}</StatusPill></header>
       <div className="classroom-session-meta"><span><small>Creada</small><b>{dateTime(session.created_at)}</b></span><span><small>Modalidad</small><b>{session.competitive ? 'Competitiva' : 'Formativa'}</b></span><span><small>Participación</small><b>{session.team_mode ? 'Equipos' : 'Individual'}</b></span></div>
-      <footer><Link className="button primary" to={`/classroom/${session.id}`}>{session.status === 'closed' ? 'Ver resumen' : 'Abrir control'}</Link></footer>
+      <footer><AcademicDeleteButton target={{ kind: 'session', id: session.id, label: session.title || 'Sesión TEDVIO' }} onDeleted={onDeleted} /><Link className="button primary" to={`/classroom/${session.id}`}>{session.status === 'closed' ? 'Ver resumen' : 'Abrir control'}</Link></footer>
     </article>
   );
 }
 
 function ClassroomLanding() {
   const auth = useAuth();
+  const [notice, setNotice] = useState('');
   const home = useTeacherHome();
   const [searchParams] = useSearchParams();
   const [groupId, setGroupId] = useState(searchParams.get('group') || '');
@@ -248,6 +250,7 @@ function ClassroomLanding() {
   return (
     <div className="view-stack classroom-landing">
       <PageHeader eyebrow="MODO CLASE" title="Cockpit docente" detail="Prepara preguntas, abre una sala, acompaña respuestas y cierra la sesión sin desmontar TEDVIO 2.0." />
+      {notice ? <div className="success-strip" role="status"><Icon name="check" /><span>{notice}</span><button type="button" aria-label="Cerrar aviso" onClick={() => setNotice('')}>×</button></div> : null}
 
       <section className="classroom-start-panel">
         <div><span className="eyebrow">NUEVA CLASE</span><h2>Empieza desde tu banco revisado</h2><p>Elige el grupo y después selecciona las preguntas que quieres llevar al aula.</p></div>
@@ -257,12 +260,12 @@ function ClassroomLanding() {
 
       <SectionCard>
         <div className="section-heading"><div><span className="eyebrow">SESIONES ACTIVAS</span><h2>Preparadas o en curso</h2><p>Retoma el control desde cualquier dispositivo con tu sesión docente.</p></div><StatusPill tone={active.length ? 'green' : 'neutral'}>{active.length} activas</StatusPill></div>
-        {active.length ? <div className="classroom-session-grid">{active.map((session) => { const group = session.group_id ? groupById.get(session.group_id) : null; return <SessionCard key={session.id} session={session} groupLabel={group ? `${groupSubject(group)} · ${groupName(group)}` : session.group_name || 'Sin grupo vinculado'} />; })}</div> : <EmptyState icon="classroom" title="No hay sesiones activas" detail="Selecciona un grupo y prepara una clase desde el Banco de Reactivos." action={<Link className="button secondary" to="/bank">Abrir banco</Link>} />}
+        {active.length ? <div className="classroom-session-grid">{active.map((session) => { const group = session.group_id ? groupById.get(session.group_id) : null; return <SessionCard key={session.id} session={session} onDeleted={() => setNotice(`Sesión «${session.title || session.code}» eliminada.`)} groupLabel={group ? `${groupSubject(group)} · ${groupName(group)}` : session.group_name || 'Sin grupo vinculado'} />; })}</div> : <EmptyState icon="classroom" title="No hay sesiones activas" detail="Selecciona un grupo y prepara una clase desde el Banco de Reactivos." action={<Link className="button secondary" to="/bank">Abrir banco</Link>} />}
       </SectionCard>
 
       <SectionCard>
         <div className="section-heading"><div><span className="eyebrow">HISTORIAL RECIENTE</span><h2>Clases finalizadas</h2><p>Consulta códigos, resultados y participación sin borrar la evidencia.</p></div><StatusPill>{closed.length} cerradas</StatusPill></div>
-        {closed.length ? <div className="classroom-session-grid compact-grid">{closed.slice(0, 12).map((session) => { const group = session.group_id ? groupById.get(session.group_id) : null; return <SessionCard key={session.id} session={session} groupLabel={group ? `${groupSubject(group)} · ${groupName(group)}` : session.group_name || 'Sin grupo vinculado'} />; })}</div> : <p className="muted-copy">Cuando finalices una clase aparecerá aquí.</p>}
+        {closed.length ? <div className="classroom-session-grid compact-grid">{closed.slice(0, 12).map((session) => { const group = session.group_id ? groupById.get(session.group_id) : null; return <SessionCard key={session.id} session={session} onDeleted={() => setNotice(`Sesión «${session.title || session.code}» eliminada.`)} groupLabel={group ? `${groupSubject(group)} · ${groupName(group)}` : session.group_name || 'Sin grupo vinculado'} />; })}</div> : <p className="muted-copy">Cuando finalices una clase aparecerá aquí.</p>}
       </SectionCard>
     </div>
   );

@@ -16,6 +16,12 @@
 .structure-catalog article:first-of-type { border-top: 0; }
 .structure-catalog b { color: var(--text-strong); font-size: 13px; }
 .structure-catalog small { color: var(--muted); font-size: 11px; }
+.structure-catalog .button { justify-self: start; }
+.academic-delete-content { display: grid; gap: 16px; min-width: 0; }
+.academic-delete-content ul { margin: 0; padding-left: 24px; line-height: 1.6; }
+.academic-delete-content label { display: grid; gap: 8px; }
+.academic-delete-content input { box-sizing: border-box; width: 100%; min-height: 44px; padding: 12px 14px; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--surface); color: var(--text-strong); font: inherit; }
+.classroom-dialog > header p { overflow-wrap: anywhere; }
 
 .editor-panel { display: grid; gap: 18px; padding: clamp(18px, 2.2vw, 26px); border: 1px solid color-mix(in srgb, var(--brand) 26%, var(--border)); border-radius: var(--radius-lg); background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 7%, var(--surface)), var(--surface)); box-shadow: var(--shadow-soft); }
 .editor-panel > header, .editor-panel > footer { display: flex; align-items: center; justify-content: space-between; gap: 14px; }

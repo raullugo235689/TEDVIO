@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 
 /** Native modal semantics keep keyboard focus inside and the page behind inert. */
-export function ActionDialog({ title, detail, children, confirmLabel, onConfirm, onDismiss, busy = false, danger = false, error, eyebrow = 'TEDVIO · MODO CLASE' }: {
+export function ActionDialog({ title, detail, children, confirmLabel, onConfirm, onDismiss, busy = false, confirmDisabled = false, danger = false, error, eyebrow = 'TEDVIO · MODO CLASE' }: {
   title: string;
   detail: string;
   children?: ReactNode;
@@ -9,6 +9,7 @@ export function ActionDialog({ title, detail, children, confirmLabel, onConfirm,
   onConfirm?: () => void;
   onDismiss: () => void;
   busy?: boolean;
+  confirmDisabled?: boolean;
   danger?: boolean;
   error?: string;
   eyebrow?: string;
@@ -40,7 +41,7 @@ export function ActionDialog({ title, detail, children, confirmLabel, onConfirm,
       {error ? <p className="classroom-dialog-error" role="alert">{error}</p> : null}
       <footer>
         <button ref={dismiss} type="button" className="button secondary" disabled={busy} onClick={onDismiss}>{onConfirm ? 'Cancelar' : 'Listo'}</button>
-        {onConfirm ? <button type="button" className={`button ${danger ? 'danger' : 'primary'}`} disabled={busy} onClick={onConfirm}>{busy ? 'Procesando…' : confirmLabel}</button> : null}
+        {onConfirm ? <button type="button" className={`button ${danger ? 'danger' : 'primary'}`} disabled={busy || confirmDisabled} onClick={onConfirm}>{busy ? 'Procesando…' : confirmLabel}</button> : null}
       </footer>
     </dialog>
   );

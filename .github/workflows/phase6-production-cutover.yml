@@ -43,6 +43,7 @@ jobs:
           grep -q 'teacher-core-v68-6.js' teacher.html
           node --check tests/browser/phase6-server.mjs
           node --check tests/browser/phase6-cutover.spec.mjs
+          node --check tests/browser/phase6-deletion.spec.mjs
           node --check tests/browser/phase6-playwright.config.mjs
           git diff --check
 
