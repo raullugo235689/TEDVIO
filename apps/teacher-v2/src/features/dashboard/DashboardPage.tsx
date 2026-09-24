@@ -124,16 +124,16 @@ export function DashboardPage() {
               <button className="button primary" type="button" onClick={() => navigate(currentOrNext ? `/classroom?group=${encodeURIComponent(currentOrNext.slot.group_id)}` : '/classroom')}>
                 <Icon name="classroom" />Iniciar clase
               </button>
-              <button className="button secondary" type="button" onClick={() => queryClient.invalidateQueries({ queryKey: ['teacher-home'] })}>
-                <Icon name="refresh" />Actualizar
+              <button className="button secondary" type="button" aria-label="Actualizar" onClick={() => queryClient.invalidateQueries({ queryKey: ['teacher-home'] })}>
+                <Icon name="refresh" /><span>Actualizar</span>
               </button>
             </div>
           }
         />
         <div className="dashboard-hero-agenda">
           <span className="dashboard-hero-label"><Icon name="calendar" />{agenda.current ? 'CLASE EN CURSO' : 'EN TU AGENDA'}</span>
-          <strong>{currentOrNext ? groupSubject(currentOrNext.group) : 'Sin clases programadas'}</strong>
-          <p>{currentOrNext ? `${groupName(currentOrNext.group)} · ${formatTime(currentOrNext.slot.start_time)}–${formatTime(currentOrNext.slot.end_time)}` : 'Consulta tu horario o prepara la siguiente sesión.'}</p>
+          <strong>{currentOrNext ? groupSubject(currentOrNext.group) : 'Día sin clases'}</strong>
+          {currentOrNext ? <p>{groupName(currentOrNext.group)} · {formatTime(currentOrNext.slot.start_time)}–{formatTime(currentOrNext.slot.end_time)}</p> : null}
           <Link to={currentOrNext ? `/groups/${currentOrNext.slot.group_id}` : '/agenda'}>{currentOrNext ? 'Abrir grupo' : 'Ver agenda'} <Icon name="arrow" /></Link>
         </div>
       </section>

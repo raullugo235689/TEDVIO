@@ -220,10 +220,14 @@
   .dashboard-hero .page-header { gap: 20px; }
   .dashboard-hero .page-header h1 { font-size: clamp(30px, 8vw, 40px); }
   .dashboard-hero .page-actions, .dashboard-hero .hero-actions { width: 100%; }
-  .dashboard-hero .hero-actions .button { flex: 1; }
+  .dashboard-hero .hero-actions { display: flex; flex-wrap: nowrap; }
+  .app-shell .dashboard-hero .hero-actions .button.primary { flex: 1; min-width: 0; width: auto; }
+  .app-shell .dashboard-hero .hero-actions .button.secondary { flex: 0 0 46px; width: 46px; padding: 0; }
+  .dashboard-hero .hero-actions .button.secondary span { display: none; }
   .dashboard-hero-agenda { align-self: stretch; padding: 20px; }
   .app-shell .workspace-route-title { font-size: 15px; }
   .app-shell .topbar-title { min-width: 0; }
+  .app-shell .topbar-title > span { display: none; }
   .app-shell .workspace-route-title { overflow-wrap: anywhere; }
   .dashboard-workspace .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .workspace-quick-actions > a { padding: 16px 12px; gap: 9px; }
@@ -255,7 +259,6 @@
 @media screen and (max-width: 360px) {
   .app-shell .route-container { padding-inline: 12px; }
   .dashboard-hero { padding: 24px 18px; }
-  .dashboard-hero .hero-actions { display: grid; }
   .workspace-tools-section > div { grid-template-columns: 1fr; }
   .dashboard-workspace .metric-icon { display: none; }
 }
