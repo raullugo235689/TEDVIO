@@ -136,9 +136,9 @@
   .dashboard-workspace .group-card-v2 h3 a { color: inherit; }
   .dashboard-workspace .group-card-v2 h3 a:hover { color: #087f80; }
   .dashboard-workspace .group-card-v2 p { font-size: 12px; }
-  .group-institution { display: flex; align-items: center; gap: 10px; min-width: 0; margin-top: 9px; }
-  .group-institution-mark { display: grid; place-items: center; flex: 0 0 38px; width: 38px; height: 38px; overflow: hidden; border: 1px solid var(--border); border-radius: 10px; background: #fff; box-shadow: 0 3px 10px rgb(18 39 70 / 5%); }
-  .group-institution-mark img { display: block; width: 100%; height: 100%; padding: 4px; object-fit: contain; }
+  .group-institution { display: flex; align-items: center; gap: 11px; min-width: 0; margin-top: 9px; }
+  .group-institution-mark { display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; overflow: hidden; border: 1px solid var(--border); border-radius: 11px; background: #fff; box-shadow: 0 3px 10px rgb(18 39 70 / 5%); }
+  .group-institution-mark img { display: block; box-sizing: border-box; width: 100%; height: 100%; padding: 2px; object-fit: contain; object-position: center; }
   .group-institution-mark > span { color: #087f80; font-size: 12px; font-weight: 800; letter-spacing: -.025em; }
   .group-institution p { min-width: 0; margin: 0; overflow-wrap: anywhere; }
   html[data-theme='dark'] .group-institution-mark { border-color: #43536b; background: #f7f9fc; }
@@ -248,6 +248,8 @@
   .dashboard-workspace .metric-card span { font-size: 9px; }
   .dashboard-workspace .metric-card small { white-space: normal; line-height: 1.4; }
   .dashboard-workspace .metric-icon { width: 32px; height: 32px; }
+  .group-institution { gap: 12px; }
+  .group-institution-mark { flex-basis: 52px; width: 52px; height: 52px; }
   .dashboard-workspace .groups-grid-v2, .dashboard-workspace .side-column, .prepare-tools { grid-template-columns: 1fr; }
   .workspace-next-action { flex-wrap: wrap; }
   .workspace-next-action > div { flex-basis: calc(100% - 32px); }
