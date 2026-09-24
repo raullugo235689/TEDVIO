@@ -6,13 +6,17 @@ const groupId = '22222222-2222-4222-8222-222222222222';
 const group = { id: groupId, teacher_id: userId, name: 'Medicina · 3A', group_name: 'Medicina · 3A', subject: 'Fisiología', university: 'Institución de prueba', term: '2026', students: 28, attendance_rate: 94, grade_avg: 8.6, today_attendance_status: 'closed', last_activity: '2026-09-22T10:00:00Z' };
 const allRoutes = ['/', '/agenda', '/groups', '/attendance', '/classroom', '/gradebook', '/students', '/periods', '/prepare', '/bank', '/exams', '/omr', '/reports', '/analytics', '/settings'];
 
-async function fixture(page, empty = false) {
+async function fixture(page, empty = false, dashboardGroups = null, workspace = {}) {
   const state = { errors: [], writes: [] };
   page.on('pageerror', error => state.errors.push(error.message));
   await page.addInitScript(({ userId }) => localStorage.setItem('sb-workspace-fixture-auth-token', JSON.stringify({ access_token: 'synthetic-access-token', refresh_token: 'synthetic-refresh-token', expires_at: Math.floor(Date.now() / 1000) + 3600, expires_in: 3600, token_type: 'bearer', user: { id: userId, email: 'docente@example.test', aud: 'authenticated', role: 'authenticated' } })), { userId });
   await page.route('**/config.js*', route => route.fulfill({ contentType: 'application/javascript', body: 'window.TEDVIO_CONFIG={SUPABASE_URL:"https://workspace-fixture.supabase.test",SUPABASE_PUBLISHABLE_KEY:"synthetic-publishable-key"};' }));
   await page.route('https://workspace-fixture.supabase.test/**', async route => {
     const request = route.request(), url = new URL(request.url()), table = url.pathname.split('/').at(-1);
+    if (url.pathname.startsWith('/storage/v1/object/public/')) {
+      if (url.pathname.endsWith('logo-broken.png')) return route.fulfill({ status: 404, body: 'Not found' });
+      return route.fulfill({ contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=', 'base64') });
+    }
     if (['PATCH', 'DELETE', 'PUT'].includes(request.method()) || (request.method() === 'POST' && !url.pathname.includes('/rpc/'))) state.writes.push(table);
     let rows = [];
     if (table === 'tedvio_required_legal_documents_v21') rows = [{ document_key: 'terms', version: 'test', required: true, title: 'Prueba', content_html: '<p>Prueba.</p>' }];
@@ -20,8 +24,15 @@ async function fixture(page, empty = false) {
     else if (table === 'tedvio_onboarding_snapshot_v21') rows = { completed: true, score: 5, dismissed: true };
     else if (table === 'tedvio_user_profiles') rows = [{ status: 'active', plan: 'free', role: 'teacher' }];
     else if (table === 'tedvio_current_entitlements') rows = { plan: 'free', display_name: 'Free' };
-    else if (table === 'v2_teacher_today_dashboard') rows = { groups: empty ? [] : [group, { ...group, id: 'other-group', name: 'Medicina · 3B', group_name: 'Medicina · 3B', subject: 'Anatomía', students: 32 }], groups_count: empty ? 0 : 2, pending_attendance: 0, risk_students: 0, watch_students: 0, priority_students: [] };
-    else if (table === 'v2_groups') rows = empty ? [] : [group];
+    else if (table === 'v2_teacher_today_dashboard') {
+      const groups = empty ? [] : dashboardGroups || [group, { ...group, id: 'other-group', name: 'Medicina · 3B', group_name: 'Medicina · 3B', subject: 'Anatomía', students: 32 }];
+      rows = { groups, groups_count: groups.length, pending_attendance: 0, risk_students: 0, watch_students: 0, priority_students: [] };
+    }
+    else if (table === 'v2_groups') rows = empty ? [] : workspace.groups || dashboardGroups || [group];
+    else if (table === 'v2_universities') rows = workspace.universities || [];
+    else if (table === 'v2_programs') rows = workspace.programs || [];
+    else if (table === 'tedvio_institution_memberships') rows = workspace.memberships || [];
+    else if (table === 'tedvio_institutions') rows = workspace.institutions || [];
     else if (table === 'v2_group_students') rows = [{ id: 'student-a', teacher_id: userId, group_id: groupId, enrollment: 'A001', full_name: 'Alumna de prueba', active: true }];
     if (request.headers().accept?.includes('vnd.pgrst.object+json') && Array.isArray(rows)) rows = rows[0] ?? null;
     await route.fulfill({ json: rows });
@@ -132,4 +143,50 @@ test('Inicio sin datos ofrece un primer paso sin métricas inventadas', async ({
   await expect(page.locator('.group-card-v2')).toHaveCount(0);
   await noOverflow(page);
   expect(state.errors).toEqual([]);
+});
+
+test('logos institucionales: identidad estable, iniciales y archivo faltante', async ({ page }) => {
+  const institutionA = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  const institutionB = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  const institutionC = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+  const universityIds = ['33333333-3333-4333-8333-333333333333', '44444444-4444-4444-8444-444444444444', '55555555-5555-4555-8555-555555555555', '66666666-6666-4666-8666-666666666666'];
+  const programIds = ['77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888', '99999999-9999-4999-8999-999999999999', 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'];
+  const logoPath = (institutionId, file) => `${userId}/institution-branding/${institutionId}/${file}`;
+  const university = 'Universidad Compartida';
+  const identityGroups = [
+    { ...group, program_id: programIds[0], university, institution_id: institutionA, institution_logo_path: logoPath(institutionA, 'logo-a.png') },
+    { ...group, id: 'without-linked-institution', name: 'Medicina · 3B', program_id: programIds[1], university, institution_id: null, institution_logo_path: null },
+    { ...group, id: 'other-institution', name: 'Medicina · 3C', program_id: programIds[2], university, institution_id: institutionB, institution_logo_path: logoPath(institutionB, 'logo-b.png') },
+    { ...group, id: 'broken-logo', name: 'Medicina · 3D', program_id: programIds[3], university: 'ULM', institution_id: institutionC, institution_logo_path: logoPath(institutionC, 'logo-broken.png') },
+  ];
+  const workspace = {
+    universities: universityIds.map((id, index) => ({ id, teacher_id: userId, name: index === 3 ? 'ULM' : university, institution_id: [institutionA, null, institutionB, institutionC][index] })),
+    programs: programIds.map((id, index) => ({ id, teacher_id: userId, university_id: universityIds[index], name: `Medicina ${index + 1}` })),
+    memberships: [institutionA, institutionB, institutionC].map((institution_id) => ({ institution_id })),
+    institutions: [institutionA, institutionB, institutionC].map((id) => ({ id, name: id === institutionC ? 'ULM' : university })),
+  };
+  const state = await fixture(page, false, identityGroups, workspace);
+  const cards = page.locator('.group-card-v2');
+  await expect(cards).toHaveCount(4);
+  await expect(cards.nth(0).locator('.group-institution-mark img')).toHaveAttribute('src', new RegExp(`${institutionA}/logo-a\\.png$`));
+  await expect(cards.nth(1).locator('.group-institution-mark img')).toHaveCount(0);
+  await expect(cards.nth(1).locator('.group-institution-mark > span')).toHaveText('UC');
+  await expect(cards.nth(2).locator('.group-institution-mark img')).toHaveAttribute('src', new RegExp(`${institutionB}/logo-b\\.png$`));
+  await cards.nth(3).scrollIntoViewIfNeeded();
+  await expect(cards.nth(3).locator('.group-institution-mark > span')).toHaveText('ULM');
+  await page.getByRole('link', { name: 'Ver todos' }).click();
+  const catalogue = page.locator('.group-catalog-card');
+  await expect(catalogue).toHaveCount(4);
+  await expect(catalogue.nth(0).locator('.group-institution-mark img')).toHaveAttribute('src', new RegExp(`${institutionA}/logo-a\\.png$`));
+  await expect(catalogue.nth(1).locator('.group-institution-mark > span')).toHaveText('UC');
+  await expect(catalogue.nth(2).locator('.group-institution-mark img')).toHaveAttribute('src', new RegExp(`${institutionB}/logo-b\\.png$`));
+  await page.getByRole('button', { name: 'Estructura académica' }).click();
+  const linkedUniversities = page.locator('.structure-catalog > article').filter({ has: page.locator('.structure-branding-select') });
+  await expect(linkedUniversities).toHaveCount(4);
+  await expect(linkedUniversities.nth(0).getByRole('combobox', { name: 'Identidad visual' })).toHaveValue(institutionA);
+  await expect(linkedUniversities.nth(1).getByRole('combobox', { name: 'Identidad visual' })).toHaveValue('');
+  await expect(linkedUniversities.nth(2).getByRole('combobox', { name: 'Identidad visual' })).toHaveValue(institutionB);
+  await noOverflow(page);
+  expect(state.errors).toEqual([]);
+  expect(state.writes).toEqual([]);
 });

@@ -8,6 +8,8 @@ import type {
   TeacherProfile,
 } from './types';
 
+const MEDIA_BUCKET = 'tedvio-media-v2';
+
 function message(error: unknown): string {
   if (error && typeof error === 'object' && 'message' in error) {
     return String((error as { message?: unknown }).message || 'Error desconocido');
@@ -42,11 +44,21 @@ export async function fetchTeacherHome(user: User): Promise<TeacherHomeData> {
   if (entitlementsResult.error) warnings.push(`Plan: ${message(entitlementsResult.error)}`);
   if (scheduleResult.error) warnings.push(`Agenda: ${message(scheduleResult.error)}`);
 
+  const dashboard = (dashboardResult.data || {}) as TeacherDashboard;
+  if (Array.isArray(dashboard.groups)) {
+    dashboard.groups = dashboard.groups.map((group) => ({
+      ...group,
+      institution_logo_url: group.institution_logo_path
+        ? supabase.storage.from(MEDIA_BUCKET).getPublicUrl(group.institution_logo_path).data.publicUrl || null
+        : null,
+    }));
+  }
+
   return {
     user,
     profile: (profileResult.data || { role: 'teacher', plan: 'free' }) as TeacherProfile,
     entitlements: (entitlementsResult.data || null) as Entitlements | null,
-    dashboard: (dashboardResult.data || {}) as TeacherDashboard,
+    dashboard,
     schedule: (scheduleResult.data || []) as ScheduleSlot[],
     warnings,
   };

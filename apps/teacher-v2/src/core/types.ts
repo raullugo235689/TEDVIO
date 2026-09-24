@@ -20,6 +20,9 @@ export interface Entitlements {
 
 export interface DashboardGroup {
   id: string;
+  institution_id?: string | null;
+  institution_logo_path?: string | null;
+  institution_logo_url?: string | null;
   name?: string | null;
   group_name?: string | null;
   subject?: string | null;
@@ -112,7 +115,15 @@ export interface UniversityRecord {
   id: string;
   teacher_id: string;
   name: string;
+  institution_id?: string | null;
   created_at: string;
+}
+
+export interface InstitutionIdentityRecord {
+  id: string;
+  name: string;
+  report_display_name?: string | null;
+  report_logo_path?: string | null;
 }
 
 export interface ProgramRecord {
@@ -179,6 +190,7 @@ export interface AttendanceRecordRow {
 
 export interface GroupWorkspaceData {
   universities: UniversityRecord[];
+  institutions: InstitutionIdentityRecord[];
   programs: ProgramRecord[];
   groups: GroupRecord[];
 }

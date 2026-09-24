@@ -60,7 +60,7 @@ function InstitutionEditor({ institution, busy, onSave }: { institution: Institu
   const logo = institutionLogoUrl(institution);
   return (
     <SectionCard className="institution-settings-card">
-      <div className="section-heading"><div><span className="eyebrow">INSTITUCIÓN ADMINISTRABLE</span><h2>{institution.name}</h2><p>Estos datos aparecen en la vista impresa de los reportes.</p></div><StatusPill tone="blue">{String(institution.plan || 'institutional').toUpperCase()}</StatusPill></div>
+      <div className="section-heading"><div><span className="eyebrow">INSTITUCIÓN ADMINISTRABLE</span><h2>{institution.name}</h2><p>El logotipo identifica tus grupos y también aparece en los reportes impresos.</p></div><StatusPill tone="blue">{String(institution.plan || 'institutional').toUpperCase()}</StatusPill></div>
       <div className="institution-branding-layout">
         <div className="institution-logo-editor">
           <div className="institution-logo-preview">{logo ? <img src={logo} alt="Logotipo institucional" /> : <span>LOGO</span>}</div>
