@@ -67,3 +67,13 @@ jobs:
           npx playwright install --with-deps chromium webkit
       - name: Canonical, mobile and rollback browser audit
         run: npx playwright test --config=tests/browser/phase6-playwright.config.mjs
+      - name: Save workspace screenshots for design review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: teacher-workspace-screenshots
+          path: |
+            test-results/**/*.png
+            tests/browser/test-results/**/*.png
+          if-no-files-found: ignore
+          retention-days: 3
