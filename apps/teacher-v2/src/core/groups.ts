@@ -6,6 +6,7 @@ import type {
   GroupDetailData,
   GroupRecord,
   GroupWorkspaceData,
+  InstitutionIdentityRecord,
   ProgramRecord,
   StudentRecord,
   UniversityRecord,
@@ -46,10 +47,10 @@ export function groupDetailKey(userId?: string, groupId?: string) {
 }
 
 export async function fetchGroupWorkspace(user: User): Promise<GroupWorkspaceData> {
-  const [universitiesResult, programsResult, groupsResult] = await Promise.all([
+  const [universitiesResult, programsResult, groupsResult, membershipsResult] = await Promise.all([
     supabase
       .from('v2_universities')
-      .select('id,teacher_id,name,created_at')
+      .select('id,teacher_id,name,institution_id,created_at')
       .eq('teacher_id', user.id)
       .order('name'),
     supabase
@@ -63,13 +64,30 @@ export async function fetchGroupWorkspace(user: User): Promise<GroupWorkspaceDat
       .eq('teacher_id', user.id)
       .eq('is_demo', false)
       .order('created_at', { ascending: false }),
+    supabase
+      .from('tedvio_institution_memberships')
+      .select('institution_id')
+      .eq('user_id', user.id)
+      .eq('status', 'active'),
   ]);
 
   if (universitiesResult.error) throw new Error(`Instituciones: ${errorMessage(universitiesResult.error)}`);
   if (programsResult.error) throw new Error(`Programas: ${errorMessage(programsResult.error)}`);
   if (groupsResult.error) throw new Error(`Grupos: ${errorMessage(groupsResult.error)}`);
+  if (membershipsResult.error) throw new Error(`Identidades institucionales: ${errorMessage(membershipsResult.error)}`);
+
+  const institutionIds = [...new Set((membershipsResult.data || []).map((row) => row.institution_id))];
+  const institutionsResult = institutionIds.length
+    ? await supabase.from('tedvio_institutions')
+        .select('id,name,report_display_name,report_logo_path')
+        .in('id', institutionIds)
+        .eq('status', 'active')
+        .order('name')
+    : { data: [], error: null };
+  if (institutionsResult.error) throw new Error(`Identidades institucionales: ${errorMessage(institutionsResult.error)}`);
 
   const universities = (universitiesResult.data || []) as UniversityRecord[];
+  const institutions = (institutionsResult.data || []) as InstitutionIdentityRecord[];
   const programs = (programsResult.data || []) as ProgramRecord[];
   const universityById = new Map(universities.map((item) => [item.id, item]));
   const programById = new Map(programs.map((item) => [item.id, item]));
@@ -84,17 +102,75 @@ export async function fetchGroupWorkspace(user: User): Promise<GroupWorkspaceDat
     };
   });
 
-  return { universities, programs, groups };
+  return { universities, institutions, programs, groups };
 }
 
-export async function createUniversity(user: User, name: string): Promise<UniversityRecord> {
+async function assertInstitutionMembership(user: User, institutionId: string): Promise<void> {
+  const [membership, institution] = await Promise.all([
+    supabase.from('tedvio_institution_memberships')
+      .select('institution_id')
+      .eq('institution_id', institutionId)
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .maybeSingle(),
+    supabase.from('tedvio_institutions')
+      .select('id')
+      .eq('id', institutionId)
+      .eq('status', 'active')
+      .maybeSingle(),
+  ]);
+  if (membership.error || institution.error) {
+    throw new Error(errorMessage(membership.error || institution.error));
+  }
+  if (!membership.data || !institution.data) {
+    throw new Error('Selecciona una institución activa a la que pertenezcas.');
+  }
+}
+
+export async function linkUniversityInstitution(user: User, universityId: string, institutionId: string | null): Promise<UniversityRecord> {
+  if (!universityId) throw new Error('Selecciona una institución académica.');
+  if (institutionId) await assertInstitutionMembership(user, institutionId);
+  const { data, error } = await supabase.from('v2_universities')
+    .update({ institution_id: institutionId })
+    .eq('id', universityId)
+    .eq('teacher_id', user.id)
+    .select('id,teacher_id,name,institution_id,created_at')
+    .single();
+  if (error) throw new Error(errorMessage(error));
+  return data as UniversityRecord;
+}
+
+export async function createUniversity(user: User, name: string, institutionId?: string): Promise<UniversityRecord> {
   const normalized = clean(name);
   if (!normalized) throw new Error('Escribe el nombre de la institución.');
+  if (institutionId) await assertInstitutionMembership(user, institutionId);
+  const existing = await supabase.from('v2_universities')
+    .select('id,teacher_id,name,institution_id,created_at')
+    .eq('teacher_id', user.id)
+    .eq('name', normalized)
+    .maybeSingle();
+  if (existing.error) throw new Error(errorMessage(existing.error));
+  if (existing.data) {
+    return institutionId && existing.data.institution_id !== institutionId
+      ? linkUniversityInstitution(user, existing.data.id, institutionId)
+      : existing.data as UniversityRecord;
+  }
   const { data, error } = await supabase
     .from('v2_universities')
-    .upsert({ teacher_id: user.id, name: normalized }, { onConflict: 'teacher_id,name' })
-    .select('id,teacher_id,name,created_at')
+    .insert({ teacher_id: user.id, name: normalized, institution_id: institutionId || null })
+    .select('id,teacher_id,name,institution_id,created_at')
     .single();
+  if (error?.code === '23505') {
+    const raced = await supabase.from('v2_universities')
+      .select('id,teacher_id,name,institution_id,created_at')
+      .eq('teacher_id', user.id)
+      .eq('name', normalized)
+      .single();
+    if (raced.error) throw new Error(errorMessage(raced.error));
+    return institutionId && raced.data.institution_id !== institutionId
+      ? linkUniversityInstitution(user, raced.data.id, institutionId)
+      : raced.data as UniversityRecord;
+  }
   if (error) throw new Error(errorMessage(error));
   return data as UniversityRecord;
 }

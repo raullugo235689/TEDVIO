@@ -7,6 +7,7 @@ import {
   createUniversity,
   fetchGroupWorkspace,
   groupWorkspaceKey,
+  linkUniversityInstitution,
   saveGroup,
   type GroupDraft,
 } from '../../core/groups';
@@ -14,6 +15,7 @@ import { useTeacherHome } from '../../core/useTeacherHome';
 import type { DashboardGroup, GroupRecord } from '../../core/types';
 import { EmptyState, ErrorPanel, LoadingScreen, PageHeader, SectionCard, StatusPill } from '../../shared/components';
 import { Icon } from '../../shared/icons';
+import { InstitutionIdentity } from '../../shared/InstitutionIdentity';
 import { AcademicDeleteButton } from '../../shared/AcademicDeleteButton';
 import { useAuth } from '../auth/AuthProvider';
 
@@ -36,6 +38,7 @@ export function GroupsPage() {
   const [editor, setEditor] = useState<GroupDraft | null>(null);
   const [structureOpen, setStructureOpen] = useState(false);
   const [universityName, setUniversityName] = useState('');
+  const [newInstitutionId, setNewInstitutionId] = useState('');
   const [programName, setProgramName] = useState('');
   const [programUniversityId, setProgramUniversityId] = useState('');
   const [notice, setNotice] = useState('');
@@ -59,12 +62,24 @@ export function GroupsPage() {
   const universityMutation = useMutation({
     mutationFn: () => {
       if (!auth.user) throw new Error('Tu sesión expiró.');
-      return createUniversity(auth.user, universityName);
+      return createUniversity(auth.user, universityName, newInstitutionId || undefined);
     },
     onSuccess: async (university) => {
       setUniversityName('');
+      setNewInstitutionId('');
       setProgramUniversityId(university.id);
       setNotice('Institución disponible para crear programas.');
+      await invalidate();
+    },
+  });
+
+  const universityLinkMutation = useMutation({
+    mutationFn: ({ universityId, institutionId }: { universityId: string; institutionId: string | null }) => {
+      if (!auth.user) throw new Error('Tu sesión expiró.');
+      return linkUniversityInstitution(auth.user, universityId, institutionId);
+    },
+    onSuccess: async () => {
+      setNotice('Identidad visual de la institución actualizada.');
       await invalidate();
     },
   });
@@ -136,14 +151,14 @@ export function GroupsPage() {
       />
 
       {notice ? <div className="success-strip"><Icon name="check" /><span>{notice}</span><button type="button" onClick={() => setNotice('')}>×</button></div> : null}
-      {universityMutation.isError || programMutation.isError || groupMutation.isError ? <ErrorPanel title="No se pudo completar la operación" detail={(universityMutation.error || programMutation.error || groupMutation.error)?.message || 'Intenta nuevamente.'} /> : null}
+      {universityMutation.isError || universityLinkMutation.isError || programMutation.isError || groupMutation.isError ? <ErrorPanel title="No se pudo completar la operación" detail={(universityMutation.error || universityLinkMutation.error || programMutation.error || groupMutation.error)?.message || 'Intenta nuevamente.'} /> : null}
 
       {structureOpen ? (
         <SectionCard className="structure-panel">
           <div className="section-heading"><div><span className="eyebrow">ESTRUCTURA ACADÉMICA</span><h2>Institución → programa → grupo</h2><p>Los grupos se vinculan a una estructura única para evitar duplicados.</p></div><StatusPill tone="blue">{universities.length} instituciones · {programs.length} programas</StatusPill></div>
           <div className="structure-grid">
             <form onSubmit={(event) => { event.preventDefault(); universityMutation.mutate(); }}>
-              <span className="eyebrow">NUEVA INSTITUCIÓN</span><label>Nombre<input value={universityName} onChange={(event) => setUniversityName(event.target.value)} placeholder="Universidad Autónoma de Sinaloa" required /></label><button className="button secondary" type="submit" disabled={universityMutation.isPending}>{universityMutation.isPending ? 'Guardando…' : 'Agregar institución'}</button>
+              <span className="eyebrow">NUEVA INSTITUCIÓN</span><label>Nombre<input value={universityName} onChange={(event) => setUniversityName(event.target.value)} placeholder="Universidad Autónoma de Sinaloa" required /></label><label>Identidad visual (opcional)<select value={newInstitutionId} onChange={(event) => setNewInstitutionId(event.target.value)}><option value="">Sin logo por ahora</option>{(workspace.data.institutions || []).map((item) => <option key={item.id} value={item.id}>{item.report_display_name || item.name}</option>)}</select></label><small>Elige una institución a la que perteneces; su logotipo aparecerá en los grupos vinculados.</small><button className="button secondary" type="submit" disabled={universityMutation.isPending}>{universityMutation.isPending ? 'Guardando…' : 'Agregar institución'}</button>
             </form>
             <form onSubmit={(event) => { event.preventDefault(); programMutation.mutate(); }}>
               <span className="eyebrow">NUEVO PROGRAMA</span><label>Institución<select value={programUniversityId} onChange={(event) => setProgramUniversityId(event.target.value)} required><option value="">Selecciona</option>{universities.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label><label>Programa<input value={programName} onChange={(event) => setProgramName(event.target.value)} placeholder="Licenciatura en Medicina General" required /></label><button className="button secondary" type="submit" disabled={programMutation.isPending || !universities.length}>{programMutation.isPending ? 'Guardando…' : 'Agregar programa'}</button>
@@ -152,6 +167,7 @@ export function GroupsPage() {
               <span className="eyebrow">INSTITUCIONES</span>
               {universities.length ? universities.map((university) => <article key={university.id}>
                 <b>{university.name}</b><small>{programs.filter((program) => program.university_id === university.id).length} programas</small>
+                <label className="structure-branding-select">Identidad visual<select value={university.institution_id || ''} disabled={universityLinkMutation.isPending} onChange={(event) => universityLinkMutation.mutate({ universityId: university.id, institutionId: event.target.value || null })}><option value="">Sin logo por ahora</option>{university.institution_id && !(workspace.data.institutions || []).some((item) => item.id === university.institution_id) ? <option value={university.institution_id}>Vinculación administrada</option> : null}{(workspace.data.institutions || []).map((item) => <option key={item.id} value={item.id}>{item.report_display_name || item.name}</option>)}</select></label>
                 <AcademicDeleteButton target={{ kind: 'university', id: university.id, label: university.name }} onDeleted={() => {
                   setProgramUniversityId((current) => current === university.id ? '' : current);
                   setNotice(`Institución «${university.name}» eliminada.`);
@@ -197,7 +213,7 @@ export function GroupsPage() {
             return (
               <article className="group-catalog-card" key={group.id}>
                 <header>
-                  <div><span className="eyebrow">{group.subject || 'Grupo'}</span><h2>{group.group_name || group.name}</h2><p>{group.university_name || group.university || 'TEDVIO'}{group.program_name || group.program ? ` · ${group.program_name || group.program}` : ''}{group.term ? ` · ${group.term}` : ''}</p></div>
+                  <div><span className="eyebrow">{group.subject || 'Grupo'}</span><h2>{group.group_name || group.name}</h2><InstitutionIdentity name={group.university_name || group.university} logoUrl={dashboard?.institution_logo_url} detail={[group.program_name || group.program, group.term].filter(Boolean).join(' · ')} /></div>
                   <StatusPill tone={tone(dashboard)}>{attendanceLabel(dashboard)}</StatusPill>
                 </header>
                 <div className="group-catalog-metrics">

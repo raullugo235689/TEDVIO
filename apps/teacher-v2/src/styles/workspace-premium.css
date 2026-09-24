@@ -136,6 +136,15 @@
   .dashboard-workspace .group-card-v2 h3 a { color: inherit; }
   .dashboard-workspace .group-card-v2 h3 a:hover { color: #087f80; }
   .dashboard-workspace .group-card-v2 p { font-size: 12px; }
+  .group-institution { display: flex; align-items: center; gap: 10px; min-width: 0; margin-top: 9px; }
+  .group-institution-mark { display: grid; place-items: center; flex: 0 0 38px; width: 38px; height: 38px; overflow: hidden; border: 1px solid var(--border); border-radius: 10px; background: #fff; box-shadow: 0 3px 10px rgb(18 39 70 / 5%); }
+  .group-institution-mark img { display: block; width: 100%; height: 100%; padding: 4px; object-fit: contain; }
+  .group-institution-mark > span { color: #087f80; font-size: 12px; font-weight: 800; letter-spacing: -.025em; }
+  .group-institution p { min-width: 0; margin: 0; overflow-wrap: anywhere; }
+  html[data-theme='dark'] .group-institution-mark { border-color: #43536b; background: #f7f9fc; }
+  .group-catalog-card .group-institution p { font-size: 11px; line-height: 1.45; }
+  .structure-branding-select { display: grid; gap: 5px; margin: 7px 0; max-width: 100%; color: var(--muted); font-size: 11px; }
+  .structure-branding-select select { width: 100%; min-width: 0; }
   .dashboard-workspace .group-mini-metrics span { background: transparent; padding: 0 6px 0 0; }
   .dashboard-workspace .group-mini-metrics small { font-size: 11px; }
   .dashboard-workspace .group-mini-metrics b { font-size: 20px; font-weight: 650; }
