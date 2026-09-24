@@ -7,7 +7,7 @@ import { hasPendingAttendance, useAttendanceDraftGuard } from '../core/useAttend
 import { ActionDialog } from '../shared/ActionDialog';
 import { useAuth } from '../features/auth/AuthProvider';
 import { useReliability } from '../features/reliability/ReliabilityProvider';
-import { isNavigationGroupActive, navigationGroups, navigationTitle, type NavigationGroup, type NavigationItem } from './navigation';
+import { isNavigationGroupActive, navigationArea, navigationAreaLabel, navigationGroups, navigationTitle, type NavigationGroup, type NavigationItem } from './navigation';
 import { RouteErrorBoundary } from './RouteErrorBoundary';
 import { Icon } from '../shared/icons';
 import { prefetchTeacherRoute } from './route-loaders';
@@ -25,6 +25,7 @@ function NavItem({ item, mobile = false, groupActive = false }: { item: Navigati
     <NavLink
       to={item.to}
       end={item.to === '/'}
+      data-area={navigationArea(item.to)}
       className={({ isActive }) => `nav-item${isActive || groupActive ? ' active' : ''}${mobile ? ' mobile' : ''}`}
       onPointerEnter={() => prefetchTeacherRoute(item.to)}
       onFocus={() => prefetchTeacherRoute(item.to)}
@@ -41,7 +42,7 @@ function SidebarGroup({ group, pathname }: { group: NavigationGroup; pathname: s
   const [expanded, setExpanded] = useState(active);
   useEffect(() => { setExpanded(active); }, [active, pathname]);
   const id = `nav-tools-${group.to.replace('/', '') || 'home'}`;
-  return <div className="workspace-nav-group">
+  return <div className="workspace-nav-group" data-area={navigationArea(group.to)}>
     <div className="workspace-nav-heading">
       <NavItem item={group} groupActive={active} />
       {group.children.length ? <button className="nav-expand" type="button" aria-label={`Herramientas de ${group.label}`} aria-expanded={expanded} aria-controls={id} onClick={() => setExpanded((value) => !value)}><Icon name="arrow" /></button> : null}
@@ -61,8 +62,8 @@ function MobileTools({ onDismiss, onSupport }: { onDismiss: () => void; onSuppor
   return <dialog className="workspace-tools-dialog" ref={ref} aria-labelledby="workspace-tools-title" onCancel={(event) => { event.preventDefault(); onDismiss(); }}>
     <header><div><span className="eyebrow">TU ESPACIO DOCENTE</span><h2 id="workspace-tools-title">Todas las herramientas</h2></div><button type="button" className="icon-button" onClick={onDismiss} aria-label="Cerrar herramientas">×</button></header>
     <nav aria-label="Todas las herramientas" onClick={(event) => { if ((event.target as HTMLElement).closest('a')) onDismiss(); }}>
-      {navigationGroups.map((group) => <section className="workspace-tools-section" key={group.to}><h3>{group.label}</h3><div><NavItem item={group} />{group.children.map((item) => <NavItem item={item} key={item.to} />)}</div></section>)}
-      <div className="workspace-tools-footer"><NavLink to="/support" className="nav-item"><Icon name="alert" /><span>Ayuda y soporte</span></NavLink><button className="button secondary" type="button" onClick={onSupport}>Reportar un problema</button></div>
+      {navigationGroups.map((group) => <section className="workspace-tools-section" data-area={navigationArea(group.to)} key={group.to}><h3>{group.label}</h3><div><NavItem item={group} />{group.children.map((item) => <NavItem item={item} key={item.to} />)}</div></section>)}
+      <div className="workspace-tools-footer"><NavLink to="/support" data-area="settings" className="nav-item"><Icon name="alert" /><span>Ayuda y soporte</span></NavLink><button className="button secondary" type="button" onClick={onSupport}>Reportar un problema</button></div>
     </nav>
   </dialog>;
 }
@@ -101,6 +102,7 @@ export function AppShell() {
   }, [location.pathname]);
 
   const routeTitle = useMemo(() => navigationTitle(location.pathname), [location.pathname]);
+  const area = navigationArea(location.pathname);
   const mobileItems = navigationGroups.slice(0, 4);
   const connectionLabel = reliability.syncing
     ? 'Sincronizando'
@@ -126,7 +128,7 @@ export function AppShell() {
   }
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" data-area={area}>
       <a className="workspace-skip-link" href="#tedvio-main" onClick={(event) => { event.preventDefault(); document.getElementById('tedvio-main')?.focus(); }}>Saltar al contenido</a>
       <aside className="sidebar" aria-label="Navegación principal">
         <Link className="sidebar-brand" to="/" aria-label="TEDVIO Inicio">
@@ -139,7 +141,7 @@ export function AppShell() {
         </nav>
 
         <div className="sidebar-bottom">
-          <NavLink to="/support" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
+          <NavLink to="/support" data-area="settings" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
             <Icon name="alert" /><span>Ayuda y soporte</span>
           </NavLink>
           <div className="rebuild-badge"><Icon name="shield" /><span><b>TEDVIO</b><small>Espacio docente protegido</small></span></div>
@@ -149,7 +151,7 @@ export function AppShell() {
       <div className="workspace">
         <header className="topbar">
           <div className="topbar-title">
-            <span>ESPACIO DOCENTE</span>
+            <span>ESPACIO DOCENTE <span aria-hidden="true">/</span> {navigationAreaLabel[area]}</span>
             <p className="workspace-route-title">{routeTitle}</p>
           </div>
           <div className="topbar-actions">
@@ -194,7 +196,7 @@ export function AppShell() {
 
       <nav className="mobile-nav" aria-label="Navegación móvil">
         {mobileItems.map((item) => <NavItem item={item} mobile groupActive={isNavigationGroupActive(item, location.pathname)} key={item.to} />)}
-        <button className={moreOpen || location.pathname === '/settings' || location.pathname === '/support' ? 'nav-item mobile active' : 'nav-item mobile'} type="button" aria-haspopup="dialog" aria-expanded={moreOpen} onClick={() => setMoreOpen((value) => !value)}>
+        <button data-area="settings" className={moreOpen || location.pathname === '/settings' || location.pathname === '/support' ? 'nav-item mobile active' : 'nav-item mobile'} type="button" aria-haspopup="dialog" aria-expanded={moreOpen} onClick={() => setMoreOpen((value) => !value)}>
           <Icon name="more" /><span>Más</span>
         </button>
       </nav>

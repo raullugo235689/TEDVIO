@@ -40,6 +40,30 @@ export const navigationGroups = [
 
 export type NavigationGroup = (typeof navigationGroups)[number];
 
+export type NavigationArea = 'home' | 'groups' | 'prepare' | 'reports' | 'settings';
+
+const areaByRoute: Record<string, NavigationArea> = {
+  '/': 'home',
+  '/groups': 'groups',
+  '/prepare': 'prepare',
+  '/reports': 'reports',
+  '/settings': 'settings',
+};
+
+export function navigationArea(pathname: string): NavigationArea {
+  if (pathname === '/support') return 'settings';
+  const group = navigationGroups.find((entry) => isNavigationGroupActive(entry, pathname));
+  return group ? areaByRoute[group.to] ?? 'home' : 'home';
+}
+
+export const navigationAreaLabel: Record<NavigationArea, string> = {
+  home: 'Inicio',
+  groups: 'Mis grupos',
+  prepare: 'Preguntas y exámenes',
+  reports: 'Reportes',
+  settings: 'Configuración',
+};
+
 export function isNavigationGroupActive(group: NavigationGroup, pathname: string): boolean {
   return [group, ...group.children].some((item) => pathname === item.to || (item.to !== '/' && pathname.startsWith(`${item.to}/`)));
 }
