@@ -150,10 +150,18 @@ test('grupo: identidad y sección se conservan entre pantallas, enlaces directos
   await expect(navigation.locator('[aria-current]')).toHaveText('Alumnos');
   await page.reload();
   await expect(navigation.locator('[aria-current]')).toHaveText('Alumnos');
+  await expect(page.getByRole('heading', { name: 'Lista de alumnos', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Activar modo oscuro' }).click();
   for (const width of [320, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await noOverflow(page);
+    if (width <= 680) expect(await navigation.evaluate(nav => {
+      const bounds = nav.getBoundingClientRect();
+      return [...nav.querySelectorAll('a')].every(link => {
+        const box = link.getBoundingClientRect();
+        return box.left >= bounds.left && box.right <= bounds.right;
+      });
+    })).toBe(true);
   }
   await page.screenshot({ path: test.info().outputPath('group-students-dark.png'), fullPage: true });
   await identity.getByRole('link', { name: 'Todos los grupos' }).click();

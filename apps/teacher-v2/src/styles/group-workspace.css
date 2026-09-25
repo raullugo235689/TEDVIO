@@ -36,6 +36,7 @@
   .group-workspace-content .page-header p { margin-bottom: 0; font-size: 13px; }
   .group-summary-actions { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .group-summary-actions a:nth-child(n) svg { color: var(--group-accent); }
+  html[data-theme='dark'] .group-summary-actions a:nth-child(n) svg { color: var(--group-accent); }
   .group-summary-actions a:first-child { background: color-mix(in srgb, var(--group-accent) 8%, var(--surface)); border-color: color-mix(in srgb, var(--group-accent) 30%, var(--border)); }
   .group-overview-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
   .group-overview-grid .section-heading { gap: 10px; flex-wrap: wrap; }
@@ -47,6 +48,7 @@
   .group-student-preview a:hover { color: var(--group-accent); }
   .group-student-preview span { overflow-wrap: anywhere; }
   .group-student-preview svg { color: var(--group-accent); width: 17px; flex-shrink: 0; }
+  .group-workspace .group-detail-metrics small { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.5; }
 }
 
 @media screen and (max-width: 900px) {
@@ -60,15 +62,15 @@
   .group-identity-heading { gap: 10px; }
   .group-identity-heading > strong { font-size: 23px; }
   .group-identity-name { font-size: 12px; }
-  .group-section-nav a { flex: 0 0 auto; font-size: 12px; padding-inline: 12px; }
-  .group-section-nav { top: calc(var(--topbar) + 4px); }
+  .group-section-nav { top: calc(var(--topbar) + 4px); display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); overflow: visible; }
+  .group-section-nav a { grid-column: span 2; flex-direction: column; gap: 4px; min-height: 56px; font-size: 11px; padding: 7px 5px; }
+  .group-section-nav a:nth-child(n + 4) { grid-column: span 3; flex-direction: row; min-height: 44px; gap: 8px; }
   .group-workspace-content { padding-top: 8px; }
   .group-workspace-content .page-header h1 { font-size: 23px; }
   .group-summary-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .group-summary-actions a:last-child { grid-column: auto; }
   .group-workspace .group-detail-metrics { gap: 10px; }
   .group-workspace .group-detail-metrics .metric-card { padding: 16px; }
-  .group-workspace .group-detail-metrics small { line-height: 1.5; }
 }
 
 @media print {

@@ -191,7 +191,7 @@ export function GroupDetailPage() {
           {data.attendance_sessions[0] ? <SessionRow session={data.attendance_sessions[0]} records={data.attendance_records} groupId={groupId} /> : <EmptyState icon="attendance" title="Primera lista pendiente" detail="Comienza registrando la asistencia del grupo." action={<Link className="button primary" to={`/attendance/${groupId}`}>Tomar asistencia</Link>} />}
         </SectionCard>
         <SectionCard>
-          <div className="section-heading"><div><span className="eyebrow">TU GRUPO</span><h2>{activeStudents.length} alumnos activos</h2></div><Link className="button ghost compact" to={`/groups/${groupId}?tab=students`}>Ver alumnos</Link></div>
+          <div className="section-heading"><div><span className="eyebrow">TU GRUPO</span><h2>{activeStudents.length} {activeStudents.length === 1 ? 'alumno activo' : 'alumnos activos'}</h2></div><Link className="button ghost compact" to={`/groups/${groupId}?tab=students`}>Ver alumnos</Link></div>
           {activeStudents.length ? <ul className="group-student-preview">{activeStudents.slice(0, 5).map((student) => <li key={student.id}><Link to={`/students/${groupId}/${student.id}`}><span>{student.full_name}</span><Icon name="arrow" /></Link></li>)}</ul> : <EmptyState icon="groups" title="Prepara tu lista" detail="Agrega alumnos o importa el padrón desde la sección Alumnos." action={<Link className="button secondary" to={`/groups/${groupId}?tab=students`}>Agregar alumnos</Link>} />}
         </SectionCard>
       </div> : null}

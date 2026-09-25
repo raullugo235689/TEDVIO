@@ -31,7 +31,7 @@ function GroupNavigation({ groupId, active }: { groupId: string; active: Section
   useEffect(() => {
     const nav = ref.current;
     const selected = nav?.querySelector<HTMLElement>('[aria-current]');
-    if (nav && selected) nav.scrollLeft = selected.offsetLeft - nav.offsetLeft - (nav.clientWidth - selected.offsetWidth) / 2;
+    if (nav && selected) nav.scrollLeft = selected.offsetLeft - (nav.clientWidth - selected.offsetWidth) / 2;
   }, [active, groupId]);
 
   return <nav className="group-section-nav" ref={ref} aria-label="Secciones del grupo">
