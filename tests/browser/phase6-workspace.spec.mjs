@@ -41,6 +41,7 @@ async function fixture(page, empty = false, dashboardGroups = null, workspace = 
       if (selectedId) rows = rows.filter(item => item.id === selectedId);
     }
     else if (table === 'v2_universities') rows = workspace.universities || [];
+    else if (table === 'v2_group_schedule_slots') rows = workspace.schedule || [];
     else if (table === 'v2_programs') rows = workspace.programs || [];
     else if (table === 'tedvio_institution_memberships') rows = workspace.memberships || [];
     else if (table === 'tedvio_institutions') rows = workspace.institutions || [];
@@ -84,6 +85,53 @@ test('perfil docente: nombre profesional completo, título e iniciales se actual
   await page.setViewportSize({ width: 320, height: 800 });
   await noOverflow(page);
   expect(state.errors).toEqual([]);
+});
+
+test.describe('agenda por grupo', () => {
+  test.use({ timezoneId: 'America/Mazatlan' });
+
+  test('colores e institución se conservan y la clase en curso cambia con la hora local', async ({ page }) => {
+    await page.clock.install({ time: new Date('2026-09-25T10:15:00-07:00') });
+    const first = { ...group, institution_logo_path: `${userId}/institution-branding/university/logo-a.png` };
+    const second = { ...group, id: 'other-group', name: 'Medicina · 3B', group_name: 'Medicina · 3B', subject: 'Anatomía' };
+    const schedule = [
+      { id: 'monday-a', group_id: groupId, weekday: 1, start_time: '10:00:00', end_time: '11:00:00', active: true, room: 'Aula 1', modality: 'Presencial' },
+      { id: 'friday-a', group_id: groupId, weekday: 5, start_time: '10:00:00', end_time: '11:00:00', active: true, room: 'Aula 1', modality: 'Presencial' },
+      { id: 'friday-b', group_id: second.id, weekday: 5, start_time: '11:00:00', end_time: '12:00:00', active: true, room: 'Anfiteatro', modality: 'Presencial' },
+      { id: 'inactive', group_id: second.id, weekday: 5, start_time: '09:00:00', end_time: '13:00:00', active: false },
+    ];
+    const state = await fixture(page, false, [first, second], { schedule });
+    const color = await page.locator('.group-card-v2').first().getAttribute('data-group-color');
+    await page.goto('/teacher#/agenda');
+    await expect(page.getByRole('heading', { name: 'Tu semana', exact: true })).toBeVisible();
+    const firstSlots = page.locator('.schedule-slot').filter({ hasText: group.name });
+    await expect(firstSlots).toHaveCount(2);
+    for (const slot of await firstSlots.all()) {
+      await expect(slot).toHaveAttribute('data-group-color', color);
+      await expect(slot.locator('.group-institution img')).toHaveAttribute('src', /logo-a\.png$/);
+    }
+    await expect(page.locator('.schedule-slot')).toHaveCount(3);
+    await expect(page.locator('.schedule-day.is-today')).toHaveAttribute('aria-label', 'Viernes');
+    await expect(page.locator('.schedule-slot.is-current')).toContainText(group.name);
+    await expect(page.locator('.agenda-page-focus').first()).toHaveAttribute('data-group-color', color);
+    await expect(page.getByRole('navigation', { name: 'Grupos en tu agenda' }).getByRole('link')).toHaveCount(2);
+    await noOverflow(page);
+    await page.screenshot({ path: test.info().outputPath('agenda-group-colors.png'), fullPage: true });
+    await page.clock.fastForward(46 * 60 * 1000);
+    await expect(page.locator('.schedule-slot.is-current')).toHaveCount(1);
+    await expect(page.locator('.schedule-slot.is-current')).toContainText(second.name);
+    await expect(page.locator('.agenda-page-focus').first()).toContainText(second.name);
+    await page.getByRole('button', { name: 'Activar modo oscuro' }).click();
+    for (const width of [320, 390, 768, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await noOverflow(page);
+    }
+    await page.screenshot({ path: test.info().outputPath('agenda-group-colors-dark.png'), fullPage: true });
+    await page.locator('.schedule-slot.is-current').getByRole('link', { name: 'Asistencia', exact: true }).click();
+    await expect(page).toHaveURL(/#\/attendance\/other-group$/);
+    expect(state.errors).toEqual([]);
+    expect(state.writes).toEqual([]);
+  });
 });
 
 test('espacio docente: cinco áreas, rutas anteriores y menú accesible', async ({ page }) => {
