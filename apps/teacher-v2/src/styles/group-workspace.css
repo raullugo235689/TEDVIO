@@ -14,6 +14,9 @@
   .group-workspace { --brand: var(--group-accent); --brand-strong: color-mix(in srgb, var(--group-accent) 80%, #071a3b); display: grid; gap: 12px; min-width: 0; }
   html[data-theme='dark'] .group-workspace { --brand-strong: color-mix(in srgb, var(--group-accent) 80%, white); }
   .group-workspace-content { min-width: 0; padding-top: 14px; }
+  .group-workspace-content > .view-stack { min-width: 0; grid-template-columns: minmax(0, 1fr); }
+  .group-workspace-content :is(.section-card, .section-heading, .page-header, .search-field, .search-field input) { min-width: 0; }
+  .group-workspace-content .search-field svg { flex-shrink: 0; }
   .group-identity-banner { padding: 22px 26px; border: 1px solid var(--border); border-top: 4px solid var(--group-accent); border-radius: 18px; background: linear-gradient(110deg, var(--surface) 45%, color-mix(in srgb, var(--group-accent) 8%, var(--surface))); box-shadow: var(--shadow-soft); min-width: 0; }
   .group-identity-topline { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 18px; }
   .group-identity-topline a { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; font-weight: 600; min-height: 28px; }
@@ -67,6 +70,10 @@
   .group-section-nav a:nth-child(n + 4) { grid-column: span 3; flex-direction: row; min-height: 44px; gap: 8px; }
   .group-workspace-content { padding-top: 8px; }
   .group-workspace-content .page-header h1 { font-size: 23px; }
+  .group-workspace-content .section-heading { flex-wrap: wrap; }
+  .group-workspace-content .section-heading .page-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+  .group-workspace-content .roster-table tr { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .group-workspace-content .roster-table td { min-width: 0; overflow-wrap: anywhere; }
   .group-summary-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .group-summary-actions a:last-child { grid-column: auto; }
   .group-workspace .group-detail-metrics { gap: 10px; }

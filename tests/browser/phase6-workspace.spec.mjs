@@ -47,7 +47,12 @@ async function fixture(page, empty = false, dashboardGroups = null, workspace = 
 }
 
 async function noOverflow(page) {
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  const layout = await page.evaluate(() => ({
+    width: document.documentElement.scrollWidth,
+    viewport: innerWidth,
+    overflow: [...document.querySelectorAll('main *')].filter(element => element.getBoundingClientRect().right > innerWidth + 1).slice(0, 12).map(element => ({ tag: element.tagName, class: element.className, right: element.getBoundingClientRect().right })),
+  }));
+  expect(layout.width <= layout.viewport + 1, JSON.stringify(layout)).toBe(true);
 }
 
 test('espacio docente: cinco áreas, rutas anteriores y menú accesible', async ({ page }) => {
