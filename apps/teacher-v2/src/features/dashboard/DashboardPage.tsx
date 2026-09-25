@@ -14,6 +14,7 @@ import {
   untilLabel,
 } from '../../core/academic';
 import { useTeacherHome } from '../../core/useTeacherHome';
+import { useTeacherIdentity } from '../../core/useTeacherIdentity';
 import type { AgendaOccurrence, DashboardGroup } from '../../core/types';
 import {
   ErrorPanel,
@@ -32,11 +33,6 @@ function greeting(): string {
   if (hour < 12) return 'Buenos días';
   if (hour < 19) return 'Buenas tardes';
   return 'Buenas noches';
-}
-
-function firstName(email?: string): string {
-  const raw = String(email || '').split('@')[0] || 'docente';
-  return raw.split(/[._-]/).filter(Boolean)[0] || 'docente';
 }
 
 function attendanceTone(group: DashboardGroup): string {
@@ -91,6 +87,7 @@ function GroupCard({ group }: { group: DashboardGroup }) {
 
 export function DashboardPage() {
   const home = useTeacherHome();
+  const identity = useTeacherIdentity();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const data = home.data;
@@ -119,7 +116,7 @@ export function DashboardPage() {
       <section className="dashboard-hero" aria-label="Panorama de tu jornada">
         <PageHeader
           eyebrow={new Intl.DateTimeFormat('es-MX', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()).toUpperCase()}
-          title={`${greeting()}, ${firstName(data.user.email)}.`}
+          title={<><span className="dashboard-greeting">{greeting()}, </span><span className="dashboard-teacher-name">{identity.displayName}</span></>}
           detail="Tu jornada, tus grupos y lo que sigue. Todo en su lugar."
           actions={
             <div className="hero-actions">

@@ -12,14 +12,11 @@ import { RouteErrorBoundary } from './RouteErrorBoundary';
 import { Icon } from '../shared/icons';
 import { prefetchTeacherRoute } from './route-loaders';
 import { GroupWorkspace } from '../shared/GroupWorkspace';
+import { useTeacherIdentity } from '../core/useTeacherIdentity';
 
 const THEME_KEY = 'tedvio.teacher-v2.theme';
 
 type Theme = 'light' | 'dark';
-
-function initials(email?: string): string {
-  return String(email || 'T').trim().slice(0, 2).toUpperCase();
-}
 
 function NavItem({ item, mobile = false, groupActive = false }: { item: NavigationItem; mobile?: boolean; groupActive?: boolean }) {
   return (
@@ -71,6 +68,7 @@ function MobileTools({ onDismiss, onSupport }: { onDismiss: () => void; onSuppor
 
 export function AppShell() {
   const auth = useAuth();
+  const identity = useTeacherIdentity();
   const queryClient = useQueryClient();
   useAttendanceDraftGuard(auth.user?.id);
   useAcademicDraftGuard(auth.user?.id);
@@ -179,10 +177,10 @@ export function AppShell() {
             >
               <Icon name={theme === 'light' ? 'moon' : 'sun'} />
             </button>
-            <div className="user-chip">
-              <span>{initials(auth.user?.email)}</span>
-              <div><b>{auth.user?.email?.split('@')[0] || 'Docente'}</b><small>{auth.user?.email || ''}</small></div>
-            </div>
+            <Link className="user-chip" to="/settings" aria-label={`Perfil de ${identity.displayName}`} title={identity.displayName}>
+              <span aria-hidden="true">{identity.initials}</span>
+              <div><b>{identity.displayName}</b><small>{auth.user?.email || ''}</small></div>
+            </Link>
             <button className="icon-button" type="button" onClick={() => void logout()} disabled={signingOut} aria-label="Cerrar sesión" title="Cerrar sesión">
               <Icon name="logout" />
             </button>

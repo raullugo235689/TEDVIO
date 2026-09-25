@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Icon, type IconName } from './icons';
 
-export function PageHeader({ eyebrow, title, detail, actions }: { eyebrow: string; title: string; detail?: string; actions?: ReactNode }) {
+export function PageHeader({ eyebrow, title, detail, actions }: { eyebrow: string; title: ReactNode; detail?: string; actions?: ReactNode }) {
   return (
     <header className="page-header">
       <div>
