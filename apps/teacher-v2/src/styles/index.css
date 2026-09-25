@@ -95,9 +95,10 @@ svg { width: 20px; height: 20px; flex: 0 0 auto; }
 .icon-button:active { transform: translateY(1px); }
 .icon-button:disabled { opacity: .5; cursor: wait; }
 .user-chip { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 5px 8px 5px 5px; border: 1px solid var(--border); border-radius: 15px; background: var(--surface); }
-.user-chip > span { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 11px; background: linear-gradient(135deg, var(--brand), var(--brand-strong)); color: #fff; font-size: 11px; font-weight: 900; }
+.user-chip > span { flex-shrink: 0; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 11px; background: linear-gradient(135deg, var(--brand), var(--brand-strong)); color: #fff; font-size: 11px; font-weight: 900; }
 .user-chip > div { display: grid; gap: 1px; min-width: 0; }
-.user-chip b { color: var(--text-strong); font-size: 12px; text-transform: capitalize; }
+.user-chip b { max-width: 240px; color: var(--text-strong); font-size: 12px; line-height: 1.35; overflow-wrap: anywhere; }
+.user-chip:focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; }
 .user-chip small { max-width: 170px; overflow: hidden; text-overflow: ellipsis; color: var(--muted); font-size: 10px; white-space: nowrap; }
 .route-container { min-height: calc(100vh - var(--topbar)); padding: clamp(22px, 3vw, 38px); outline: none; }
 .view-stack { display: grid; gap: 24px; max-width: 1540px; margin: 0 auto; }

@@ -24,6 +24,8 @@ import {
 import { EmptyState, ErrorPanel, LoadingScreen, MetricCard, PageHeader, SectionCard, StatusPill } from '../../shared/components';
 import { Icon } from '../../shared/icons';
 import { useAuth } from '../auth/AuthProvider';
+import type { User } from '@supabase/supabase-js';
+import { teacherDisplayName, teacherIdentityKey } from '../../core/teacher-identity';
 
 type SettingsTab = 'profile' | 'academic' | 'institution' | 'privacy' | 'security' | 'data';
 
@@ -37,9 +39,9 @@ function dateText(value?: string | null): string {
   return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: value.length === 10 ? undefined : 'short' });
 }
 
-function defaultProfile(data: SettingsData, email: string, metadataName: string): ProfileSettingsDraft {
+function defaultProfile(data: SettingsData, user: User): ProfileSettingsDraft {
   return {
-    displayName: data.profile?.display_name || data.account.profile?.full_name || metadataName || email.split('@')[0] || '',
+    displayName: teacherDisplayName(user, data.profile?.display_name, data.account.profile?.full_name, ''),
     institution: data.profile?.institution || '',
     educationalProgram: data.profile?.educational_program || '',
     defaultGroup: data.profile?.default_group || '',
@@ -106,7 +108,7 @@ export function SettingsPage() {
   const data = settingsQuery.data;
   useEffect(() => {
     if (!data || !auth.user) return;
-    setProfileDraft(defaultProfile(data, auth.user.email || '', String(auth.user.user_metadata?.full_name || auth.user.user_metadata?.display_name || '')));
+    setProfileDraft(defaultProfile(data, auth.user));
     setThresholds(Object.fromEntries(data.groups.map((group) => {
       const current = data.groupSettings.find((setting) => setting.group_id === group.id);
       return [group.id, { minAttendance: Number(current?.min_attendance ?? 80), minGrade: Number(current?.min_grade ?? 6) }];
@@ -116,6 +118,7 @@ export function SettingsPage() {
   async function refresh() {
     await queryClient.invalidateQueries({ queryKey: settingsKey(auth.user?.id) });
     await Promise.all([
+      queryClient.invalidateQueries({ queryKey: teacherIdentityKey(auth.user?.id) }),
       queryClient.invalidateQueries({ queryKey: ['teacher-home', auth.user?.id] }),
       queryClient.invalidateQueries({ queryKey: ['teacher-gradebook-workspace', auth.user?.id] }),
       queryClient.invalidateQueries({ queryKey: ['teacher-student360-directory', auth.user?.id] }),
@@ -235,7 +238,7 @@ export function SettingsPage() {
         <SectionCard>
           <div className="section-heading"><div><span className="eyebrow">PERFIL DOCENTE</span><h2>Identidad y contexto predeterminado</h2><p>El nombre mostrado se sincroniza con tu sesión. El grupo predeterminado debe pertenecer a tu cuenta.</p></div><StatusPill tone="blue">{accountProfile.status || 'active'}</StatusPill></div>
           <div className="form-grid two settings-form-grid">
-            <label>Nombre mostrado<input value={profileDraft.displayName} onChange={(event) => setProfileDraft({ ...profileDraft, displayName: event.target.value })} /></label>
+            <label>Nombre profesional<input autoComplete="name" maxLength={120} placeholder="Título y nombre completo" value={profileDraft.displayName} onChange={(event) => setProfileDraft({ ...profileDraft, displayName: event.target.value })} /><small>Incluye tu título académico tal como deseas que aparezca en TEDVIO.</small></label>
             <label>Correo<input value={auth.user.email || ''} disabled /></label>
             <label>Institución habitual<input value={profileDraft.institution} onChange={(event) => setProfileDraft({ ...profileDraft, institution: event.target.value })} /></label>
             <label>Programa educativo<input value={profileDraft.educationalProgram} onChange={(event) => setProfileDraft({ ...profileDraft, educationalProgram: event.target.value })} /></label>

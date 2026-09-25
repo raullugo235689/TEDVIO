@@ -8,6 +8,7 @@ const allRoutes = ['/', '/agenda', '/groups', '/attendance', '/classroom', '/gra
 
 async function fixture(page, empty = false, dashboardGroups = null, workspace = {}) {
   const state = { errors: [], writes: [] };
+  let profileName = workspace.profileName || null;
   page.on('pageerror', error => state.errors.push(error.message));
   await page.addInitScript(({ userId }) => localStorage.setItem('sb-workspace-fixture-auth-token', JSON.stringify({ access_token: 'synthetic-access-token', refresh_token: 'synthetic-refresh-token', expires_at: Math.floor(Date.now() / 1000) + 3600, expires_in: 3600, token_type: 'bearer', user: { id: userId, email: 'docente@example.test', aud: 'authenticated', role: 'authenticated' } })), { userId });
   await page.route('**/config.js*', route => route.fulfill({ contentType: 'application/javascript', body: 'window.TEDVIO_CONFIG={SUPABASE_URL:"https://workspace-fixture.supabase.test",SUPABASE_PUBLISHABLE_KEY:"synthetic-publishable-key"};' }));
@@ -22,7 +23,13 @@ async function fixture(page, empty = false, dashboardGroups = null, workspace = 
     if (table === 'tedvio_required_legal_documents_v21') rows = [{ document_key: 'terms', version: 'test', required: true, title: 'Prueba', content_html: '<p>Prueba.</p>' }];
     else if (table === 'tedvio_user_consents') rows = [{ document_key: 'terms', document_version: 'test' }];
     else if (table === 'tedvio_onboarding_snapshot_v21') rows = { completed: true, score: 5, dismissed: true };
-    else if (table === 'tedvio_user_profiles') rows = [{ status: 'active', plan: 'free', role: 'teacher' }];
+    else if (table === 'tedvio_user_profiles') rows = [{ status: 'active', plan: 'free', role: 'teacher', full_name: 'docente' }];
+    else if (table === 'profiles') rows = [{ id: userId, display_name: profileName }];
+    else if (table === 'v2_save_teacher_profile_settings') {
+      profileName = request.postDataJSON().p_display_name;
+      rows = { id: userId, display_name: profileName };
+    }
+    else if (table === 'user') rows = { id: userId, email: 'docente@example.test', aud: 'authenticated', role: 'authenticated', user_metadata: request.method() === 'PUT' ? request.postDataJSON().data : {} };
     else if (table === 'tedvio_current_entitlements') rows = { plan: 'free', display_name: 'Free' };
     else if (table === 'v2_teacher_today_dashboard') {
       const groups = empty ? [] : dashboardGroups || [group, { ...group, id: 'other-group', name: 'Medicina · 3B', group_name: 'Medicina · 3B', subject: 'Anatomía', students: 32 }];
@@ -42,7 +49,7 @@ async function fixture(page, empty = false, dashboardGroups = null, workspace = 
     await route.fulfill({ json: rows });
   });
   await page.goto('/teacher#/');
-  await expect(page.locator('.dashboard-workspace h1')).toContainText('docente');
+  await expect(page.locator('.dashboard-teacher-name')).toHaveText(profileName || 'Docente');
   return state;
 }
 
@@ -54,6 +61,30 @@ async function noOverflow(page) {
   }));
   expect(layout.width <= layout.viewport + 1, JSON.stringify(layout)).toBe(true);
 }
+
+test('perfil docente: nombre profesional completo, título e iniciales se actualizan en todo el espacio', async ({ page }) => {
+  const name = 'Dra. María Fernanda de la Cruz Herrera';
+  const state = await fixture(page, false, null, { profileName: name });
+  await expect(page.locator('.dashboard-teacher-name')).toHaveText(name);
+  await expect(page.locator('.user-chip b')).toHaveText(name);
+  await expect(page.locator('.user-chip > span')).toHaveText('MF');
+  await noOverflow(page);
+  await page.screenshot({ path: test.info().outputPath('professional-teacher-name.png'), fullPage: true });
+  await page.getByRole('link', { name: `Perfil de ${name}`, exact: true }).click();
+  const nameInput = page.getByLabel('Nombre profesional', { exact: false });
+  await expect(nameInput).toHaveValue(name);
+  const updatedName = 'Dr. Alejandro José del Castillo';
+  await nameInput.fill(updatedName);
+  await page.getByRole('button', { name: 'Guardar perfil', exact: true }).click();
+  await expect(page.getByText('Perfil docente actualizado.', { exact: true })).toBeVisible();
+  await expect(page.locator('.user-chip')).toHaveAttribute('aria-label', `Perfil de ${updatedName}`);
+  await expect(page.locator('.user-chip > span')).toHaveText('AJ');
+  await page.goto('/teacher#/');
+  await expect(page.locator('.dashboard-teacher-name')).toHaveText(updatedName);
+  await page.setViewportSize({ width: 320, height: 800 });
+  await noOverflow(page);
+  expect(state.errors).toEqual([]);
+});
 
 test('espacio docente: cinco áreas, rutas anteriores y menú accesible', async ({ page }) => {
   const state = await fixture(page);
