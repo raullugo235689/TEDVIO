@@ -6,7 +6,7 @@
   .agenda-workspace .agenda-page-focus .eyebrow { color: var(--group-accent, var(--muted)); }
   .agenda-workspace .agenda-page-focus h3 { margin-top: 18px; font-size: 23px; line-height: 1.25; overflow-wrap: anywhere; }
   .agenda-focus-details { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; margin: 12px 0; color: var(--text); font-size: 14px; font-variant-numeric: tabular-nums; }
-  .agenda-group-badge { display: inline-flex; padding: 5px 9px; border: 1px solid color-mix(in srgb, var(--group-accent) 22%, var(--border)); border-radius: 7px; background: color-mix(in srgb, var(--group-accent) 9%, var(--surface)); color: var(--group-accent); font-size: 12px; font-weight: 750; line-height: 1.35; overflow-wrap: anywhere; }
+  .agenda-group-badge { display: inline-flex; padding: 5px 9px; border: 1px solid color-mix(in srgb, var(--group-accent) 22%, var(--border)); border-radius: 7px; background: color-mix(in srgb, var(--group-accent) 9%, var(--surface)); color: color-mix(in srgb, var(--group-accent) 85%, var(--text-strong)); font-size: 12px; font-weight: 750; line-height: 1.35; overflow-wrap: anywhere; }
   .agenda-workspace .group-institution { margin: 10px 0; gap: 10px; }
   .agenda-workspace .group-institution-mark { flex-basis: 36px; width: 36px; height: 36px; border-radius: 9px; box-shadow: none; }
   .agenda-workspace .group-institution p { color: var(--muted); font-size: 11px; line-height: 1.45; margin: 0; }
