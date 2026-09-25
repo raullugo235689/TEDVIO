@@ -25,6 +25,7 @@ import {
 } from '../../shared/components';
 import { Icon } from '../../shared/icons';
 import { InstitutionIdentity } from '../../shared/InstitutionIdentity';
+import { groupAccent } from '../../core/group-identity';
 
 function greeting(): string {
   const hour = new Date().getHours();
@@ -73,7 +74,7 @@ function AgendaFocus({ occurrence, label }: { occurrence: AgendaOccurrence | nul
 
 function GroupCard({ group }: { group: DashboardGroup }) {
   return (
-    <article className="group-card-v2">
+    <article className="group-card-v2" data-group-color={groupAccent(group.id)}>
       <header>
         <div><span className="eyebrow">{groupSubject(group)}</span><h3><Link to={`/groups/${group.id}`}>{groupName(group)}</Link></h3><InstitutionIdentity name={group.university} logoUrl={group.institution_logo_url} detail={group.term} /></div>
         <StatusPill tone={attendanceTone(group)}>{attendanceLabel(group)}</StatusPill>

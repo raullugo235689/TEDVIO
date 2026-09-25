@@ -149,10 +149,10 @@ export function ReportsPage() {
   return (
     <div className="view-stack phase5-page reports-page">
       <PageHeader
-        eyebrow="CENTRO DE REPORTES"
-        title={groupLabel(group)}
+        eyebrow={groupLabel(group)}
+        title="Reportes del grupo"
         detail="Selecciona el corte, revisa la vista previa y exporta solamente cuando lo necesites."
-        actions={<div className="page-actions"><Link className="button ghost" to="/reports">← Grupos</Link><button className="button secondary" type="button" onClick={exportCsv}><Icon name="reports" /> Exportar CSV</button><button className="button primary" type="button" onClick={print}>Imprimir / PDF</button></div>}
+        actions={<div className="page-actions"><Link className="button ghost" to={`/analytics/${groupId}`}>Analítica</Link><button className="button secondary" type="button" onClick={exportCsv}><Icon name="reports" /> Exportar CSV</button><button className="button primary" type="button" onClick={print}>Imprimir / PDF</button></div>}
       />
 
       {notice ? <div className="success-strip"><Icon name="check" /><span>{notice}</span><button type="button" onClick={() => setNotice('')}>×</button></div> : null}

@@ -350,7 +350,7 @@ function StudentDetail({ groupId, studentId }: { groupId: string; studentId: str
         eyebrow="PERFIL DEL ALUMNO"
         title={data.student.full_name}
         detail={`${data.student.enrollment} · ${groupTitle}`}
-        actions={<div className="page-actions"><Link className="button ghost" to="/students">← Directorio</Link><Link className="button ghost" to={`/groups/${groupId}`}>Grupo</Link><Link className="button secondary" to={`/gradebook/${groupId}`}>Libro</Link><button className="button primary" type="button" onClick={() => exportStudent360Csv(data, calculation)}>Exportar CSV</button></div>}
+        actions={<div className="page-actions"><Link className="button ghost" to={`/groups/${groupId}?tab=students`}>← Alumnos del grupo</Link><button className="button primary" type="button" onClick={() => exportStudent360Csv(data, calculation)}>Exportar CSV</button></div>}
       />
 
       {notice ? <div className="success-strip"><Icon name="check" /><span>{notice}</span><button type="button" onClick={() => setNotice('')}>×</button></div> : null}

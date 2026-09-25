@@ -16,6 +16,7 @@ import type { DashboardGroup, GroupRecord } from '../../core/types';
 import { EmptyState, ErrorPanel, LoadingScreen, PageHeader, SectionCard, StatusPill } from '../../shared/components';
 import { Icon } from '../../shared/icons';
 import { InstitutionIdentity } from '../../shared/InstitutionIdentity';
+import { groupAccent } from '../../core/group-identity';
 import { AcademicDeleteButton } from '../../shared/AcademicDeleteButton';
 import { useAuth } from '../auth/AuthProvider';
 
@@ -211,7 +212,7 @@ export function GroupsPage() {
           {filtered.map((group) => {
             const dashboard = dashboardById.get(group.id);
             return (
-              <article className="group-catalog-card" key={group.id}>
+              <article className="group-catalog-card" key={group.id} data-group-color={groupAccent(group.id)}>
                 <header>
                   <div><span className="eyebrow">{group.subject || 'Grupo'}</span><h2>{group.group_name || group.name}</h2><InstitutionIdentity name={group.university_name || group.university} logoUrl={dashboard?.institution_logo_url} detail={[group.program_name || group.program, group.term].filter(Boolean).join(' · ')} /></div>
                   <StatusPill tone={tone(dashboard)}>{attendanceLabel(dashboard)}</StatusPill>

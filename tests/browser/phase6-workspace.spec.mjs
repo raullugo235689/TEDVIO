@@ -28,7 +28,11 @@ async function fixture(page, empty = false, dashboardGroups = null, workspace = 
       const groups = empty ? [] : dashboardGroups || [group, { ...group, id: 'other-group', name: 'Medicina · 3B', group_name: 'Medicina · 3B', subject: 'Anatomía', students: 32 }];
       rows = { groups, groups_count: groups.length, pending_attendance: 0, risk_students: 0, watch_students: 0, priority_students: [] };
     }
-    else if (table === 'v2_groups') rows = empty ? [] : workspace.groups || dashboardGroups || [group];
+    else if (table === 'v2_groups') {
+      rows = empty ? [] : workspace.groups || dashboardGroups || [group];
+      const selectedId = url.searchParams.get('id')?.replace(/^eq\./, '');
+      if (selectedId) rows = rows.filter(item => item.id === selectedId);
+    }
     else if (table === 'v2_universities') rows = workspace.universities || [];
     else if (table === 'v2_programs') rows = workspace.programs || [];
     else if (table === 'tedvio_institution_memberships') rows = workspace.memberships || [];
@@ -95,10 +99,11 @@ test('espacio docente: cinco áreas, rutas anteriores y menú accesible', async 
 test('grupo: accesos conservan el contexto y preseleccionan el examen', async ({ page }) => {
   const state = await fixture(page);
   await page.locator('.group-card-v2').first().getByRole('link', { name: 'Abrir grupo' }).click();
-  await expect(page.getByRole('heading', { name: group.name, exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Resumen del grupo', exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Identidad del grupo' })).toContainText(group.name);
   await expect.poll(() => page.evaluate(() => scrollY)).toBe(0);
   const workflow = page.getByRole('navigation', { name: 'Trabajar con este grupo' });
-  const paths = { 'Iniciar clase': `/classroom?group=${groupId}`, Asistencia: `/attendance/${groupId}`, 'Crear examen': `/exams/new?group=${groupId}`, Calificaciones: `/gradebook/${groupId}`, Reportes: `/reports/${groupId}` };
+  const paths = { 'Iniciar clase': `/classroom?group=${groupId}`, 'Crear examen': `/exams/new?group=${groupId}`, 'Analítica': `/analytics/${groupId}`, 'Periodos': `/periods/${groupId}` };
   for (const [name, path] of Object.entries(paths)) await expect(workflow.getByRole('link', { name, exact: true })).toHaveAttribute('href', `#${path}`);
   await expect(page.getByRole('link', { name: 'Alumna de prueba' })).toHaveAttribute('href', `#/students/${groupId}/student-a`);
   await noOverflow(page);
@@ -106,6 +111,57 @@ test('grupo: accesos conservan el contexto y preseleccionan el examen', async ({
   await workflow.getByRole('link', { name: 'Crear examen', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Construir evaluación', exact: true })).toBeVisible();
   await expect(page.getByLabel('Grupo', { exact: true })).toHaveValue(groupId);
+  expect(state.errors).toEqual([]);
+  expect(state.writes).toEqual([]);
+});
+
+test('grupo: identidad y sección se conservan entre pantallas, enlaces directos y temas', async ({ page }) => {
+  const branded = { ...group, institution_logo_path: `${userId}/institution-branding/university/logo-a.png` };
+  const other = { ...group, id: '33333333-3333-4333-8333-333333333333', group_name: 'Medicina · 3B', name: 'Medicina · 3B', subject: 'Anatomía', university: 'Otra universidad' };
+  const state = await fixture(page, false, [branded, other]);
+  const color = await page.locator('.group-card-v2').first().getAttribute('data-group-color');
+  await page.locator('.group-card-v2').first().getByRole('link', { name: 'Abrir grupo' }).click();
+  const identity = page.getByRole('region', { name: 'Identidad del grupo' });
+  const navigation = page.getByRole('navigation', { name: 'Secciones del grupo' });
+  await expect(identity).toContainText(group.subject);
+  await expect(identity.locator('img')).toHaveAttribute('src', /logo-a\.png$/);
+  for (const [label, heading, path] of [
+    ['Alumnos', 'Alumnos del grupo', `/groups/${groupId}?tab=students`],
+    ['Asistencia', 'Asistencia', `/attendance/${groupId}`],
+    ['Calificaciones', 'Calificaciones', `/gradebook/${groupId}`],
+    ['Reportes', 'Reportes del grupo', `/reports/${groupId}`],
+    ['Resumen', 'Resumen del grupo', `/groups/${groupId}`],
+  ]) {
+    await navigation.getByRole('link', { name: label, exact: true }).click();
+    await expect(page.getByRole('heading', { name: heading, exact: true, level: 1 })).toBeVisible();
+    expect(new URL(page.url()).hash).toBe(`#${path}`);
+    await expect(navigation.locator('[aria-current]')).toHaveText(label);
+    await expect(page.locator('.group-workspace')).toHaveAttribute('data-group-color', color);
+    await expect(identity).toContainText(group.name);
+    await expect(identity.locator('img')).toHaveAttribute('src', /logo-a\.png$/);
+    await noOverflow(page);
+    if (label === 'Reportes') await page.screenshot({ path: test.info().outputPath('group-reports-navigation.png'), fullPage: true });
+  }
+  await page.goto(`/teacher#/groups/${groupId}?tab=students`);
+  await expect(page.getByRole('heading', { name: 'Lista de alumnos', exact: true })).toBeVisible();
+  await expect(navigation.locator('[aria-current]')).toHaveText('Alumnos');
+  await navigation.getByRole('link', { name: 'Resumen', exact: true }).click();
+  await page.goBack();
+  await expect(navigation.locator('[aria-current]')).toHaveText('Alumnos');
+  await page.reload();
+  await expect(navigation.locator('[aria-current]')).toHaveText('Alumnos');
+  await page.getByRole('button', { name: 'Activar modo oscuro' }).click();
+  for (const width of [320, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await noOverflow(page);
+  }
+  await page.screenshot({ path: test.info().outputPath('group-students-dark.png'), fullPage: true });
+  await identity.getByRole('link', { name: 'Todos los grupos' }).click();
+  await expect(page.locator('.group-workspace')).toHaveCount(0);
+  await page.goto(`/teacher#/groups/${other.id}`);
+  await expect(identity).toContainText(other.group_name);
+  await expect(identity).toContainText(other.university);
+  await expect(identity.locator('img')).toHaveCount(0);
   expect(state.errors).toEqual([]);
   expect(state.writes).toEqual([]);
 });
