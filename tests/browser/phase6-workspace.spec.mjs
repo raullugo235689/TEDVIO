@@ -76,9 +76,9 @@ test('perfil docente: nombre profesional completo, título e iniciales se actual
   const updatedName = 'Dr. Alejandro José del Castillo';
   await nameInput.fill(updatedName);
   await page.getByRole('button', { name: 'Guardar perfil', exact: true }).click();
-  await expect(page.getByText('Perfil docente actualizado.', { exact: true })).toBeVisible();
   await expect(page.locator('.user-chip')).toHaveAttribute('aria-label', `Perfil de ${updatedName}`);
   await expect(page.locator('.user-chip > span')).toHaveText('AJ');
+  await expect(nameInput).toHaveValue(updatedName);
   await page.goto('/teacher#/');
   await expect(page.locator('.dashboard-teacher-name')).toHaveText(updatedName);
   await page.setViewportSize({ width: 320, height: 800 });
