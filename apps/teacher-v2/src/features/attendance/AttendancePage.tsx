@@ -254,10 +254,10 @@ function AttendanceEditor({ groupId, date }: { groupId: string; date: string }) 
   return (
     <div className="view-stack attendance-editor">
       <PageHeader
-        eyebrow="ASISTENCIA PRO"
-        title={group.group_name || group.name}
-        detail={`${group.subject || 'Grupo'} · ${dateLabel(date)}`}
-        actions={<div className="page-actions"><Link className="button ghost" to="/attendance">← Grupos</Link><Link className="button ghost" to={`/groups/${groupId}`}>Centro del grupo</Link></div>}
+        eyebrow={group.group_name || group.name}
+        title="Asistencia"
+        detail={dateLabel(date)}
+        actions={<Link className="button ghost" to={`/groups/${groupId}?tab=attendance`}>Ver historial</Link>}
       />
 
       {notice ? <div className="success-strip" role="status"><Icon name="check" /><span>{notice}</span><button type="button" aria-label="Cerrar aviso" onClick={() => setNotice('')}>×</button></div> : null}

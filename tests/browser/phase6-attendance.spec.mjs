@@ -39,6 +39,7 @@ async function attendanceFixture(page) {
     if (table === 'tedvio_required_legal_documents_v21') rows = [{ document_key: 'terms', version: 'test', required: true, title: 'Condiciones de prueba', content_html: '<p>Prueba sintética.</p>' }];
     else if (table === 'tedvio_user_consents') rows = [{ document_key: 'terms', document_version: 'test' }];
     else if (table === 'tedvio_onboarding_snapshot_v21') rows = { completed: true, score: 5, dismissed: true };
+    else if (table === 'v2_teacher_today_dashboard') rows = { groups: [{ id: groupId, name: 'Grupo de prueba', subject: 'Materia de prueba' }] };
     else if (table === 'v2_groups') rows = [{ id: groupId, teacher_id: userId, name: 'Grupo de prueba', subject: 'Materia de prueba' }];
     else if (table === 'v2_group_students') rows = students;
     else if (table === 'v2_attendance_sessions') {
@@ -63,7 +64,7 @@ async function attendanceFixture(page) {
   });
   await page.goto(`/teacher#/attendance/${groupId}?date=2026-09-08`);
   try {
-    await expect(page.getByRole('heading', { name: 'Grupo de prueba' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Asistencia', exact: true, level: 1 })).toBeVisible();
   } catch (error) {
     console.error('Attendance fixture diagnostics:', diagnostics, await page.locator('body').innerText());
     throw error;
@@ -78,6 +79,11 @@ test('asistencia conserva la captura al navegar, perder conexión y reintentar u
   await expect(page.locator('.attendance-work-status')).toContainText('Lista por guardar');
   await statusA(page, 'Falta').click();
   await page.getByLabel('Observación de Alumno A').fill('Avisó al docente');
+  await page.getByRole('navigation', { name: 'Secciones del grupo' }).getByRole('link', { name: 'Calificaciones' }).click();
+  await expect(page.getByRole('heading', { name: 'Calificaciones', exact: true, level: 1 })).toBeVisible();
+  await page.goBack();
+  await expect(page.getByLabel('Observación de Alumno A')).toHaveValue('Avisó al docente');
+  await expect(statusA(page, 'Falta')).toHaveAttribute('aria-pressed', 'true');
   const date = page.locator('.attendance-date-controls input');
   await date.fill('2026-09-09');
   await expect(statusA(page, 'Retardo')).toHaveAttribute('aria-pressed', 'true');

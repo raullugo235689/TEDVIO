@@ -286,10 +286,10 @@ export function PeriodsPage() {
   return (
     <div className="view-stack phase5-page periods-page">
       <PageHeader
-        eyebrow="PERIODOS ACADÉMICOS"
-        title={groupLabel(group)}
+        eyebrow={groupLabel(group)}
+        title="Periodos académicos"
         detail="Configura fechas y pesos, revisa evidencia y ejecuta el cierre protegido del parcial."
-        actions={<div className="page-actions"><Link className="button ghost" to="/periods">← Grupos</Link><Link className="button secondary" to={`/gradebook/${group.id}${selectedPeriod ? `?period=${selectedPeriod.id}` : ''}`}>Abrir Libro</Link><button className="button primary" type="button" disabled={busy} onClick={() => setDraft(emptyDraft(group.id, nextOrder))}>＋ Periodo</button></div>}
+        actions={<div className="page-actions"><Link className="button secondary" to={`/gradebook/${group.id}${selectedPeriod ? `?period=${selectedPeriod.id}` : ''}`}>Abrir Libro</Link><button className="button primary" type="button" disabled={busy} onClick={() => setDraft(emptyDraft(group.id, nextOrder))}>＋ Periodo</button></div>}
       />
 
       {notice ? <div className="success-strip"><Icon name="check" /><span>{notice}</span><button type="button" onClick={() => setNotice('')}>×</button></div> : null}

@@ -11,6 +11,7 @@ import { isNavigationGroupActive, navigationArea, navigationAreaLabel, navigatio
 import { RouteErrorBoundary } from './RouteErrorBoundary';
 import { Icon } from '../shared/icons';
 import { prefetchTeacherRoute } from './route-loaders';
+import { GroupWorkspace } from '../shared/GroupWorkspace';
 
 const THEME_KEY = 'tedvio.teacher-v2.theme';
 
@@ -81,6 +82,7 @@ export function AppShell() {
   const [confirmLogout, setConfirmLogout] = useState(false);
   const reliability = useReliability();
   const location = useLocation();
+  const groupTab = location.pathname.startsWith('/groups/') ? new URLSearchParams(location.search).get('tab') : null;
   const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light'));
   const [moreOpen, setMoreOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -99,7 +101,7 @@ export function AppShell() {
       window.scrollTo(0, 0);
       document.getElementById('tedvio-main')?.focus({ preventScroll: true });
     });
-  }, [location.pathname]);
+  }, [location.pathname, groupTab]);
 
   const routeTitle = useMemo(() => navigationTitle(location.pathname), [location.pathname]);
   const area = navigationArea(location.pathname);
@@ -189,7 +191,7 @@ export function AppShell() {
 
         <main className="route-container" id="tedvio-main" tabIndex={-1}>
           <RouteErrorBoundary resetKey={location.pathname}>
-            <Outlet />
+            <GroupWorkspace><Outlet /></GroupWorkspace>
           </RouteErrorBoundary>
         </main>
       </div>

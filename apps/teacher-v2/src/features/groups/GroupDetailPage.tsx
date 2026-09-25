@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../auth/AuthProvider';
 import {
@@ -70,7 +70,9 @@ export function GroupDetailPage() {
   const { groupId = '' } = useParams();
   const auth = useAuth();
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState<'students' | 'attendance'>('students');
+  const [searchParams] = useSearchParams();
+  const requestedTab = searchParams.get('tab');
+  const tab = requestedTab === 'students' || requestedTab === 'attendance' ? requestedTab : 'summary';
   const [query, setQuery] = useState('');
   const [showInactive, setShowInactive] = useState(false);
   const [studentDraft, setStudentDraft] = useState<StudentDraft | null>(null);
@@ -159,47 +161,45 @@ export function GroupDetailPage() {
   return (
     <div className="view-stack">
       <PageHeader
-        eyebrow="CENTRO DE GRUPO"
-        title={groupTitle}
-        detail={[data.group.university, data.group.program, data.group.subject, data.group.term].filter(Boolean).join(' · ')}
-        actions={
-          <div className="page-actions">
-            <Link className="button ghost" to="/groups">← Grupos</Link>
-            <Link className="button secondary" to={`/analytics/${groupId}`}><Icon name="analytics" /> Analítica</Link>
-            <Link className="button primary" to={`/attendance/${groupId}`}>✓ Tomar asistencia</Link>
-          </div>
-        }
+        eyebrow={tab === 'summary' ? 'PANORAMA' : tab === 'students' ? 'PADRÓN' : 'ASISTENCIA'}
+        title={tab === 'summary' ? 'Resumen del grupo' : tab === 'students' ? 'Alumnos del grupo' : 'Historial de asistencia'}
+        detail={tab === 'summary' ? `${groupTitle} · Tu grupo, su actividad y el siguiente paso.` : tab === 'students' ? 'Organiza tu lista y consulta el seguimiento de cada alumno.' : 'Consulta y vuelve a abrir las listas recientes del grupo.'}
       />
 
-      <nav className="group-workflow" aria-label="Trabajar con este grupo">
+      {tab === 'summary' ? <nav className="group-workflow group-summary-actions" aria-label="Trabajar con este grupo">
         <Link to={`/classroom?group=${encodeURIComponent(groupId)}`}><Icon name="classroom" /><span>Iniciar clase</span></Link>
-        <Link to={`/attendance/${groupId}`}><Icon name="attendance" /><span>Asistencia</span></Link>
         <Link to={`/exams/new?group=${encodeURIComponent(groupId)}`}><Icon name="exam" /><span>Crear examen</span></Link>
-        <Link to={`/gradebook/${groupId}`}><Icon name="grades" /><span>Calificaciones</span></Link>
-        <Link to={`/reports/${groupId}`}><Icon name="reports" /><span>Reportes</span></Link>
-      </nav>
+        <Link to={`/analytics/${groupId}`}><Icon name="analytics" /><span>Analítica</span></Link>
+        <Link to={`/periods/${groupId}`}><Icon name="periods" /><span>Periodos</span></Link>
+      </nav> : null}
 
       {notice ? <div className="success-strip"><Icon name="check" /><span>{notice}</span><button type="button" onClick={() => setNotice('')}>×</button></div> : null}
       {saveMutation.isError || importMutation.isError || activeMutation.isError ? (
         <ErrorPanel title="No se pudo completar la operación" detail={(saveMutation.error || importMutation.error || activeMutation.error)?.message || 'Intenta nuevamente.'} />
       ) : null}
 
-      <section className="metrics-grid group-detail-metrics">
+      {tab === 'summary' ? <section className="metrics-grid group-detail-metrics">
         <MetricCard icon="groups" label="Alumnos activos" value={String(activeStudents.length)} detail={`${data.students.length - activeStudents.length} inactivos`} tone="blue" />
         <MetricCard icon="attendance" label="Asistencia" value={attendanceAverage === null ? '—' : `${attendanceAverage}%`} detail="Promedio de las últimas 20 listas" tone={attendanceAverage !== null && attendanceAverage < 80 ? 'amber' : 'green'} />
         <MetricCard icon="calendar" label="Listas" value={String(data.attendance_sessions.length)} detail="Historial reciente disponible" tone="violet" />
         <MetricCard icon="clock" label="Última lista" value={data.attendance_sessions[0] ? formatDate(data.attendance_sessions[0].attendance_date) : '—'} detail={data.attendance_sessions[0] ? sessionLabel(data.attendance_sessions[0].status) : 'Sin registros'} tone="neutral" />
-      </section>
+      </section> : null}
 
-      <div className="module-tabs" role="group" aria-label="Secciones del grupo">
-        <button type="button" aria-pressed={tab === 'students'} className={tab === 'students' ? 'active' : ''} onClick={() => setTab('students')}>Alumnos</button>
-        <button type="button" aria-pressed={tab === 'attendance'} className={tab === 'attendance' ? 'active' : ''} onClick={() => setTab('attendance')}>Historial de asistencia</button>
-      </div>
+      {tab === 'summary' ? <div className="group-overview-grid">
+        <SectionCard>
+          <div className="section-heading"><div><span className="eyebrow">ÚLTIMA ACTIVIDAD</span><h2>Asistencia del grupo</h2></div><Link className="button ghost compact" to={`/groups/${groupId}?tab=attendance`}>Ver historial</Link></div>
+          {data.attendance_sessions[0] ? <SessionRow session={data.attendance_sessions[0]} records={data.attendance_records} groupId={groupId} /> : <EmptyState icon="attendance" title="Primera lista pendiente" detail="Comienza registrando la asistencia del grupo." action={<Link className="button primary" to={`/attendance/${groupId}`}>Tomar asistencia</Link>} />}
+        </SectionCard>
+        <SectionCard>
+          <div className="section-heading"><div><span className="eyebrow">TU GRUPO</span><h2>{activeStudents.length} {activeStudents.length === 1 ? 'alumno activo' : 'alumnos activos'}</h2></div><Link className="button ghost compact" to={`/groups/${groupId}?tab=students`}>Ver alumnos</Link></div>
+          {activeStudents.length ? <ul className="group-student-preview">{activeStudents.slice(0, 5).map((student) => <li key={student.id}><Link to={`/students/${groupId}/${student.id}`}><span>{student.full_name}</span><Icon name="arrow" /></Link></li>)}</ul> : <EmptyState icon="groups" title="Prepara tu lista" detail="Agrega alumnos o importa el padrón desde la sección Alumnos." action={<Link className="button secondary" to={`/groups/${groupId}?tab=students`}>Agregar alumnos</Link>} />}
+        </SectionCard>
+      </div> : null}
 
       {tab === 'students' ? (
         <SectionCard>
           <div className="section-heading">
-            <div><span className="eyebrow">PADRÓN</span><h2>Alumnos del grupo</h2><p>Administra tu lista o abre el perfil de un alumno para consultar su seguimiento.</p></div>
+            <div><h2>Lista de alumnos</h2><p>Agrega, importa o actualiza los datos de tu grupo.</p></div>
             <div className="page-actions"><button className="button ghost" type="button" onClick={() => setBulkOpen((value) => !value)}>Importar lista</button><button className="button primary" type="button" onClick={() => setStudentDraft({ enrollment: '', fullName: '', active: true })}>＋ Alumno</button></div>
           </div>
 
@@ -256,12 +256,12 @@ export function GroupDetailPage() {
             </div>
           ) : <EmptyState icon="groups" title="No encontramos alumnos" detail={data.students.length ? 'Ajusta la búsqueda o activa la visualización de inactivos.' : 'Agrega el primer alumno o importa la lista completa.'} />}
         </SectionCard>
-      ) : (
+      ) : tab === 'attendance' ? (
         <SectionCard>
           <div className="section-heading"><div><span className="eyebrow">ASISTENCIA</span><h2>Últimas listas</h2><p>Consulta el estado y vuelve a abrir cualquier fecha dentro del módulo nuevo.</p></div><Link className="button primary" to={`/attendance/${groupId}`}>Nueva lista</Link></div>
           {data.attendance_sessions.length ? <div className="attendance-history-grid">{data.attendance_sessions.map((session) => <SessionRow key={session.id} session={session} records={data.attendance_records} groupId={groupId} />)}</div> : <EmptyState icon="attendance" title="Sin listas todavía" detail="Crea la primera asistencia para comenzar el historial del grupo." action={<Link className="button primary" to={`/attendance/${groupId}`}>Tomar asistencia</Link>} />}
         </SectionCard>
-      )}
+      ) : null}
     </div>
   );
 }

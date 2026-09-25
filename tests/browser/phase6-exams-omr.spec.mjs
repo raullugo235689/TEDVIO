@@ -52,7 +52,7 @@ async function fixture(page, path = `/omr/${examId}`) {
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify(rows) });
   });
   await page.goto(`/teacher#${path}`);
-  await expect(page.getByRole('heading', { name: path.includes('gradebook') ? 'Grupo de prueba' : path === '/exams/new' ? 'Construir evaluación' : state.exam.title, exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: path.includes('gradebook') ? 'Calificaciones' : path === '/exams/new' ? 'Construir evaluación' : state.exam.title, exact: true }).first()).toBeVisible();
   return state;
 }
 const navigate = (page, path) => page.evaluate(path => { window.location.hash = path; }, path);

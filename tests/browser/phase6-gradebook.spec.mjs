@@ -40,7 +40,7 @@ async function fixture(page) {
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify(rows) });
   });
   await page.goto(`/teacher#/gradebook/${groupId}?period=p1`);
-  await expect(page.getByRole('heading', { name: 'Grupo de prueba' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Calificaciones', exact: true, level: 1 })).toBeVisible();
   return state;
 }
 const section = (page, name) => page.getByRole('navigation', { name: 'Secciones del Libro' }).getByRole('button', { name, exact: true });
