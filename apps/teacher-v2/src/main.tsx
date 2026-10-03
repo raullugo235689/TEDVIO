@@ -32,6 +32,7 @@ import './styles/session-preflight.css';
 import './styles/workspace-premium.css';
 import './styles/group-workspace.css';
 import './styles/agenda-premium.css';
+import './styles/reports-premium.css';
 
 const queryClient = new QueryClient({
   queryCache: new QueryCache({

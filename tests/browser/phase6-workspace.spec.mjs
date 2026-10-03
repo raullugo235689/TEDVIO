@@ -40,12 +40,16 @@ async function fixture(page, empty = false, dashboardGroups = null, workspace = 
       const selectedId = url.searchParams.get('id')?.replace(/^eq\./, '');
       if (selectedId) rows = rows.filter(item => item.id === selectedId);
     }
-    else if (table === 'v2_universities') rows = workspace.universities || [];
+    else if (table === 'v2_universities') {
+      rows = workspace.universities || [];
+      const selectedId = url.searchParams.get('id')?.replace(/^eq\./, '');
+      if (selectedId) rows = rows.filter(item => item.id === selectedId);
+    }
     else if (table === 'v2_group_schedule_slots') rows = workspace.schedule || [];
     else if (table === 'v2_programs') rows = workspace.programs || [];
     else if (table === 'tedvio_institution_memberships') rows = workspace.memberships || [];
     else if (table === 'tedvio_institutions') rows = workspace.institutions || [];
-    else if (table === 'v2_group_students') rows = [{ id: 'student-a', teacher_id: userId, group_id: groupId, enrollment: 'A001', full_name: 'Alumna de prueba', active: true }];
+    else if (table === 'v2_group_students') rows = workspace.students || [{ id: 'student-a', teacher_id: userId, group_id: groupId, enrollment: 'A001', full_name: 'Alumna de prueba', active: true }];
     if (request.headers().accept?.includes('vnd.pgrst.object+json') && Array.isArray(rows)) rows = rows[0] ?? null;
     await route.fulfill({ json: rows });
   });
@@ -335,6 +339,102 @@ test('logos institucionales: identidad estable, iniciales y archivo faltante', a
   await expect(linkedUniversities.nth(1).getByRole('combobox', { name: 'Identidad visual' })).toHaveValue('');
   await expect(linkedUniversities.nth(2).getByRole('combobox', { name: 'Identidad visual' })).toHaveValue(institutionB);
   await noOverflow(page);
+  expect(state.errors).toEqual([]);
+  expect(state.writes).toEqual([]);
+});
+
+test('reportes premium: identidad vinculada, búsqueda, documento completo e impresión', async ({ page, browserName }) => {
+  const profileName = 'Dr. Raúl Daniel Ascencio Lugo';
+  const institutionId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  const otherInstitutionId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  const universityId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+  const programId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+  const path = `${userId}/institution-branding/${institutionId}/logo-a.png`;
+  const branded = { ...group, program_id: programId, institution_id: institutionId, institution_logo_path: path };
+  const students = Array.from({ length: 95 }, (_, i) => ({ id: `student-${i}`, teacher_id: userId, group_id: groupId, enrollment: `A${String(i + 1).padStart(3, '0')}`, full_name: `Alumno de prueba ${String(i + 1).padStart(3, '0')}`, active: true }));
+  const state = await fixture(page, false, [branded], {
+    profileName, groups: [branded], students,
+    universities: [{ id: universityId, name: 'Institución de prueba', institution_id: institutionId }],
+    programs: [{ id: programId, name: 'Medicina', university_id: universityId }],
+    memberships: [{ institution_id: otherInstitutionId }, { institution_id: institutionId }],
+    institutions: [
+      { id: otherInstitutionId, name: 'Institución de prueba', report_display_name: 'IDENTIDAD INCORRECTA', report_logo_path: `${otherInstitutionId}/wrong-logo.png` },
+      { id: institutionId, name: 'Institución de prueba', report_display_name: 'Universidad del grupo', report_logo_path: path },
+    ],
+  });
+  const color = await page.locator('.group-card-v2').first().getAttribute('data-group-color');
+  await page.goto('/teacher#/reports');
+  await expect(page.getByRole('heading', { name: 'Centro de reportes', exact: true })).toBeVisible();
+  await expect(page.locator('.report-group-card')).toHaveAttribute('data-group-color', color);
+  await expect(page.locator('.report-group-card img')).toHaveAttribute('src', /logo-a\.png$/);
+  await expect(page.locator('.reports-teacher')).toHaveText(profileName);
+  await expect(page.locator('main')).not.toContainText('FASE 5');
+  await page.getByRole('searchbox', { name: 'Buscar grupo o asignatura' }).fill('sin coincidencias');
+  await expect(page.getByRole('heading', { name: 'No encontramos ese grupo' })).toBeVisible();
+  await page.getByRole('button', { name: 'Mostrar todos' }).click();
+  await noOverflow(page);
+  await page.screenshot({ path: test.info().outputPath('report-center-premium.png'), fullPage: true });
+  await page.locator('.report-group-card').getByRole('link', { name: 'Abrir reportes' }).click();
+  await page.getByRole('button', { name: /Lista de alumnos/ }).click();
+  await expect(page.locator('.report-paper-context')).toContainText(profileName);
+  await expect(page.locator('.report-paper')).toContainText('Universidad del grupo');
+  await expect(page.locator('.report-paper')).not.toContainText('IDENTIDAD INCORRECTA');
+  await expect(page.locator('.report-paper img')).toHaveAttribute('src', /logo-a\.png$/);
+  await expect(page.locator('.report-table tbody tr')).toHaveCount(40);
+  await page.getByRole('button', { name: 'Siguiente', exact: true }).click();
+  await page.getByRole('button', { name: 'Siguiente', exact: true }).click();
+  await expect(page.locator('.report-table tbody tr')).toHaveCount(15);
+  await expect(page.locator('.report-table')).toContainText('Alumno de prueba 095');
+  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Exportar CSV', exact: true }).click()]);
+  const stream = await download.createReadStream();
+  const chunks = [];
+  for await (const chunk of stream) chunks.push(chunk);
+  const csv = Buffer.concat(chunks).toString('utf8');
+  expect(csv).toContain(profileName);
+  expect(csv).toContain('Alumno de prueba 001');
+  expect(csv).toContain('Alumno de prueba 095');
+  await page.getByRole('button', { name: /Resumen académico/ }).click();
+  await expect(page.locator('.report-table tbody tr')).toHaveCount(40);
+  await noOverflow(page);
+  await page.screenshot({ path: test.info().outputPath('report-document-premium.png'), fullPage: true });
+  await page.getByRole('button', { name: 'Activar modo oscuro' }).click();
+  for (const width of [320, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await noOverflow(page);
+  }
+  await page.screenshot({ path: test.info().outputPath('report-document-dark.png'), fullPage: true });
+  await page.getByRole('button', { name: /Lista de alumnos/ }).click();
+  await page.evaluate(() => {
+    const original = window.open.bind(window);
+    window.open = (...args) => { const child = original(...args); if (child) child.print = () => {}; return child; };
+  });
+  const [popup] = await Promise.all([page.waitForEvent('popup'), page.getByRole('button', { name: 'Imprimir / PDF', exact: true }).click()]);
+  await expect(popup.locator('tbody tr')).toHaveCount(95);
+  await expect(popup.locator('.document-context')).toContainText(profileName);
+  await expect(popup.locator('.document-head img')).toHaveAttribute('src', /logo-a\.png$/);
+  expect(await popup.evaluate(() => window.opener === null)).toBe(true);
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  if (browserName === 'chromium') {
+    await popup.pdf({ path: test.info().outputPath('report-roster-95.pdf'), preferCSSPageSize: true, printBackground: true });
+  }
+  await popup.close();
+  expect(state.errors).toEqual([]);
+  expect(state.writes).toEqual([]);
+});
+
+test('reportes: una universidad sin vínculo no hereda logo ni firma de otra institución', async ({ page }) => {
+  const state = await fixture(page, false, null, {
+    memberships: [{ institution_id: 'another-institution' }],
+    institutions: [{ id: 'another-institution', name: group.university, report_display_name: 'Institución ajena', report_logo_path: 'another/logo.png', report_approver_name: 'Firma ajena' }],
+  });
+  await page.goto(`/teacher#/reports/${groupId}`);
+  await expect(page.locator('.report-paper')).toBeVisible();
+  await expect(page.locator('.report-paper')).not.toContainText('Institución ajena');
+  await expect(page.locator('.report-paper')).not.toContainText('Firma ajena');
+  await expect(page.locator('.report-paper img')).toHaveCount(0);
+  await page.evaluate(() => { window.open = () => null; });
+  await page.getByRole('button', { name: 'Imprimir / PDF', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('Permite ventanas emergentes');
   expect(state.errors).toEqual([]);
   expect(state.writes).toEqual([]);
 });

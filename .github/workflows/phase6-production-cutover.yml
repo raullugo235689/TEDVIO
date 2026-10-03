@@ -74,6 +74,7 @@ jobs:
           name: teacher-workspace-screenshots
           path: |
             test-results/**/*.png
+            test-results/**/*.pdf
             tests/browser/test-results/**/*.png
           if-no-files-found: ignore
           retention-days: 3

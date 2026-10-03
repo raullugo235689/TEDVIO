@@ -2,6 +2,8 @@ import type { User } from '@supabase/supabase-js';
 import { calculateGradebook, fetchGradebookDetail, type GradebookCalculation, type GradebookDetail, type GradebookOmrResult } from './gradebook';
 import { supabase } from './supabase';
 import type { GroupRecord, StudentRecord } from './types';
+import { groupAccent } from './group-identity';
+import { academicReportCsv, buildReportHtml } from './report-document';
 
 export type AcademicReportType = 'group' | 'roster' | 'attendance' | 'grades' | 'evaluations' | 'sessions';
 export type ReportCell = string | number | null;
@@ -52,6 +54,7 @@ export interface ReportAttempt {
 
 export interface ReportInstitution {
   id: string;
+  institution_id?: string | null;
   name: string;
   report_display_name?: string | null;
   report_logo_path?: string | null;
@@ -90,6 +93,9 @@ export interface AcademicReportSpec {
   title: string;
   subtitle: string;
   generatedAt: string;
+  teacherName: string;
+  groupColor: string;
+  academicYear: string;
   institution: string;
   program: string;
   subject: string;
@@ -177,6 +183,9 @@ function reportBase(data: ReportData, type: AcademicReportType): Omit<AcademicRe
   return {
     type,
     generatedAt: new Date().toISOString(),
+    teacherName: 'Docente',
+    groupColor: groupAccent(group.id),
+    academicYear: group.school_cycle || group.term || '',
     institution,
     program: data.program?.name || group.program_name || group.program || '—',
     subject: group.subject || groupName(group),
@@ -245,10 +254,10 @@ export async function fetchReportData(user: User, groupId: string, periodId: str
       ? supabase.from('v2_assignment_attempts').select('id,assignment_id,group_student_id,enrollment,status,submitted_at,score,max_score,percentage,late').in('assignment_id', assignmentIds).range(0, 9999)
       : Promise.resolve({ data: [], error: null }),
     program?.university_id
-      ? supabase.from('v2_universities').select('id,name').eq('id', program.university_id).maybeSingle()
+      ? supabase.from('v2_universities').select('id,name,institution_id').eq('id', program.university_id).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
     institutionIds.length
-      ? supabase.from('tedvio_institutions').select('id,name,report_display_name,report_logo_path,report_title,report_approver_name,report_approver_title,report_approval_label,report_document_code').in('id', institutionIds)
+      ? supabase.from('tedvio_institutions').select('id,name,report_display_name,report_logo_path,report_title,report_approver_name,report_approver_title,report_approval_label,report_document_code').in('id', institutionIds).eq('status', 'active')
       : Promise.resolve({ data: [], error: null }),
   ]);
 
@@ -259,8 +268,8 @@ export async function fetchReportData(user: User, groupId: string, periodId: str
 
   const institution = (institutionResult.data || null) as ReportInstitution | null;
   const institutions = (institutionsResult.data || []) as ReportInstitution[];
-  const targetName = normalized(institution?.name || detail.group.university_name || detail.group.university);
-  const branding = institutions.find((row) => normalized(row.name) === targetName) || institutions[0] || null;
+  // Branding follows the explicit university link, never a name or another membership.
+  const branding = institutions.find((row) => row.id === institution?.institution_id) || null;
 
   return {
     detail,
@@ -429,34 +438,12 @@ export function buildAcademicReport(data: ReportData, type: AcademicReportType, 
   };
 }
 
-function csvCell(value: ReportCell): string {
-  const text = value == null ? '' : String(value);
-  return `"${text.replaceAll('"', '""')}"`;
-}
-
 function safeName(value: string): string {
   return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '').slice(0, 80) || 'Reporte';
 }
 
 export function downloadAcademicReportCsv(spec: AcademicReportSpec): void {
-  const metadata = [
-    ['Institución', spec.institution],
-    ['Programa', spec.program],
-    ['Asignatura', spec.subject],
-    ['Grupo', spec.group],
-    ['Periodo', spec.period],
-    ['Reporte', spec.title],
-    ['Generado', new Date(spec.generatedAt).toLocaleString('es-MX')],
-  ];
-  const lines = [
-    ...metadata.map((row) => row.map(csvCell).join(',')),
-    '',
-    spec.columns.map(csvCell).join(','),
-    ...spec.rows.map((row) => row.map(csvCell).join(',')),
-    '',
-    ...spec.summary.map((row) => [row.label, row.value].map(csvCell).join(',')),
-  ];
-  const blob = new Blob([`\ufeff${lines.join('\r\n')}`], { type: 'text/csv;charset=utf-8' });
+  const blob = new Blob([academicReportCsv(spec)], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
@@ -467,23 +454,23 @@ export function downloadAcademicReportCsv(spec: AcademicReportSpec): void {
   setTimeout(() => URL.revokeObjectURL(url), 1500);
 }
 
-function htmlEscape(value: ReportCell): string {
-  return String(value == null ? '' : value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[character] || character));
-}
-
 export function printAcademicReport(spec: AcademicReportSpec): void {
-  const logo = spec.logoUrl ? `<img src="${htmlEscape(spec.logoUrl)}" alt="Logotipo">` : '<div class="logo-fallback">TEDVIO</div>';
-  const summary = spec.summary.map((item) => `<div><span>${htmlEscape(item.label)}</span><b>${htmlEscape(item.value)}</b></div>`).join('');
-  const headers = spec.columns.map((column) => `<th>${htmlEscape(column)}</th>`).join('');
-  const rows = spec.rows.map((row) => `<tr>${row.map((cell) => `<td>${htmlEscape(cell)}</td>`).join('')}</tr>`).join('');
-  const approval = spec.approverName ? `<footer><div><span>${htmlEscape(spec.approvalLabel)}</span><b>${htmlEscape(spec.approverName)}</b><small>${htmlEscape(spec.approverTitle)}</small></div></footer>` : '';
-  const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${htmlEscape(spec.title)}</title><style>@page{size:landscape;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#142b4c;margin:0;font-size:10px}header{display:grid;grid-template-columns:100px 1fr auto;gap:18px;align-items:center;border-bottom:2px solid #17365e;padding-bottom:12px;margin-bottom:14px}header img{max-width:100px;max-height:60px}.logo-fallback{font-weight:900;font-size:20px;color:#2f69db}h1{font-size:17px;margin:3px 0}h2{font-size:12px;margin:0;color:#526985}.meta{text-align:right}.meta b,.meta span{display:block}.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:10px 0}.summary div{border:1px solid #d8e1ed;border-radius:7px;padding:7px}.summary span,.summary b{display:block}.summary span{color:#667891;font-size:8px}.summary b{font-size:13px;margin-top:2px}table{width:100%;border-collapse:collapse;table-layout:auto}th,td{border:1px solid #cfd9e7;padding:5px;vertical-align:top}th{background:#eef4fb;font-size:8px;text-align:left}tbody tr:nth-child(even){background:#f8fafd}.note{margin-top:8px;color:#667891}footer{display:flex;justify-content:flex-end;margin-top:30px}footer div{min-width:220px;text-align:center;border-top:1px solid #17365e;padding-top:6px}footer span,footer b,footer small{display:block}footer small{color:#667891}@media print{button{display:none}}</style></head><body><header>${logo}<div><small>${htmlEscape(spec.institution)}</small><h1>${htmlEscape(spec.title)}</h1><h2>${htmlEscape(spec.subtitle)}</h2></div><div class="meta"><b>${htmlEscape(spec.subject)} · ${htmlEscape(spec.group)}</b><span>${htmlEscape(spec.program)}</span><span>${htmlEscape(spec.period)}</span>${spec.documentCode ? `<span>${htmlEscape(spec.documentCode)}</span>` : ''}</div></header><section class="summary">${summary}</section><table><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table>${spec.note ? `<p class="note">${htmlEscape(spec.note)}</p>` : ''}${approval}<script>window.addEventListener('load',()=>setTimeout(()=>window.print(),250));<\/script></body></html>`;
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const opened = window.open(url, '_blank', 'noopener,noreferrer');
-  if (!opened) {
-    URL.revokeObjectURL(url);
-    throw new Error('El navegador bloqueó la vista de impresión. Permite ventanas emergentes para TEDVIO.');
-  }
-  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  const html = buildReportHtml(spec);
+  // Opening a same-origin blank document lets us detect a blocked popup reliably.
+  // Passing noopener to window.open itself returns null even when it succeeds.
+  const opened = window.open('', '_blank');
+  if (!opened) throw new Error('El navegador bloqueó la vista de impresión. Permite ventanas emergentes para TEDVIO.');
+  opened.opener = null;
+  opened.document.open();
+  opened.document.write(html);
+  opened.document.close();
+  opened.document.querySelector('[data-print-report]')?.addEventListener('click', () => opened.print());
+  const images = Array.from(opened.document.images);
+  const loaded = Promise.all(images.map((img) => img.complete ? Promise.resolve() : new Promise<void>((resolve) => {
+    img.addEventListener('load', () => resolve(), { once: true });
+    img.addEventListener('error', () => { img.style.display = 'none'; resolve(); }, { once: true });
+  })));
+  void Promise.race([loaded, new Promise<void>((resolve) => setTimeout(resolve, 4_000))]).then(() => {
+    if (!opened.closed) setTimeout(() => { if (!opened.closed) opened.print(); }, 150);
+  });
 }
