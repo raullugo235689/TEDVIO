@@ -28,7 +28,8 @@ export function AgendaEditor({ data, occurrence, initialDate, onClose, onSaved }
   })); // Opening a new editor captures the original version once.
   const draft = useAcademicDraft<EditorValue>(['agenda-draft', data.user.id, source?.id || 'new', occurrence?.originalDate || 'new'], initial, { persistInSession: true });
   const form = draft.value.form;
-  const allowConflicts = draft.value.allowConflicts;
+  // Controlled checkboxes must update synchronously; the draft cache notifies later.
+  const [allowConflicts, setAllowConflicts] = useState(() => draft.value.allowConflicts);
   const group = groups.find(item => item.id === form.group_id);
   const conflicts = agendaConflicts(form, occurrence, data.schedule, data.scheduleExceptions || [], groups);
   const hasConflict = conflicts.length > 0 || remoteConflict;
@@ -37,7 +38,7 @@ export function AgendaEditor({ data, occurrence, initialDate, onClose, onSaved }
   useEffect(() => { dialog.current?.showModal(); }, []);
   const change = (patch: Partial<AgendaDraft>) => {
     draft.set(value => ({ ...value, requestId: crypto.randomUUID(), allowConflicts: false, form: { ...value.form, ...patch } }));
-    setError(''); setRemoteConflict(false);
+    setError(''); setRemoteConflict(false); setAllowConflicts(false);
   };
   const close = () => {
     if (busy.current) return;
@@ -84,7 +85,7 @@ export function AgendaEditor({ data, occurrence, initialDate, onClose, onSaved }
             <div className="agenda-editor-row"><label>Aula o ubicación<input maxLength={120} value={form.room} placeholder="Ej. Anfiteatro · Edificio A" onChange={e => change({ room: e.target.value })} /></label><label>Modalidad<select value={form.modality} onChange={e => change({ modality: e.target.value })}>{Array.from(new Set(['Presencial','En línea','Bimodal',form.modality].filter(Boolean))).map(value => <option key={value}>{value}</option>)}</select></label></div>
           </> : <p className="agenda-scope-note">{form.action === 'restore' ? 'Se recuperarán el día, el aula y las horas del horario original.' : form.scope === 'one' ? 'Esta fecha aparecerá como suspendida y dejará de mostrarse como tu próxima clase.' : 'No se programarán clases de este horario a partir de la fecha seleccionada.'} Los registros de asistencia se conservan.</p>}
           {form.action !== 'restore' && occurrence && form.scope === 'one' ? <label>Nota opcional<textarea maxLength={300} rows={2} placeholder="Ej. Suspensión por lluvia" value={form.note} onChange={e => change({ note: e.target.value })} /></label> : null}
-          {hasConflict ? <section className="agenda-conflict" aria-label="Empalmes detectados"><b>Hay horarios que se empalman</b>{conflicts.length ? <ul>{conflicts.map(item => <li key={`${item.slot.id}:${item.originalDate}`}>{dateLabel(localDate(item.start))} · {formatTime(item.slot.start_time)}–{formatTime(item.slot.end_time)} · {groupSubject(item.group)} · {groupName(item.group)}</li>)}</ul> : <p>Otro horario coincide con esta clase. Actualiza la agenda para consultar sus detalles.</p>}<label className="agenda-checkbox"><input type="checkbox" checked={allowConflicts} onChange={e => { const checked = e.target.checked; draft.set(value => ({ ...value, requestId: crypto.randomUUID(), allowConflicts: checked })); }} />He revisado el empalme y quiero conservar ambos horarios.</label></section> : null}
+          {hasConflict ? <section className="agenda-conflict" aria-label="Empalmes detectados"><b>Hay horarios que se empalman</b>{conflicts.length ? <ul>{conflicts.map(item => <li key={`${item.slot.id}:${item.originalDate}`}>{dateLabel(localDate(item.start))} · {formatTime(item.slot.start_time)}–{formatTime(item.slot.end_time)} · {groupSubject(item.group)} · {groupName(item.group)}</li>)}</ul> : <p>Otro horario coincide con esta clase. Actualiza la agenda para consultar sus detalles.</p>}<label className="agenda-checkbox"><input type="checkbox" checked={allowConflicts} onChange={e => { const checked = e.target.checked; setAllowConflicts(checked); draft.set(value => ({ ...value, requestId: crypto.randomUUID(), allowConflicts: checked })); }} />He revisado el empalme y quiero conservar ambos horarios.</label></section> : null}
         </fieldset>
         {error ? <div className="agenda-editor-error" role="alert">{error}{stale ? <button type="button" className="button ghost compact" onClick={async () => { draft.clear(); await queryClient.invalidateQueries({ queryKey: ['teacher-home', data.user.id] }); onClose(); }}>Descartar borrador y actualizar</button> : null}</div> : null}
         {draft.dirty ? <small className="agenda-draft-note">Borrador conservado en este dispositivo hasta guardar o descartarlo.</small> : null}
