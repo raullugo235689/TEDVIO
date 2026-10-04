@@ -4,10 +4,11 @@ import type {
   DashboardGroup,
   RecommendedAction,
   ScheduleSlot,
+  ScheduleException,
   TeacherDashboard,
 } from './types';
 
-const dayOrder = [1, 2, 3, 4, 5, 6, 0];
+import { agendaOccurrences, addDays, localDate } from './agenda-model';
 
 export const dayNames = [
   'Domingo',
@@ -58,60 +59,13 @@ export function attendanceLabel(group?: DashboardGroup | null): string {
   return 'Sin lista hoy';
 }
 
-function minutes(value: string): number {
-  const [hours = 0, mins = 0] = value.split(':').map(Number);
-  return hours * 60 + mins;
-}
-
-function occurrence(slot: ScheduleSlot, date: Date, groups: DashboardGroup[]): AgendaOccurrence {
-  const start = new Date(date);
-  const end = new Date(date);
-  const startMinutes = minutes(slot.start_time);
-  const endMinutes = minutes(slot.end_time);
-  start.setHours(Math.floor(startMinutes / 60), startMinutes % 60, 0, 0);
-  end.setHours(Math.floor(endMinutes / 60), endMinutes % 60, 0, 0);
-  return {
-    slot,
-    start,
-    end,
-    group: groups.find((group) => String(group.id) === String(slot.group_id)) || null,
-  };
-}
-
 export function agendaSnapshot(
-  schedule: ScheduleSlot[],
-  groups: DashboardGroup[],
-  now = new Date(),
-  days = 8,
+  schedule: ScheduleSlot[], groups: DashboardGroup[], now = new Date(), days = 8, exceptions: ScheduleException[] = [],
 ): AgendaSnapshot {
-  const occurrences: AgendaOccurrence[] = [];
-  const active = schedule
-    .filter((slot) => slot.active !== false)
-    .sort(
-      (a, b) =>
-        dayOrder.indexOf(Number(a.weekday)) - dayOrder.indexOf(Number(b.weekday)) ||
-        minutes(a.start_time) - minutes(b.start_time),
-    );
-
-  for (let delta = 0; delta < days; delta += 1) {
-    const date = new Date(now);
-    date.setHours(0, 0, 0, 0);
-    date.setDate(date.getDate() + delta);
-    active
-      .filter((slot) => Number(slot.weekday) === date.getDay())
-      .forEach((slot) => occurrences.push(occurrence(slot, date, groups)));
-  }
-
-  occurrences.sort((a, b) => a.start.getTime() - b.start.getTime());
+  const occurrences = agendaOccurrences(schedule, exceptions, groups, localDate(now), addDays(localDate(now), days - 1));
   const current = occurrences.find((item) => item.start <= now && now < item.end) || null;
   const future = occurrences.filter((item) => item.start > now);
-
-  return {
-    current,
-    next: future[0] || null,
-    after: future[1] || null,
-    today: occurrences.filter((item) => item.start.toDateString() === now.toDateString()),
-  };
+  return { current, next: future[0] || null, after: future[1] || null, today: occurrences.filter((item) => item.start.toDateString() === now.toDateString()) };
 }
 
 export function recommendedAction(dashboard: TeacherDashboard): RecommendedAction {

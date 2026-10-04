@@ -78,6 +78,22 @@ export interface ScheduleSlot {
   modality?: string | null;
   active?: boolean | null;
   updated_at?: string | null;
+  starts_on?: string | null;
+  ends_on?: string | null;
+  recurrence?: 'weekly' | 'once';
+  revision?: number;
+}
+
+export interface ScheduleException {
+  slot_id: string;
+  original_date: string;
+  status: 'moved' | 'cancelled';
+  class_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  room?: string | null;
+  modality?: string | null;
+  note?: string | null;
 }
 
 export interface TeacherHomeData {
@@ -86,6 +102,7 @@ export interface TeacherHomeData {
   entitlements: Entitlements | null;
   dashboard: TeacherDashboard;
   schedule: ScheduleSlot[];
+  scheduleExceptions?: ScheduleException[];
   warnings: string[];
 }
 
@@ -94,6 +111,10 @@ export interface AgendaOccurrence {
   group: DashboardGroup | null;
   start: Date;
   end: Date;
+  originalDate: string;
+  status: 'scheduled' | 'moved' | 'cancelled';
+  note?: string | null;
+  source: ScheduleSlot;
 }
 
 export interface AgendaSnapshot {

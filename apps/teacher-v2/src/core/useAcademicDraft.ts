@@ -56,7 +56,7 @@ export function clearAcademicDraftStorage(userId?: string): void {
 }
 
 export function hasPendingAcademicWork(client: QueryClient, userId?: string): boolean {
-  return Boolean(userId && (storedAcademicWork(userId) || ['omr', 'exam'].some(kind => client.getQueriesData({ queryKey: [`${kind}-draft`, userId] }).some(([, value]) => Boolean(value)) || client.isMutating({ mutationKey: [`${kind}-write`, userId] }))));
+  return Boolean(userId && (storedAcademicWork(userId) || ['omr', 'exam', 'agenda'].some(kind => client.getQueriesData({ queryKey: [`${kind}-draft`, userId] }).some(([, value]) => Boolean(value)) || client.isMutating({ mutationKey: [`${kind}-write`, userId] }))));
 }
 export function useAcademicDraftGuard(userId?: string) {
   const client = useQueryClient();
