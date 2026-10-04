@@ -503,6 +503,7 @@ test.describe('editor de agenda', () => {
     await expect(page.locator('.schedule-slot')).toContainText('Aula original');
     await page.getByRole('button', { name: 'Semana siguiente', exact: true }).click();
     await expect(page.locator('.schedule-slot')).toContainText('08:00');
+    await expect(page.locator('.schedule-slot').getByRole('link', { name: 'Asistencia', exact: true })).toHaveAttribute('href', new RegExp(`#/attendance/${groupId}\\?date=2026-10-19$`));
     await page.screenshot({ path: test.info().outputPath('agenda-edited-week.png'), fullPage: true });
     await page.locator('.schedule-slot').getByRole('link', { name: 'Modo Clase', exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`#/classroom\\?group=${groupId}$`));
