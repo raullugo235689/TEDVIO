@@ -92,7 +92,7 @@ export function DashboardPage() {
   const queryClient = useQueryClient();
   const data = home.data;
   const groups = data?.dashboard.groups || [];
-  const agenda = useMemo(() => agendaSnapshot(data?.schedule || [], groups), [data?.schedule, groups]);
+  const agenda = useMemo(() => agendaSnapshot(data?.schedule || [], groups, new Date(), 8, data?.scheduleExceptions || []), [data?.schedule, data?.scheduleExceptions, groups]);
   const action = useMemo(() => recommendedAction(data?.dashboard || {}), [data?.dashboard]);
 
   if (home.isLoading) return <LoadingScreen label="Preparando tu centro docente…" />;

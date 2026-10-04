@@ -45,7 +45,12 @@ async function fixture(page, empty = false, dashboardGroups = null, workspace = 
       const selectedId = url.searchParams.get('id')?.replace(/^eq\./, '');
       if (selectedId) rows = rows.filter(item => item.id === selectedId);
     }
-    else if (table === 'v2_group_schedule_slots') rows = workspace.schedule || [];
+    else if (table === 'v2_group_schedule_slots') rows = (workspace.schedule || []).filter(item => item.active !== false);
+    else if (table === 'v2_schedule_exceptions') rows = workspace.exceptions || [];
+    else if (table === 'v2_save_schedule' && workspace.saveSchedule) {
+      state.writes.push(request.postDataJSON());
+      return workspace.saveSchedule(route, request.postDataJSON());
+    }
     else if (table === 'v2_programs') rows = workspace.programs || [];
     else if (table === 'tedvio_institution_memberships') rows = workspace.memberships || [];
     else if (table === 'tedvio_institutions') rows = workspace.institutions || [];
@@ -437,4 +442,141 @@ test('reportes: una universidad sin vínculo no hereda logo ni firma de otra ins
   await expect(page.getByRole('alert')).toContainText('Permite ventanas emergentes');
   expect(state.errors).toEqual([]);
   expect(state.writes).toEqual([]);
+});
+
+test.describe('editor de agenda', () => {
+  test.use({ timezoneId: 'America/Mazatlan' });
+  const scheduleId = '33333333-3333-4333-8333-333333333333';
+  const baseSlot = () => ({ id: scheduleId, group_id: groupId, weekday: 1, start_time: '08:00:00', end_time: '09:00:00', room: 'Aula original', modality: 'Presencial', active: true, starts_on: '2026-10-05', ends_on: '2026-10-26', recurrence: 'weekly', revision: 1 });
+  async function clock(page) { await page.clock.install({ time: new Date('2026-10-05T07:30:00-07:00') }); }
+
+  test('crea una serie, mueve solo una fecha, suspende y restaura desde el calendario', async ({ page }) => {
+    await clock(page);
+    const workspace = { schedule: [], exceptions: [] };
+    let step = 0;
+    workspace.saveSchedule = async (route, request) => {
+      const p = request.p_payload; step++;
+      if (step === 1) {
+        expect(p.slot_id).toBeNull(); expect(p.class_date).toBe('2026-10-05'); expect(p.end_date).toBe('2026-10-26'); expect(p.recurrence).toBe('weekly');
+        workspace.schedule.push(baseSlot());
+      } else if (step === 2) {
+        expect(p.scope).toBe('one'); expect(p.original_date).toBe('2026-10-12'); expect(p.class_date).toBe('2026-10-13');
+        workspace.exceptions = [{ slot_id: scheduleId, original_date: '2026-10-12', status: 'moved', class_date: p.class_date, start_time: p.start_time, end_time: p.end_time, room: p.room, modality: p.modality }]; workspace.schedule[0].revision++;
+      } else if (step === 3) {
+        expect(p.action).toBe('suspend'); expect(p.scope).toBe('one');
+        workspace.exceptions[0] = { ...workspace.exceptions[0], status: 'cancelled', class_date: null, note: p.note }; workspace.schedule[0].revision++;
+      } else {
+        expect(p.action).toBe('restore'); workspace.exceptions = []; workspace.schedule[0].revision++;
+      }
+      return route.fulfill({ json: { saved: true, slot_id: scheduleId } });
+    };
+    const state = await fixture(page, false, [group], workspace);
+    await page.goto('/teacher#/agenda');
+    await page.getByRole('button', { name: 'Programar clase', exact: true }).click();
+    const editor = page.getByRole('dialog', { name: 'Programar clase' });
+    await editor.getByLabel('Repetir hasta').fill('2026-10-26');
+    await editor.getByLabel('Aula o ubicación').fill('Aula original');
+    await expect(editor.getByLabel('Primera clase')).toHaveValue('2026-10-05');
+    await page.screenshot({ path: test.info().outputPath('agenda-create-editor.png') });
+    await editor.getByRole('button', { name: 'Guardar clase', exact: true }).click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.locator('.schedule-slot')).toHaveCount(1);
+    await page.getByRole('button', { name: 'Semana siguiente', exact: true }).click();
+    await page.locator('.schedule-slot').getByRole('button', { name: 'Editar clase' }).click();
+    const edit = page.getByRole('dialog', { name: 'Editar clase' });
+    await edit.getByLabel('Nueva fecha').fill('2026-10-13');
+    await edit.getByLabel('Hora de entrada').fill('11:00'); await edit.getByLabel('Hora de salida').fill('12:00');
+    await edit.getByLabel('Aula o ubicación').fill('Laboratorio de simulación');
+    await edit.getByRole('button', { name: 'Guardar clase', exact: true }).click();
+    await expect(page.locator('.schedule-slot')).toContainText('Reprogramada');
+    await expect(page.locator('.schedule-day')).toHaveAttribute('aria-label', 'Martes');
+    await expect(page.locator('.schedule-slot')).toContainText('Laboratorio de simulación');
+    await page.locator('.schedule-slot').getByRole('button', { name: 'Editar clase' }).click();
+    await edit.getByLabel('¿Qué quieres hacer?').selectOption('suspend');
+    await edit.getByLabel('Nota opcional').fill('Suspensión por lluvia');
+    await edit.getByRole('button', { name: 'Confirmar suspensión' }).click();
+    await expect(page.locator('.schedule-slot')).toContainText('Suspendida');
+    await expect(page.locator('.schedule-slot')).toContainText('Suspensión por lluvia');
+    await page.locator('.schedule-slot').getByRole('button', { name: 'Restaurar o editar' }).click();
+    await edit.getByRole('button', { name: 'Restaurar clase', exact: true }).click();
+    await expect(page.locator('.schedule-slot')).not.toContainText('Suspendida');
+    await expect(page.locator('.schedule-slot')).toContainText('Aula original');
+    await page.getByRole('button', { name: 'Semana siguiente', exact: true }).click();
+    await expect(page.locator('.schedule-slot')).toContainText('08:00');
+    await page.screenshot({ path: test.info().outputPath('agenda-edited-week.png'), fullPage: true });
+    await page.locator('.schedule-slot').getByRole('link', { name: 'Modo Clase', exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`#/classroom\\?group=${groupId}$`));
+    expect(step).toBe(4); expect(state.errors).toEqual([]);
+  });
+
+  test('empalmes, pérdida de conexión y reintento conservan borrador sin duplicar', async ({ page, context }) => {
+    await clock(page);
+    const workspace = { schedule: [baseSlot()], exceptions: [] };
+    const calls = [];
+    workspace.saveSchedule = async (route, request) => {
+      calls.push(request);
+      if (calls.length === 1) return route.fulfill({ status: 503, json: { message: 'No se pudo confirmar la respuesta. Reintenta.' } });
+      expect(request.p_request_id).toBe(calls[0].p_request_id);
+      expect(request.p_payload).toEqual(calls[0].p_payload);
+      workspace.schedule.push({ ...baseSlot(), id: 'new-class', recurrence: 'once', ends_on: '2026-10-05', start_time: '08:30:00', end_time: '09:30:00', room: 'Sala guardada' });
+      return route.fulfill({ json: { saved: true, slot_id: 'new-class' } });
+    };
+    const state = await fixture(page, false, [group], workspace);
+    await page.goto('/teacher#/agenda');
+    await page.getByRole('button', { name: 'Programar clase', exact: true }).click();
+    const edit = page.getByRole('dialog');
+    await edit.getByLabel('Repetición', { exact: true }).selectOption('once');
+    await edit.getByLabel('Hora de entrada').fill('08:30'); await edit.getByLabel('Hora de salida').fill('09:30');
+    await edit.getByLabel('Aula o ubicación').fill('Sala guardada');
+    await expect(edit.getByRole('region', { name: 'Empalmes detectados' })).toContainText('Fisiología');
+    await edit.getByRole('button', { name: 'Guardar clase', exact: true }).click();
+    expect(calls).toHaveLength(0);
+    await edit.getByRole('checkbox').check();
+    await context.setOffline(true);
+    await edit.getByRole('button', { name: 'Guardar clase', exact: true }).click();
+    await expect(edit.getByRole('alert')).toContainText('Sin conexión'); expect(calls).toHaveLength(0);
+    await context.setOffline(false);
+    await edit.getByRole('button', { name: 'Guardar clase', exact: true }).click();
+    await expect(edit.getByRole('alert')).toContainText('Reintenta');
+    await expect(edit.getByLabel('Aula o ubicación')).toHaveValue('Sala guardada');
+    await page.screenshot({ path: test.info().outputPath('agenda-conflict-editor.png') });
+    await edit.getByRole('button', { name: 'Guardar clase', exact: true }).click();
+    await expect(page.getByRole('dialog')).toHaveCount(0); await expect(page.locator('.schedule-slot')).toHaveCount(2);
+    expect(calls).toHaveLength(2); expect(state.errors).toEqual([]);
+  });
+
+  test('serie futura, borrador al navegar, revisión remota y editor móvil accesible', async ({ page }) => {
+    await clock(page);
+    const workspace = { schedule: [baseSlot()], exceptions: [] };
+    workspace.saveSchedule = async (route, request) => {
+      expect(request.p_payload.scope).toBe('future'); expect(request.p_payload.original_date).toBe('2026-10-05'); expect(request.p_payload.revision).toBe(1);
+      workspace.schedule[0].revision = 2; workspace.schedule[0].room = 'Cambio desde otro dispositivo';
+      return route.fulfill({ status: 409, json: { code: '40001', message: 'El horario cambió en otro dispositivo. Actualiza la agenda y vuelve a abrir la clase.' } });
+    };
+    const state = await fixture(page, false, [group], workspace);
+    await page.goto('/teacher#/agenda');
+    await page.locator('.schedule-slot').getByRole('button', { name: 'Editar clase' }).click();
+    let edit = page.getByRole('dialog');
+    await edit.getByLabel('Aplicar a').selectOption('future');
+    await edit.getByLabel('Aula o ubicación').fill('Borrador conservado');
+    await page.evaluate(() => { window.location.hash = '#/groups'; });
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await page.goto('/teacher#/agenda');
+    await page.locator('.schedule-slot').getByRole('button', { name: 'Editar clase' }).click();
+    edit = page.getByRole('dialog');
+    await expect(edit.getByLabel('Aula o ubicación')).toHaveValue('Borrador conservado');
+    await expect(edit.getByLabel('Aplicar a')).toHaveValue('future');
+    for (const width of [320, 390, 768, 1440]) { await page.setViewportSize({ width, height: 900 }); const size = await edit.evaluate(e => ({ width: e.scrollWidth, client: e.clientWidth })); expect(size.width).toBeLessThanOrEqual(size.client + 1); }
+    await edit.getByRole('button', { name: 'Guardar clase', exact: true }).click();
+    await expect(edit.getByRole('alert')).toContainText('otro dispositivo');
+    await expect(edit.getByRole('button', { name: 'Guardar clase', exact: true })).toBeDisabled();
+    await edit.getByRole('button', { name: 'Descartar borrador y actualizar' }).click();
+    await expect(page.locator('.schedule-slot')).toContainText('Cambio desde otro dispositivo');
+    await page.getByRole('button', { name: 'Activar modo oscuro' }).click();
+    await page.locator('.schedule-slot').getByRole('button', { name: 'Editar clase' }).click();
+    await page.screenshot({ path: test.info().outputPath('agenda-editor-dark.png') });
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    expect(state.errors).toEqual([]);
+  });
 });

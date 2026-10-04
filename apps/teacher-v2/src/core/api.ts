@@ -3,6 +3,7 @@ import { supabase } from './supabase';
 import type {
   Entitlements,
   ScheduleSlot,
+  ScheduleException,
   TeacherDashboard,
   TeacherHomeData,
   TeacherProfile,
@@ -18,7 +19,7 @@ function message(error: unknown): string {
 }
 
 export async function fetchTeacherHome(user: User): Promise<TeacherHomeData> {
-  const [profileResult, entitlementsResult, dashboardResult, scheduleResult] = await Promise.all([
+  const [profileResult, entitlementsResult, dashboardResult, scheduleResult, exceptionsResult] = await Promise.all([
     supabase
       .from('tedvio_user_profiles')
       .select('status,plan,role')
@@ -28,11 +29,12 @@ export async function fetchTeacherHome(user: User): Promise<TeacherHomeData> {
     supabase.rpc('v2_teacher_today_dashboard'),
     supabase
       .from('v2_group_schedule_slots')
-      .select('id,group_id,weekday,start_time,end_time,room,modality,active,updated_at')
+      .select('id,group_id,weekday,start_time,end_time,room,modality,active,updated_at,starts_on,ends_on,recurrence,revision')
       .eq('teacher_id', user.id)
       .eq('active', true)
       .order('weekday')
       .order('start_time'),
+    supabase.from('v2_schedule_exceptions').select('slot_id,original_date,status,class_date,start_time,end_time,room,modality,note').eq('teacher_id', user.id),
   ]);
 
   if (dashboardResult.error) {
@@ -43,6 +45,8 @@ export async function fetchTeacherHome(user: User): Promise<TeacherHomeData> {
   if (profileResult.error) warnings.push(`Perfil: ${message(profileResult.error)}`);
   if (entitlementsResult.error) warnings.push(`Plan: ${message(entitlementsResult.error)}`);
   if (scheduleResult.error) warnings.push(`Agenda: ${message(scheduleResult.error)}`);
+
+  if (exceptionsResult.error) warnings.push(`Agenda: ${message(exceptionsResult.error)}`);
 
   const dashboard = (dashboardResult.data || {}) as TeacherDashboard;
   if (Array.isArray(dashboard.groups)) {
@@ -60,6 +64,7 @@ export async function fetchTeacherHome(user: User): Promise<TeacherHomeData> {
     entitlements: (entitlementsResult.data || null) as Entitlements | null,
     dashboard,
     schedule: (scheduleResult.data || []) as ScheduleSlot[],
+    scheduleExceptions: (exceptionsResult.data || []) as ScheduleException[],
     warnings,
   };
 }
