@@ -525,7 +525,7 @@ test.describe('editor de agenda', () => {
     await page.goto('/teacher#/agenda');
     await page.getByRole('button', { name: 'Programar clase', exact: true }).click();
     const edit = page.getByRole('dialog');
-    await edit.getByLabel('Repetición', { exact: true }).selectOption('once');
+    await edit.getByRole('combobox', { name: /Repetición/ }).selectOption('once');
     await edit.getByLabel('Hora de entrada').fill('08:30'); await edit.getByLabel('Hora de salida').fill('09:30');
     await edit.getByLabel('Aula o ubicación').fill('Sala guardada');
     await expect(edit.getByRole('region', { name: 'Empalmes detectados' })).toContainText('Fisiología');
