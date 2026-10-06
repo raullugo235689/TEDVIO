@@ -25,6 +25,11 @@ before(async()=>{
  await db.query('insert into v2_groups(id,teacher_id,name) values($1,$2,$3)',[outsider,other,'Ajeno']);
  for(let i=0;i<students.length;i++) await db.query('insert into v2_group_students(id,teacher_id,group_id,enrollment,full_name) values($1,$2,$3,$4,$5)',[students[i],owner,groups[i<2?0:1],i%2?'002':'001',`Alumno ${i+1}`]);
  await db.exec(readFileSync(new URL(migration,dir),'utf8'));
+ await db.exec(readFileSync(new URL(readdirSync(dir).find(n=>n.endsWith('_rotating_attendance.sql')),dir),'utf8'));
+ // Run the actual production limiter; this adapter supplies its SHA-256 extension in PGlite.
+ await db.exec(`create schema extensions; create function extensions.digest(text,text) returns bytea language sql as $$select sha256(convert_to($1,'UTF8'))$$;`);
+ const limiter=readFileSync(new URL('20260826215254_v67_private_rpc_hardening_core.sql',dir),'utf8').split('alter function public.')[0];
+ await db.exec(limiter);
 });
 after(()=>db.close());
 async function asRole(actor,sql,args=[],role='authenticated'){await db.exec(`set role ${role}`);try{await db.query("select set_config('request.jwt.claim.sub',$1,false)",[actor||'']);return(await db.query(sql,args)).rows;}finally{await db.exec('reset role');}}
@@ -49,3 +54,64 @@ test('errores en cualquier grupo revierten la creación completa',async()=>{awai
 test('RLS, funciones y permisos protegen las listas y tokens de otros docentes',async()=>{await clear();const e=await create();assert.equal(await summary(e,other),null);await assert.rejects(()=>close(e,other),/no está disponible/);await assert.rejects(()=>create({group_ids:[outsider]}),/tus grupos/);for(const table of ['v2_attendance_events','v2_attendance_event_groups','v2_attendance_event_checkins']){assert.equal((await asRole(other,`select * from ${table}`)).length,0);await assert.rejects(()=>asRole(null,`select * from ${table}`,[],'anon'),/permission denied/);await assert.rejects(()=>asRole(owner,`delete from ${table}`),/permission denied/);}await assert.rejects(()=>asRole(null,'select v2_create_attendance_event($1,$2)',[randomUUID(),payload()],'anon'),/permission denied/);});
 test('metadatos públicos contienen grupos pero nunca matrículas o nombres de alumnos',async()=>{await clear();const e=await create();await checkin(e);const meta=(await asRole(null,'select v2_attendance_event_meta($1) r',[e.token],'anon'))[0].r;assert.equal(meta.ok,true);assert.equal(meta.groups.length,2);assert.equal(JSON.stringify(meta).includes('Alumno'),false);assert.equal(JSON.stringify(meta).includes('enrollment'),false);await close(e);assert.equal((await asRole(null,'select v2_attendance_event_meta($1) r',[e.token],'anon'))[0].r.ok,false);});
 test('valida límite de grupos, duración y fechas',async()=>{await clear();for(const changes of [{group_ids:[]},{duration_minutes:1},{duration_minutes:181},{late_after_minutes:-1},{title:''},{attendance_date:'2020-01-01'}]) await assert.rejects(()=>create(changes));assert.equal((await db.query('select * from v2_attendance_events')).rows.length,0);});
+
+async function challenge(e,actor=owner){return(await asRole(actor,'select v2_attendance_event_challenge($1) r',[e.id]))[0].r;}
+async function secure(e,proof,group=groups[0],mat='001'){return(await asRole(null,'select v2_attendance_event_checkin_secure($1,$2,$3,$4) r',[e.token,group,mat,proof],'anon'))[0].r;}
+async function expireChallenge(e){await db.query("update tedvio_private.attendance_event_challenges set expires_at=clock_timestamp()-interval '1 second' where event_id=$1",[e.id]);}
+test('solo el docente propietario obtiene el desafío y sus pestañas reutilizan el vigente',async()=>{
+ await clear();const e=await create({verification_mode:'rotating'}),c=await challenge(e),again=await challenge(e);
+ assert.equal(c.available,true);assert.match(c.qr_proof,/^[a-f0-9]{32}$/);assert.match(c.code,/^[0-9]{6}$/);assert.equal(again.qr_proof,c.qr_proof);assert.equal(again.code,c.code);assert.equal(again.expires_at,c.expires_at);assert.ok(Date.parse(c.expires_at)-Date.parse(c.server_now)<=60000);
+ await assert.rejects(()=>challenge(e,other),/no está disponible/);await assert.rejects(()=>asRole(null,'select v2_attendance_event_challenge($1)',[e.id],'anon'),/permission denied/);
+ for(const role of ['anon','authenticated']) await assert.rejects(()=>asRole(owner,'select * from tedvio_private.attendance_event_challenges',[],role),/permission denied/);
+});
+test('QR dinámico no se puede saltar con el enlace fijo ni con endpoints anteriores',async()=>{
+ await clear();const e=await create({verification_mode:'rotating'});await challenge(e);
+ assert.equal((await checkin(e)).error_code,'code_expired');assert.equal((await secure(e,'')).ok,false);
+ assert.equal((await asRole(null,'select tedvio_private.attendance_event_checkin($1,$2,$3) r',[e.token,groups[0],'001'],'anon'))[0].r.ok,false);
+ assert.equal((await records()).length,0);
+});
+test('prueba QR y código numérico registran por grupo; conserva ceros y reintentos',async()=>{
+ await clear();const e=await create({verification_mode:'rotating'}),c=await challenge(e);
+ const first=await secure(e,c.qr_proof,groups[1]);assert.equal(first.student_name,'Alumno 3');assert.deepEqual(await secure(e,c.qr_proof,groups[1]),first);
+ await db.query("update tedvio_private.attendance_event_challenges set code='000123' where event_id=$1",[e.id]);
+ assert.equal((await secure(e,'123')).ok,false);assert.equal((await secure(e,'000123')).student_name,'Alumno 1');assert.equal((await records()).length,2);
+});
+test('al vencer el minuto rechaza capturas, códigos y formularios abiertos; renueva ambos secretos',async()=>{
+ await clear();const e=await create({verification_mode:'rotating'}),c=await challenge(e);await expireChallenge(e);
+ assert.equal((await secure(e,c.qr_proof)).error_code,'code_expired');assert.equal((await secure(e,c.code)).ok,false);assert.equal((await records()).length,0);
+ const next=await challenge(e);assert.notEqual(next.code,c.code);assert.notEqual(next.qr_proof,c.qr_proof);
+ assert.equal((await secure(e,c.qr_proof)).ok,false);assert.equal((await secure(e,next.code)).ok,true);
+});
+test('código de otra clase y grupo externo no autorizan registros',async()=>{
+ await clear();const a=await create({verification_mode:'rotating',group_ids:[groups[0]]}),b=await create({verification_mode:'rotating',group_ids:[groups[1]]}),c=await challenge(a);
+ await challenge(b);assert.equal((await secure(b,c.qr_proof,groups[1])).ok,false);assert.equal((await secure(a,c.code,groups[1])).ok,false);assert.equal((await records()).length,0);
+});
+test('cerrar o vencer la sesión invalida el código aunque aún no termine su minuto',async()=>{
+ await clear();const e=await create({verification_mode:'rotating',auto_mark_absent:false}),c=await challenge(e);await close(e);
+ assert.equal((await challenge(e)).available,false);assert.equal((await secure(e,c.code)).ok,false);assert.equal((await records()).length,0);
+ await clear();const otherEvent=await create({verification_mode:'rotating'});await db.query("update v2_attendance_events set expires_at=clock_timestamp()+interval '20 seconds' where id=$1",[otherEvent.id]);
+ const short=await challenge(otherEvent);assert.ok(Date.parse(short.expires_at)-Date.parse(short.server_now)<=20000);
+ await db.query("update v2_attendance_events set created_at=now()-interval '2 minutes',expires_at=now()-interval '1 minute' where id=$1",[otherEvent.id]);assert.equal((await secure(otherEvent,short.qr_proof)).ok,false);
+});
+test('activar rotación en clase existente conserva token, listas y asistencias guardadas',async()=>{
+ await clear();const e=await create();await checkin(e);const before=await records();
+ await assert.rejects(()=>asRole(other,'select v2_enable_attendance_rotation($1)',[e.id]),/no está disponible/);
+ await asRole(owner,'select v2_enable_attendance_rotation($1)',[e.id]);assert.deepEqual(await records(),before);assert.equal((await summary(e)).event.token,e.token);assert.equal((await summary(e)).event.verification_mode,'rotating');
+ assert.equal((await checkin(e,groups[1])).ok,false);const c=await challenge(e);assert.equal((await secure(e,c.code,groups[1])).ok,true);
+ await close(e);await assert.rejects(()=>asRole(owner,'select v2_enable_attendance_rotation($1)',[e.id]),/terminó/);
+});
+test('metadatos públicos y resúmenes no filtran el código temporal ni la prueba QR',async()=>{
+ await clear();const e=await create({verification_mode:'rotating'}),c=await challenge(e);
+ const meta=(await asRole(null,'select v2_attendance_event_meta($1) r',[e.token],'anon'))[0].r;
+ assert.equal(meta.verification_mode,'rotating');const output=JSON.stringify([meta,await summary(e)]);assert.ok(!output.includes(c.qr_proof));assert.ok(!output.includes('"code":'));assert.ok(!output.includes('"qr_proof":'));
+});
+test('presupuesto de intentos impide adivinar códigos cambiando matrícula; no bloquea códigos válidos',async()=>{
+ await clear();const e=await create({verification_mode:'rotating'}),c=await challenge(e);
+ for(let n=0;n<12;n++) assert.equal((await secure(e,'incorrect',groups[0],`guess${n}`)).ok,false);
+ await assert.rejects(()=>secure(e,'incorrect',groups[1],'another'),/Demasiadas solicitudes/);
+ assert.equal((await secure(e,c.code)).ok,true);
+});
+test('clientes anteriores conservan modo fijo; rechaza modos desconocidos sin crear listas',async()=>{
+ await clear();const e=await create();assert.equal(e.verification_mode,'static');assert.equal((await challenge(e)).available,false);assert.equal((await secure(e,'')).ok,true);
+ await clear();await assert.rejects(()=>create({verification_mode:'unsafe'}),/Modo de registro/);assert.equal((await records()).length,0);
+});

@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 
 /** Native modal semantics keep keyboard focus inside and the page behind inert. */
-export function ActionDialog({ title, detail, children, confirmLabel, onConfirm, onDismiss, busy = false, confirmDisabled = false, danger = false, error, eyebrow = 'TEDVIO · MODO CLASE' }: {
+export function ActionDialog({ title, detail, children, confirmLabel, onConfirm, onDismiss, busy = false, confirmDisabled = false, danger = false, error, eyebrow = 'TEDVIO · MODO CLASE', className = '', focusStart = false }: {
   title: string;
   detail: string;
   children?: ReactNode;
@@ -13,28 +13,32 @@ export function ActionDialog({ title, detail, children, confirmLabel, onConfirm,
   danger?: boolean;
   error?: string;
   eyebrow?: string;
+  className?: string;
+  focusStart?: boolean;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const dismiss = useRef<HTMLButtonElement>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
   const id = useId();
 
   useEffect(() => {
     const node = dialog.current;
     const trigger = document.activeElement;
     node?.showModal();
-    dismiss.current?.focus();
+    if (focusStart) heading.current?.focus({ preventScroll: true });
+    else dismiss.current?.focus();
     return () => {
       node?.close();
       if (trigger instanceof HTMLElement && trigger.isConnected) trigger.focus();
     };
-  }, []);
+  }, [focusStart]);
 
   return (
-    <dialog ref={dialog} className="classroom-dialog" aria-labelledby={`${id}-title`} aria-describedby={`${id}-detail`} aria-busy={busy}
+    <dialog ref={dialog} className={`classroom-dialog ${className}`} aria-labelledby={`${id}-title`} aria-describedby={`${id}-detail`} aria-busy={busy}
       onCancel={(event) => { event.preventDefault(); if (!busy) onDismiss(); }}>
       <header>
         <span className="eyebrow">{eyebrow}</span>
-        <h2 id={`${id}-title`}>{title}</h2>
+        <h2 ref={heading} tabIndex={focusStart ? -1 : undefined} id={`${id}-title`}>{title}</h2>
         <p id={`${id}-detail`}>{detail}</p>
       </header>
       {children}
