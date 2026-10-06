@@ -5,9 +5,12 @@ import { getPublicAttendance, registerJointAttendance, type CheckinResult, type 
 export function AttendanceJoinPage() {
   const [params] = useSearchParams();
   const token = params.get('t') || '';
-  return <AttendanceJoinForm key={token} token={token} />;
+  const proof = params.get('q') || '';
+  return <AttendanceJoinForm key={`${token}:${proof}`} token={token} qrProof={/^[a-f0-9]{32}$/.test(proof) ? proof : ''} />;
 }
-function AttendanceJoinForm({ token }: { token: string }) {
+function AttendanceJoinForm({ token, qrProof }: { token: string; qrProof: string }) {
+  const [code, setCode] = useState('');
+  const [needsFreshCode, setNeedsFreshCode] = useState(false);
   const [meta, setMeta] = useState<PublicEventMeta | null>(null);
   const [loading, setLoading] = useState(true);
   const [groupId, setGroupId] = useState('');
@@ -17,6 +20,7 @@ function AttendanceJoinForm({ token }: { token: string }) {
   const [result, setResult] = useState<CheckinResult | null>(null);
   const [retry, setRetry] = useState(0);
   const busyRef = useRef(false);
+  const requiresCode = needsFreshCode || (meta?.verification_mode === 'rotating' && !qrProof);
   useEffect(() => {
     let current = true;
     setLoading(true); setError('');
@@ -30,12 +34,15 @@ function AttendanceJoinForm({ token }: { token: string }) {
     return () => { current = false; };
   }, [token, retry]);
   async function submit() {
-    if (busyRef.current || !groupId || !enrollment.trim()) return;
+    if (busyRef.current || !groupId || !enrollment.trim() || (requiresCode && !/^[0-9]{6}$/.test(code))) return;
     busyRef.current = true; setBusy(true); setError('');
     try {
-      const response = await registerJointAttendance(token, groupId, enrollment);
+      const response = await registerJointAttendance(token, groupId, enrollment, requiresCode ? code : qrProof);
       if (response.ok) setResult(response);
-      else setError(response.message || 'No se pudo registrar la asistencia. Revisa tus datos.');
+      else {
+        if (response.error_code === 'code_expired') { setNeedsFreshCode(true); setCode(''); }
+        setError(response.message || 'No se pudo registrar la asistencia. Revisa tus datos.');
+      }
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'No se pudo confirmar la respuesta. Reintenta; tu registro no se duplicará.'); }
     finally { busyRef.current = false; setBusy(false); }
   }
@@ -52,7 +59,8 @@ function AttendanceJoinForm({ token }: { token: string }) {
         <label className="joint-field">Tu grupo<select required value={groupId} disabled={busy} onChange={event => { setGroupId(event.target.value); setError(''); }}><option value="">Selecciona tu grupo</option>{meta.groups.map(group => <option key={group.id} value={group.id}>{group.name}{group.subject ? ` · ${group.subject}` : ''}{group.university ? ` · ${group.university}` : ''}</option>)}</select></label>
         {selected ? <p className="join-selected-group">{selected.subject}<br />{selected.university}</p> : null}
         <label className="joint-field">Matrícula<input required maxLength={100} autoComplete="off" autoCapitalize="none" spellCheck={false} value={enrollment} disabled={busy} onChange={event => setEnrollment(event.target.value)} placeholder="Escribe tu matrícula" /></label>
-        <button className="button primary joint-start" type="submit" disabled={busy || !groupId || !enrollment.trim()}>{busy ? 'Registrando…' : 'Registrar mi asistencia'}</button>
+        {requiresCode ? <label className="joint-field">Código de la clase<input required inputMode="numeric" pattern="[0-9]{6}" maxLength={6} autoComplete="off" value={code} disabled={busy} onChange={event => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="6 dígitos" /><small>Escribe el código que tu docente muestra en la clase. Cambia cada 60 segundos.</small></label> : meta.verification_mode === 'rotating' ? <p className="joint-note">QR temporal leído. Confirma tu asistencia antes de que cambie el código.</p> : null}
+        <button className="button primary joint-start" type="submit" disabled={busy || !groupId || !enrollment.trim() || (requiresCode && !/^[0-9]{6}$/.test(code))}>{busy ? 'Registrando…' : 'Registrar mi asistencia'}</button>
       </form><p className="joint-muted">No necesitas una cuenta de TEDVIO. Registra únicamente tu propia asistencia.</p></> : null}
     </>}
   </section></main>;
