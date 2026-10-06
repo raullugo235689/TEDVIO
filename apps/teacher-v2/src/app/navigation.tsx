@@ -65,10 +65,12 @@ export const navigationAreaLabel: Record<NavigationArea, string> = {
 };
 
 export function isNavigationGroupActive(group: NavigationGroup, pathname: string): boolean {
+  if (pathname === '/attendance-joint' || pathname.startsWith('/attendance-joint/')) return group.to === '/groups';
   return [group, ...group.children].some((item) => pathname === item.to || (item.to !== '/' && pathname.startsWith(`${item.to}/`)));
 }
 
 export function navigationTitle(pathname: string): string {
+  if (pathname === '/attendance-joint' || pathname.startsWith('/attendance-joint/')) return 'Asistencia conjunta';
   if (/^\/classroom\/[^/]+\/health$/.test(pathname)) return 'Salud del piloto';
   if (pathname.startsWith('/groups/')) return 'Centro de grupo';
   if (pathname.startsWith('/attendance/')) return 'Asistencia';

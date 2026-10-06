@@ -183,6 +183,8 @@ export interface StudentRecord {
 }
 
 export interface AttendanceSessionRecord {
+  entry_mode?: 'manual' | 'qr';
+  checkin_event_id?: string | null;
   id: string;
   group_id: string;
   teacher_id: string;

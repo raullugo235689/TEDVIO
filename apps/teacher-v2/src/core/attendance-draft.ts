@@ -32,7 +32,7 @@ export function attendanceSnapshot(day: AttendanceDayData): AttendanceSnapshot {
     status: day.session?.status ?? null,
     records: Object.fromEntries(day.students.map((student) => {
       const record = existing.get(student.id);
-      return [student.id, { status: record?.status || 'present', note: record?.observation || record?.note || '' }];
+      return [student.id, { status: record?.status || (day.session?.entry_mode === 'qr' ? 'absent' : 'present'), note: record?.observation || record?.note || '' }];
     })),
     options: {
       lateAfterMinutes: Number(day.session?.late_after_minutes ?? 10),
