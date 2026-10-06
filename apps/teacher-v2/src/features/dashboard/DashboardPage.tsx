@@ -26,6 +26,7 @@ import {
 } from '../../shared/components';
 import { Icon } from '../../shared/icons';
 import { InstitutionIdentity } from '../../shared/InstitutionIdentity';
+import { JointAttendanceShortcut } from '../../shared/JointAttendanceShortcut';
 import { groupAccent } from '../../core/group-identity';
 
 function greeting(): string {
@@ -136,6 +137,8 @@ export function DashboardPage() {
           <Link to={currentOrNext ? `/groups/${currentOrNext.slot.group_id}` : '/agenda'}>{currentOrNext ? 'Abrir grupo' : 'Ver agenda'} <Icon name="arrow" /></Link>
         </div>
       </section>
+
+      <JointAttendanceShortcut />
 
       {data.warnings.length ? (
         <div className="warning-strip"><Icon name="alert" /><span>Algunos datos complementarios no pudieron cargarse: {data.warnings.join(' · ')}</span></div>

@@ -14,6 +14,7 @@ export const navigation: NavigationItem[] = [
   { to: '/agenda', label: 'Agenda', shortLabel: 'Agenda', icon: 'calendar', section: 'primary', migrated: true },
   { to: '/groups', label: 'Mis grupos', shortLabel: 'Grupos', icon: 'groups', section: 'primary', migrated: true },
   { to: '/attendance', label: 'Asistencia', shortLabel: 'Asistencia', icon: 'attendance', section: 'operation', migrated: true },
+  { to: '/attendance-joint', label: 'Asistencia conjunta', shortLabel: 'Asistencia conjunta', icon: 'attendance', section: 'operation', migrated: true },
   { to: '/classroom', label: 'Modo Clase', shortLabel: 'Clase', icon: 'classroom', section: 'operation', migrated: true },
   { to: '/bank', label: 'Banco de preguntas', shortLabel: 'Preguntas', icon: 'bank', section: 'operation', migrated: true },
   { to: '/exams', label: 'Evaluaciones', shortLabel: 'Evaluar', icon: 'exam', section: 'operation', migrated: true },
@@ -29,7 +30,7 @@ export const navigation: NavigationItem[] = [
 
 export const navigationGroups = [
   { to: '/', children: ['/agenda'] },
-  { to: '/groups', children: ['/attendance', '/classroom', '/gradebook', '/students', '/periods'] },
+  { to: '/groups', children: ['/attendance', '/attendance-joint', '/classroom', '/gradebook', '/students', '/periods'] },
   { to: '/prepare', children: ['/bank', '/exams', '/omr'] },
   { to: '/reports', children: ['/analytics'] },
   { to: '/settings', children: [] },
