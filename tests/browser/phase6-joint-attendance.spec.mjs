@@ -77,7 +77,13 @@ test('QR cambia automáticamente, el enlace queda fijo y un QR vencido conserva 
  expect(s.records).toHaveLength(0);await pupil.page.getByLabel('Código de la clase',{exact:false}).fill(s.challenge.code);
  await screenshot(pupil.page,testInfo,'rotating-expired-form.png');await pupil.page.getByRole('button',{name:'Registrar mi asistencia'}).click();await expect(pupil.page.getByRole('heading',{name:'Asistencia registrada'})).toBeVisible();
  await page.getByRole('button',{name:'Mostrar QR y código'}).click();await expect(page.getByRole('dialog').getByLabel('Código temporal',{exact:true})).toHaveText(s.challenge.code);
- await expect(page.getByRole('dialog').getByAltText('Código QR para registrar asistencia')).toBeInViewport({ratio:1});await page.screenshot({path:testInfo.outputPath('rotating-projection.png')});await pupil.context.close();
+ const projectedQR=page.getByRole('dialog').getByAltText('Código QR para registrar asistencia');
+ // WebKit rounds fractional image dimensions in IntersectionObserver. Check the
+ // actual bounds as well, so the complete QR must fit in both dialog and screen.
+ await expect(projectedQR).toBeInViewport({ratio:0.99});
+ const bounds=await projectedQR.evaluate(img=>{const qr=img.getBoundingClientRect(),dialog=img.closest('dialog').getBoundingClientRect();return {left:qr.left,top:qr.top,right:qr.right,bottom:qr.bottom,minLeft:Math.max(0,dialog.left),minTop:Math.max(0,dialog.top),maxRight:Math.min(innerWidth,dialog.right),maxBottom:Math.min(innerHeight,dialog.bottom)};});
+ expect(bounds.left).toBeGreaterThanOrEqual(bounds.minLeft);expect(bounds.top).toBeGreaterThanOrEqual(bounds.minTop);expect(bounds.right).toBeLessThanOrEqual(bounds.maxRight);expect(bounds.bottom).toBeLessThanOrEqual(bounds.maxBottom);
+ await page.screenshot({path:testInfo.outputPath('rotating-projection.png')});await pupil.context.close();
 });
 test('QR vigente registra sin escribir código; al perder conexión no muestra secretos vencidos',async({page,browser,context},testInfo)=>{
  const s=state();await start(page,s,false);await page.getByRole('button',{name:'Iniciar asistencia conjunta'}).click();await expect(page.getByLabel('Código temporal',{exact:true})).toBeVisible();
