@@ -16,6 +16,7 @@ import type { DashboardGroup, GroupRecord } from '../../core/types';
 import { EmptyState, ErrorPanel, LoadingScreen, PageHeader, SectionCard, StatusPill } from '../../shared/components';
 import { Icon } from '../../shared/icons';
 import { InstitutionIdentity } from '../../shared/InstitutionIdentity';
+import { JointAttendanceShortcut } from '../../shared/JointAttendanceShortcut';
 import { groupAccent } from '../../core/group-identity';
 import { AcademicDeleteButton } from '../../shared/AcademicDeleteButton';
 import { useAuth } from '../auth/AuthProvider';
@@ -150,6 +151,8 @@ export function GroupsPage() {
         detail="Crea la estructura académica, administra tus grupos y entra al padrón o a la asistencia sin abandonar TEDVIO 2.0."
         actions={<div className="page-actions"><button className="button ghost" type="button" onClick={() => setStructureOpen((value) => !value)}>Estructura académica</button><button className="button primary" type="button" onClick={() => setEditor(emptyDraft(programs[0]?.id || ''))}>＋ Nuevo grupo</button></div>}
       />
+
+      <JointAttendanceShortcut />
 
       {notice ? <div className="success-strip"><Icon name="check" /><span>{notice}</span><button type="button" onClick={() => setNotice('')}>×</button></div> : null}
       {universityMutation.isError || universityLinkMutation.isError || programMutation.isError || groupMutation.isError ? <ErrorPanel title="No se pudo completar la operación" detail={(universityMutation.error || universityLinkMutation.error || programMutation.error || groupMutation.error)?.message || 'Intenta nuevamente.'} /> : null}
