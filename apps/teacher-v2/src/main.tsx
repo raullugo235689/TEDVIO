@@ -75,3 +75,5 @@ createRoot(root).render(
     </AppErrorBoundary>
   </StrictMode>,
 );
+
+import './styles/joint-attendance.css';

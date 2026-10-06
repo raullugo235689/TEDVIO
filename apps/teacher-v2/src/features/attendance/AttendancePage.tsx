@@ -74,7 +74,7 @@ function AttendanceLanding() {
 
   return (
     <div className="view-stack">
-      <PageHeader eyebrow="ASISTENCIA PRO" title="Selecciona un grupo" detail="Consulta tus listas, registra la asistencia y revisa las observaciones de cada grupo." />
+      <PageHeader eyebrow="ASISTENCIA PRO" title="Selecciona un grupo" detail="Consulta tus listas, registra la asistencia y revisa las observaciones de cada grupo." actions={<Link className="button primary" to="/attendance-joint">Asistencia conjunta · QR</Link>} />
       <SectionCard>
         <div className="attendance-landing-tools">
           <label className="search-field"><Icon name="search" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar grupo o materia" /></label>
@@ -184,6 +184,7 @@ function AttendanceEditor({ groupId, date }: { groupId: string; date: string }) 
       if (!auth.user || !submission.base.sessionId) throw new Error('La lista todavía no existe.');
       const latest = await fetchAttendanceDay(auth.user, groupId, date);
       const remote = attendanceSnapshot(latest);
+      if (latest.session?.entry_mode === 'qr' && latest.session.checkin_event_id && latest.session.status !== 'closed') throw new Error('Finaliza el registro desde Asistencia conjunta antes de editar esta lista.');
       const reopening = submission.action === 'open' && submission.base.status === 'closed';
       const unchanged = sameAttendanceSnapshot(submission.base, remote);
       const alreadySaved = sameAttendanceSnapshot({ ...submission.base, ...submission.values }, remote);
@@ -238,15 +239,21 @@ function AttendanceEditor({ groupId, date }: { groupId: string; date: string }) 
   }, [day.data?.students, query]);
 
   const counts = useMemo(() => {
-    const values = Object.values(draft);
+    const savedIds = new Set(day.data?.records.map(record => record.student_id));
+    const values = Object.entries(draft).filter(([id]) => day.data?.session?.entry_mode !== 'qr' || dirty || savedIds.has(id)).map(([, row]) => row);
     return Object.fromEntries(statuses.map((status) => [status.key, values.filter((value) => value.status === status.key).length])) as Record<AttendanceRecordStatus, number>;
-  }, [draft]);
+  }, [draft, day.data, dirty]);
 
   if (day.isLoading) return <LoadingScreen label="Cargando la lista…" />;
   if (day.isError && !day.data) return <ErrorPanel title="No pude abrir la asistencia" detail={day.error.message} onRetry={() => day.refetch()} />;
   if (!day.data) return <ErrorPanel title="Lista no disponible en esta pestaña" detail="Conéctate para consultar esta fecha. La captura pendiente de las otras listas se conserva durante esta sesión." onRetry={() => day.refetch()} />;
 
   const { group, session, students } = day.data;
+  if (session?.entry_mode === 'qr' && session.checkin_event_id && session.status !== 'closed') return <div className="view-stack">
+    <PageHeader eyebrow={group.group_name || group.name} title="Asistencia" detail={dateLabel(date)} actions={<Link className="button primary" to={`/attendance-joint/${session.checkin_event_id}`}>Abrir asistencia conjunta</Link>} />
+    <SectionCard><h2>Registro por QR en curso</h2><p>Los alumnos sin registro siguen pendientes. Finaliza la asistencia conjunta antes de hacer correcciones manuales.</p><button type="button" className="button secondary" onClick={() => day.refetch()}>Actualizar lista</button></SectionCard>
+    <SectionCard><div className="joint-readonly-roster">{students.map(student => { const record = day.data!.records.find(r => r.student_id === student.id); return <div key={student.id}><span><strong>{student.full_name}</strong><small>{student.enrollment}</small></span><StatusPill tone={record?.status === 'present' ? 'green' : 'neutral'}>{record ? statuses.find(s => s.key === record.status)?.label : 'Sin registro'}</StatusPill></div>; })}</div></SectionCard>
+  </div>;
   const locked = session?.status === 'closed';
   const unsavedDefaults = Boolean(session && !locked && missingAttendanceRecords(day.data) > 0);
   const needsSave = dirty || unsavedDefaults;
@@ -257,7 +264,7 @@ function AttendanceEditor({ groupId, date }: { groupId: string; date: string }) 
         eyebrow={group.group_name || group.name}
         title="Asistencia"
         detail={dateLabel(date)}
-        actions={<Link className="button ghost" to={`/groups/${groupId}?tab=attendance`}>Ver historial</Link>}
+        actions={<><Link className="button secondary" to={`/attendance-joint?group=${groupId}`}>Tomar lista con QR</Link><Link className="button ghost" to={`/groups/${groupId}?tab=attendance`}>Ver historial</Link></>}
       />
 
       {notice ? <div className="success-strip" role="status"><Icon name="check" /><span>{notice}</span><button type="button" aria-label="Cerrar aviso" onClick={() => setNotice('')}>×</button></div> : null}
@@ -322,11 +329,12 @@ function AttendanceEditor({ groupId, date }: { groupId: string; date: string }) 
               <div className="attendance-roster">
                 {filteredStudents.map((student) => {
                   const value = draft[student.id] || { status: 'present' as AttendanceRecordStatus, note: '' };
+                  const withoutRecord = session.entry_mode === 'qr' && !dirty && !day.data!.records.some(r => r.student_id === student.id);
                   return (
                     <article className={`attendance-student status-${value.status}`} key={student.id}>
-                      <div className="attendance-student-name"><strong>{student.full_name}</strong><span>{student.enrollment}</span></div>
+                      <div className="attendance-student-name"><strong>{student.full_name}</strong><span>{student.enrollment}</span>{withoutRecord ? <StatusPill>Sin registro</StatusPill> : null}</div>
                       <div className="attendance-status-control" role="group" aria-label={`Estado de ${student.full_name}`}>
-                        {statuses.map((status) => <button key={status.key} type="button" disabled={locked || busy} className={value.status === status.key ? `active ${status.key}` : ''} aria-pressed={value.status === status.key} title={status.label} onClick={() => { setDraft((current) => ({ ...current, [student.id]: { ...value, status: status.key } })); }}><b>{status.short}</b><span>{status.label}</span></button>)}
+                        {statuses.map((status) => <button key={status.key} type="button" disabled={locked || busy} className={!withoutRecord && value.status === status.key ? `active ${status.key}` : ''} aria-pressed={!withoutRecord && value.status === status.key} title={status.label} onClick={() => { setDraft((current) => ({ ...current, [student.id]: { ...value, status: status.key } })); }}><b>{status.short}</b><span>{status.label}</span></button>)}
                       </div>
                       <input aria-label={`Observación de ${student.full_name}`} className="attendance-note" disabled={locked || busy} value={value.note} onChange={(event) => { setDraft((current) => ({ ...current, [student.id]: { ...value, note: event.target.value } })); }} placeholder="Observación opcional" />
                     </article>

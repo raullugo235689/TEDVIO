@@ -57,7 +57,7 @@ export async function fetchAttendanceDay(user: User, groupId: string, date: stri
       .order('full_name'),
     supabase
       .from('v2_attendance_sessions')
-      .select('id,group_id,teacher_id,attendance_date,notes,created_at,status,opened_at,paused_at,closed_at,late_after_minutes,auto_mark_absent,updated_at')
+      .select('id,group_id,teacher_id,attendance_date,notes,created_at,status,opened_at,paused_at,closed_at,late_after_minutes,auto_mark_absent,updated_at,entry_mode,checkin_event_id')
       .eq('group_id', groupId)
       .eq('teacher_id', user.id)
       .eq('attendance_date', date)
@@ -110,7 +110,7 @@ export async function createAttendanceSession(
   const { data, error } = await supabase
     .from('v2_attendance_sessions')
     .insert(payload)
-    .select('id,group_id,teacher_id,attendance_date,notes,created_at,status,opened_at,paused_at,closed_at,late_after_minutes,auto_mark_absent,updated_at')
+    .select('id,group_id,teacher_id,attendance_date,notes,created_at,status,opened_at,paused_at,closed_at,late_after_minutes,auto_mark_absent,updated_at,entry_mode,checkin_event_id')
     .single();
 
   if (!error) return data as AttendanceSessionRecord;
@@ -118,7 +118,7 @@ export async function createAttendanceSession(
 
   const existing = await supabase
     .from('v2_attendance_sessions')
-    .select('id,group_id,teacher_id,attendance_date,notes,created_at,status,opened_at,paused_at,closed_at,late_after_minutes,auto_mark_absent,updated_at')
+    .select('id,group_id,teacher_id,attendance_date,notes,created_at,status,opened_at,paused_at,closed_at,late_after_minutes,auto_mark_absent,updated_at,entry_mode,checkin_event_id')
     .eq('group_id', groupId)
     .eq('teacher_id', user.id)
     .eq('attendance_date', date)
@@ -176,6 +176,7 @@ export async function updateAttendanceState(
 ): Promise<void> {
   const now = new Date().toISOString();
   const patch: Record<string, string | null> = { status: state, updated_at: now };
+  if (state === 'open') { patch.checkin_event_id = null; }
   if (state === 'open') {
     patch.paused_at = null;
     patch.closed_at = null;

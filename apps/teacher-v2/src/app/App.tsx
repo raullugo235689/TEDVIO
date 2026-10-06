@@ -51,6 +51,9 @@ const SettingsPage = lazy(() => loadSettingsPage().then((module) => ({ default: 
 const SupportPage = lazy(() => loadSupportPage().then((module) => ({ default: module.SupportPage })));
 const PilotHealthPage = lazy(() => loadPilotHealthPage().then((module) => ({ default: module.PilotHealthPage })));
 
+const JointAttendancePage = lazy(() => import('../features/attendance/JointAttendancePage').then(module => ({ default: module.JointAttendancePage })));
+const AttendanceJoinPage = lazy(() => import('../features/attendance/AttendanceJoinPage').then(module => ({ default: module.AttendanceJoinPage })));
+
 function ProtectedShell() {
   const auth = useAuth();
   if (auth.status === 'loading') return <LoadingScreen />;
@@ -75,6 +78,7 @@ export function App() {
 
   return (
     <Routes>
+      <Route path="/attendance-join" element={tool(<AttendanceJoinPage />, 'Abriendo registro de asistencia…')} />
       <Route path="/login" element={<LoginPage />} />
       <Route element={<ProtectedShell />}>
         <Route index element={tool(<DashboardPage />, 'Preparando tu centro docente…')} />
@@ -82,6 +86,8 @@ export function App() {
         <Route path="agenda" element={tool(<AgendaPage />, 'Abriendo Agenda…')} />
         <Route path="groups" element={tool(<GroupsPage />, 'Abriendo Grupos…')} />
         <Route path="groups/:groupId" element={tool(<GroupDetailPage />, 'Abriendo el grupo…')} />
+        <Route path="attendance-joint" element={tool(<JointAttendancePage />, 'Abriendo asistencia conjunta…')} />
+        <Route path="attendance-joint/:eventId" element={tool(<JointAttendancePage />, 'Abriendo asistencia conjunta…')} />
         <Route path="attendance" element={tool(<AttendancePage />, 'Abriendo Asistencia…')} />
         <Route path="attendance/:groupId" element={tool(<AttendancePage />, 'Abriendo Asistencia…')} />
         <Route path="classroom" element={tool(<ClassroomPage />, 'Preparando Modo Clase…')} />
