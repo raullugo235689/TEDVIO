@@ -1,9 +1,30 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { addDays, agendaOccurrences, agendaConflicts, localDate, weekStart, validateAgendaDraft } from '../src/core/agenda-model.ts';
+import { layoutTimetableDay, timetableBounds } from '../src/core/agenda-timetable.ts';
 process.env.TZ = 'America/Mazatlan';
 const slot = { id:'a',group_id:'g',weekday:1,start_time:'08:00:00',end_time:'09:00:00',starts_on:'2026-10-05',ends_on:'2026-10-26',recurrence:'weekly',revision:1 };
 const draft = { group_id:'g',class_date:'2026-10-05',end_date:'2026-10-26',start_time:'08:00',end_time:'09:00',room:'',modality:'Presencial',recurrence:'weekly',scope:'one',action:'save',note:'' };
+test('horario: empalmes encadenados y clases cortas quedan accesibles sin taparse', () => {
+  const times = [['08:00', '09:00'], ['08:30', '10:00'], ['09:00', '09:10'], ['09:15', '09:25'], ['10:00', '11:00']];
+  const occurrences = times.map(([start_time, end_time], index) => ({ slot: { id: String(index), start_time, end_time } }));
+  const layout = layoutTimetableDay(occurrences);
+  assert.equal(layout.length, times.length);
+  assert.equal(layout.at(-1).lanes, 1, 'a new non-overlapping cluster regains full width');
+  for (const entry of layout) {
+    assert.ok((entry.end - entry.start) * 2 - 8 >= 44, 'every class remains touchable');
+    for (const other of layout) {
+      if (entry !== other && entry.start < other.end && entry.end > other.start) assert.notEqual(entry.lane, other.lane);
+    }
+  }
+  assert.deepEqual(occurrences.map(item => item.slot.start_time), times.map(item => item[0]), 'layout does not mutate source times');
+});
+test('horario: rango vacío, madrugada y clases tardías no ocultan eventos', () => {
+  assert.deepEqual(timetableBounds([]), { start: 420, end: 900 });
+  const occurrences = ['00:00', '23:50'].map((start_time, index) => ({ slot: { id: String(index), start_time, end_time: index ? '23:59' : '01:00' } }));
+  const range = timetableBounds(occurrences);
+  for (const entry of layoutTimetableDay(occurrences)) { assert.ok(entry.start >= range.start); assert.ok(entry.end <= range.end); }
+});
 test('fechas locales, cambio de mes y semana de domingo conservan el día',()=>{
   assert.equal(localDate(new Date('2026-10-05T08:00:00')), '2026-10-05');
   assert.equal(weekStart('2026-11-01'),'2026-10-26'); assert.equal(addDays('2026-12-31',1),'2027-01-01');

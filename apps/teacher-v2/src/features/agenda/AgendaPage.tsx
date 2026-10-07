@@ -7,8 +7,10 @@ import { ErrorPanel, LoadingScreen, PageHeader, SectionCard, StatusPill } from '
 import { Icon } from '../../shared/icons';
 import { InstitutionIdentity } from '../../shared/InstitutionIdentity';
 import { groupAccent } from '../../core/group-identity';
+import { orderGroups } from '../../core/group-catalog';
 import { addDays, agendaOccurrences, dateAtNoon, dateLabel, localDate, weekStart } from '../../core/agenda-model';
 import { AgendaEditor } from './AgendaEditor';
+import { AgendaTimetable } from './AgendaTimetable';
 
 
 function OccurrenceCard({ occurrence, label, now }: { occurrence: AgendaOccurrence | null; label: string; now: Date }) {
@@ -33,6 +35,7 @@ export function AgendaPage() {
   const [now, setNow] = useState(() => new Date());
   const [selectedWeek, setSelectedWeek] = useState(() => weekStart(localDate(new Date())));
   const [todayOnly, setTodayOnly] = useState(false);
+  const [view, setView] = useState<'timetable' | 'list'>('timetable');
   const [editor, setEditor] = useState<{ occurrence: AgendaOccurrence | null; date: string } | null>(null);
   const [notice, setNotice] = useState('');
   const groups = home.data?.dashboard.groups || [];
@@ -43,8 +46,8 @@ export function AgendaPage() {
     const midnight = new Date(now);
     midnight.setHours(24, 0, 0, 0);
     const boundaries = snapshot.today.flatMap((item) => [item.start.getTime(), item.end.getTime()]).filter((time) => time > now.getTime());
-    // Advance only at a class boundary or midnight; this clock never fetches data.
-    const nextChange = Math.min(midnight.getTime(), ...boundaries);
+    // Update the current-time line locally, without fetching data.
+    const nextChange = Math.min(midnight.getTime(), Math.floor(now.getTime() / 60_000) * 60_000 + 60_000, ...boundaries);
     const timer = window.setTimeout(updateClock, Math.max(0, nextChange - Date.now()) + 100);
     document.addEventListener('visibilitychange', updateClock);
     window.addEventListener('focus', updateClock);
@@ -63,7 +66,7 @@ export function AgendaPage() {
   if (agendaWarning) return <ErrorPanel title="No pude cargar todos tus horarios" detail="Actualiza la agenda para consultar y editar tus clases con los datos completos." onRetry={() => home.refetch()} />;
   const days = Array.from({ length: 7 }, (_, index) => addDays(selectedWeek, index));
   const occurrences = agendaOccurrences(home.data.schedule, home.data.scheduleExceptions || [], groups, selectedWeek, days[6]!, true);
-  const scheduledGroups = groups.filter(group => occurrences.some(item => item.slot.group_id === group.id));
+  const scheduledGroups = orderGroups(groups.filter(group => occurrences.some(item => item.slot.group_id === group.id)));
   const scheduledCount = occurrences.filter(item => item.status !== 'cancelled').length;
   const openEditor = (occurrence: AgendaOccurrence | null, date = localDate(now)) => { setNotice(''); setEditor({ occurrence, date }); };
   const goToToday = () => { setSelectedWeek(weekStart(localDate(now))); setTodayOnly(true); };
@@ -72,15 +75,11 @@ export function AgendaPage() {
     <div className="view-stack agenda-workspace">
       <PageHeader eyebrow="AGENDA ACADÉMICA" title="Tu agenda" detail="Organiza tus clases y ajusta cada fecha sin perder el resto del horario." actions={<button className="button primary" type="button" disabled={!groups.length} onClick={() => openEditor(null, selectedWeek > localDate(now) ? selectedWeek : localDate(now))}><Icon name="calendar" />Programar clase</button>} />
       {notice ? <div className="success-strip" role="status">{notice}</div> : null}
-      <section className="agenda-page-focus-grid">
-        <OccurrenceCard occurrence={snapshot.current || snapshot.next} label={snapshot.current ? 'AHORA' : 'SIGUIENTE CLASE'} now={now} />
-        <OccurrenceCard occurrence={snapshot.current ? snapshot.next : snapshot.after} label={snapshot.current ? 'DESPUÉS' : 'A CONTINUACIÓN'} now={now} />
-      </section>
       <SectionCard className="agenda-week-card">
         <div className="section-heading"><div><span className="eyebrow">{dateLabel(selectedWeek)} — {dateLabel(days[6]!)}</span><h2>{todayOnly ? 'Tus clases de hoy' : 'Tu semana'}</h2><p>Un mismo color para reconocer cada grupo.</p></div><StatusPill tone="neutral">{scheduledCount} clase{scheduledCount === 1 ? '' : 's'} esta semana</StatusPill></div>
         <div className="agenda-week-toolbar"><div className="agenda-week-buttons"><button className="button ghost compact" type="button" aria-label="Semana anterior" onClick={() => { setSelectedWeek(addDays(selectedWeek, -7)); setTodayOnly(false); }}>←</button><button className="button ghost compact" type="button" onClick={goToToday} aria-pressed={todayOnly}>Ver hoy</button><button className="button ghost compact" type="button" onClick={() => setTodayOnly(false)} aria-pressed={!todayOnly}>Semana</button><button className="button ghost compact" type="button" aria-label="Semana siguiente" onClick={() => { setSelectedWeek(addDays(selectedWeek, 7)); setTodayOnly(false); }}>→</button></div><label>Ir a una fecha<input type="date" value={selectedWeek} onChange={event => { if (event.target.value) { setSelectedWeek(weekStart(event.target.value)); setTodayOnly(false); } }} /></label></div>
-        {scheduledGroups.length ? <nav className="agenda-color-key" aria-label="Grupos en tu agenda">{scheduledGroups.map(group => <Link key={group.id} data-group-color={groupAccent(group.id)} to={`/groups/${group.id}`}><i aria-hidden="true" /><span>{groupSubject(group)} · {groupName(group)}</span></Link>)}</nav> : null}
-        <div className="weekly-schedule">
+        <div className="agenda-view-switch" role="group" aria-label="Vista de agenda"><button type="button" aria-pressed={view === 'timetable'} onClick={() => setView('timetable')}><Icon name="calendar" />Horario</button><button type="button" aria-pressed={view === 'list'} onClick={() => setView('list')}><Icon name="layout" />Lista</button></div>
+        {view === 'timetable' ? <AgendaTimetable days={days} occurrences={occurrences} now={now} todayOnly={todayOnly} canCreate={groups.length > 0} onEdit={openEditor} /> : <div className="weekly-schedule">
           {days.filter(date => !todayOnly || date === localDate(now)).map(date => {
             const classes = occurrences.filter(item => localDate(item.start) === date);
             const today = date === localDate(now);
@@ -100,11 +99,16 @@ export function AgendaPage() {
               </div>
             </section>;
           })}
-        </div>
+        </div>}
+        {scheduledGroups.length ? <nav className="agenda-color-key" aria-label="Grupos en tu agenda">{scheduledGroups.map(group => <Link key={group.id} data-group-color={groupAccent(group.id)} to={`/groups/${group.id}`}><i aria-hidden="true" /><span>{groupSubject(group)} · {groupName(group)}</span></Link>)}</nav> : null}
         {!occurrences.length && !days.includes(localDate(now)) ? <div className="empty-state inline"><div className="empty-icon"><Icon name="calendar" /></div><h3>Semana disponible</h3><p>Aquí aparecerán tus clases programadas.</p><button className="button secondary" type="button" disabled={!groups.length} onClick={() => openEditor(null, selectedWeek)}>Programar en esta semana</button></div> : null}
         {!groups.length ? <p className="agenda-scope-note">Crea un grupo para programar tus primeras clases. <Link to="/groups">Ir a mis grupos</Link></p> : null}
         <p className="agenda-timezone-note">Horarios en la hora local de tu dispositivo. Cambiar la agenda no modifica las listas de asistencia.</p>
       </SectionCard>
+      <section className="agenda-page-focus-grid" aria-label="Próximas clases">
+        <OccurrenceCard occurrence={snapshot.current || snapshot.next} label={snapshot.current ? 'AHORA' : 'SIGUIENTE CLASE'} now={now} />
+        <OccurrenceCard occurrence={snapshot.current ? snapshot.next : snapshot.after} label={snapshot.current ? 'DESPUÉS' : 'A CONTINUACIÓN'} now={now} />
+      </section>
       {editor ? <AgendaEditor key={`${editor.occurrence?.source.id || 'new'}:${editor.occurrence?.originalDate || editor.date}`} data={home.data} occurrence={editor.occurrence} initialDate={editor.date} onClose={() => setEditor(null)} onSaved={message => { setEditor(null); setNotice(message); }} /> : null}
     </div>
   );
