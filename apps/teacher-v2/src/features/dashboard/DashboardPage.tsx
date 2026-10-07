@@ -28,6 +28,8 @@ import { Icon } from '../../shared/icons';
 import { InstitutionIdentity } from '../../shared/InstitutionIdentity';
 import { JointAttendanceShortcut } from '../../shared/JointAttendanceShortcut';
 import { groupAccent } from '../../core/group-identity';
+import { GroupCatalogFilters, useGroupCatalog } from '../../shared/GroupCatalogFilters';
+import { universitySections } from '../../core/group-catalog';
 
 function greeting(): string {
   const hour = new Date().getHours();
@@ -71,7 +73,7 @@ function AgendaFocus({ occurrence, label }: { occurrence: AgendaOccurrence | nul
 
 function GroupCard({ group }: { group: DashboardGroup }) {
   return (
-    <article className="group-card-v2" data-group-color={groupAccent(group.id)}>
+    <article className="group-card-v2" data-group-id={group.id} data-group-color={groupAccent(group.id)}>
       <header>
         <div><span className="eyebrow">{groupSubject(group)}</span><h3><Link to={`/groups/${group.id}`}>{groupName(group)}</Link></h3><InstitutionIdentity name={group.university} logoUrl={group.institution_logo_url} detail={group.term} /></div>
         <StatusPill tone={attendanceTone(group)}>{attendanceLabel(group)}</StatusPill>
@@ -93,6 +95,7 @@ export function DashboardPage() {
   const queryClient = useQueryClient();
   const data = home.data;
   const groups = data?.dashboard.groups || [];
+  const catalog = useGroupCatalog(data?.dashboard.groups);
   const agenda = useMemo(() => agendaSnapshot(data?.schedule || [], groups, new Date(), 8, data?.scheduleExceptions || []), [data?.schedule, data?.scheduleExceptions, groups]);
   const action = useMemo(() => recommendedAction(data?.dashboard || {}), [data?.dashboard]);
 
@@ -160,11 +163,11 @@ export function DashboardPage() {
 
       <div className="dashboard-columns">
         <SectionCard className="dashboard-groups-section">
-          <div className="section-heading"><div><span className="eyebrow">TU AULA, A UN CLIC</span><h2>Mis grupos</h2><p>Continúa donde lo dejaste.</p></div><Link className="button ghost" to="/groups">Ver todos <Icon name="arrow" /></Link></div>
+          <div className="section-heading"><div><span className="eyebrow">TU AULA, A UN CLIC</span><h2>Mis grupos</h2><p>Por universidad, materia y número de grupo.</p></div><Link className="button ghost" to={catalog.allGroupsPath}>Ver todos <Icon name="arrow" /></Link></div>
           <div className={`workspace-next-action tone-${action.tone}`}><Icon name={pending ? 'clock' : 'check'} /><div><b>{action.title}</b><p>{action.detail}</p></div><Link to={nextActionPath} className="button ghost compact">{action.groupId ? 'Revisar' : 'Ver grupos'}</Link></div>
-          <div className="groups-grid-v2">
-            {groups.length ? groups.slice(0, 4).map((group) => <GroupCard group={group} key={group.id} />) : <div className="empty-inline"><Icon name="groups" /><div><b>Aún no hay grupos</b><span>Crea la estructura y el primer grupo para comenzar.</span></div><button className="button primary compact" type="button" onClick={() => navigate('/groups')}>Crear grupo</button></div>}
-          </div>
+          {groups.length ? <GroupCatalogFilters catalog={catalog} /> : null}
+          {catalog.filtered.length ? <div className="catalog-universities">{universitySections(catalog.filtered.slice(0, 4)).map(section => <section className="catalog-university" key={section.name} aria-label={section.name}><header className="catalog-university-heading"><h3>{section.name}</h3></header><div className="groups-grid-v2">{section.groups.map(group => <GroupCard group={group} key={group.id} />)}</div></section>)}</div> : groups.length ? <div className="empty-inline"><Icon name="search" /><div><b>No encontramos coincidencias</b><span>Prueba con otra búsqueda o limpia los filtros.</span></div><button className="button secondary compact" type="button" onClick={catalog.clear}>Ver todos los grupos</button></div> : <div className="empty-inline"><Icon name="groups" /><div><b>Aún no hay grupos</b><span>Crea la estructura y el primer grupo para comenzar.</span></div><button className="button primary compact" type="button" onClick={() => navigate('/groups')}>Crear grupo</button></div>}
+          {catalog.filtered.length > 4 ? <p className="catalog-preview-note">Mostrando los primeros 4 de {catalog.filtered.length} grupos. Usa «Ver todos» para abrir la lista completa.</p> : null}
         </SectionCard>
 
         <div className="side-column">

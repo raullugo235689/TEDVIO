@@ -20,6 +20,8 @@ import { JointAttendanceShortcut } from '../../shared/JointAttendanceShortcut';
 import { groupAccent } from '../../core/group-identity';
 import { AcademicDeleteButton } from '../../shared/AcademicDeleteButton';
 import { useAuth } from '../auth/AuthProvider';
+import { GroupCatalogFilters, useGroupCatalog } from '../../shared/GroupCatalogFilters';
+import { universitySections } from '../../core/group-catalog';
 
 function tone(group?: DashboardGroup): string {
   if (Number(group?.risk_count || 0) > 0) return 'red';
@@ -36,7 +38,6 @@ export function GroupsPage() {
   const auth = useAuth();
   const queryClient = useQueryClient();
   const home = useTeacherHome();
-  const [query, setQuery] = useState('');
   const [editor, setEditor] = useState<GroupDraft | null>(null);
   const [structureOpen, setStructureOpen] = useState(false);
   const [universityName, setUniversityName] = useState('');
@@ -53,6 +54,7 @@ export function GroupsPage() {
     },
     enabled: Boolean(auth.user),
   });
+  const catalog = useGroupCatalog(workspace.data?.groups);
 
   async function invalidate() {
     await Promise.all([
@@ -117,13 +119,6 @@ export function GroupsPage() {
     return new Map((workspace.data?.programs || []).map((program) => [program.id, `${universities.get(program.university_id) || 'Institución'} · ${program.name}`]));
   }, [workspace.data?.programs, workspace.data?.universities]);
 
-  const filtered = useMemo(() => {
-    const groups = workspace.data?.groups || [];
-    const needle = query.trim().toLocaleLowerCase('es-MX');
-    if (!needle) return groups;
-    return groups.filter((group) => [group.group_name || group.name, group.subject, group.university_name, group.program_name, group.term].filter(Boolean).join(' ').toLocaleLowerCase('es-MX').includes(needle));
-  }, [workspace.data?.groups, query]);
-
   function editGroup(group: GroupRecord) {
     setEditor({
       id: group.id,
@@ -148,7 +143,7 @@ export function GroupsPage() {
       <PageHeader
         eyebrow="GRUPOS"
         title="Centro de grupos"
-        detail="Crea la estructura académica, administra tus grupos y entra al padrón o a la asistencia sin abandonar TEDVIO 2.0."
+        detail="Tus grupos organizados por universidad, materia y número de grupo."
         actions={<div className="page-actions"><button className="button ghost" type="button" onClick={() => setStructureOpen((value) => !value)}>Estructura académica</button><button className="button primary" type="button" onClick={() => setEditor(emptyDraft(programs[0]?.id || ''))}>＋ Nuevo grupo</button></div>}
       />
 
@@ -205,17 +200,17 @@ export function GroupsPage() {
         </form>
       ) : null}
 
-      <div className="toolbar-v2">
-        <label className="search-field"><Icon name="search" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar grupo, materia o institución" aria-label="Buscar grupos" /></label>
-        <StatusPill tone="blue">{filtered.length} de {workspace.data.groups.length}</StatusPill>
-      </div>
+      {workspace.data.groups.length ? <GroupCatalogFilters catalog={catalog} /> : null}
 
-      {filtered.length ? (
-        <section className="groups-catalog">
-          {filtered.map((group) => {
+      {catalog.filtered.length ? (
+        <div className="catalog-universities">
+          {universitySections(catalog.filtered).map(section => <section className="catalog-university" key={section.name} aria-label={section.name}>
+          <header className="catalog-university-heading"><h3>{section.name}</h3><span>{section.groups.length} {section.groups.length === 1 ? 'grupo' : 'grupos'}</span></header>
+          <div className="groups-catalog">
+          {section.groups.map((group) => {
             const dashboard = dashboardById.get(group.id);
             return (
-              <article className="group-catalog-card" key={group.id} data-group-color={groupAccent(group.id)}>
+              <article className="group-catalog-card" key={group.id} data-group-id={group.id} data-group-color={groupAccent(group.id)}>
                 <header>
                   <div><span className="eyebrow">{group.subject || 'Grupo'}</span><h2>{group.group_name || group.name}</h2><InstitutionIdentity name={group.university_name || group.university} logoUrl={dashboard?.institution_logo_url} detail={[group.program_name || group.program, group.term].filter(Boolean).join(' · ')} /></div>
                   <StatusPill tone={tone(dashboard)}>{attendanceLabel(dashboard)}</StatusPill>
@@ -242,9 +237,10 @@ export function GroupsPage() {
               </article>
             );
           })}
-        </section>
+          </div></section>)}
+        </div>
       ) : (
-        <EmptyState icon="groups" title={workspace.data.groups.length ? 'No encontramos coincidencias' : 'Aún no tienes grupos'} detail={workspace.data.groups.length ? 'Prueba con otra materia, grupo o institución.' : 'Crea la estructura académica y después registra el primer grupo.'} action={<button className="button primary" type="button" onClick={() => setEditor(emptyDraft(programs[0]?.id || ''))}>Crear grupo</button>} />
+        <EmptyState icon="groups" title={workspace.data.groups.length ? 'No encontramos coincidencias' : 'Aún no tienes grupos'} detail={workspace.data.groups.length ? 'Prueba con otra búsqueda o limpia los filtros para ver todos tus grupos.' : 'Crea la estructura académica y después registra el primer grupo.'} action={workspace.data.groups.length ? <button className="button secondary" type="button" onClick={catalog.clear}>Ver todos los grupos</button> : <button className="button primary" type="button" onClick={() => setEditor(emptyDraft(programs[0]?.id || ''))}>Crear grupo</button>} />
       )}
     </div>
   );

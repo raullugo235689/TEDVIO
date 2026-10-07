@@ -1,0 +1,10 @@
+.group-catalog-filters{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr);gap:12px;padding:16px;border:1px solid var(--border);border-radius:16px;background:var(--surface-soft);margin-bottom:20px}
+.group-catalog-filters>label{display:grid;gap:7px;min-width:0;color:var(--muted);font-size:11px;font-weight:750}
+.group-catalog-filters input,.group-catalog-filters select{width:100%;min-width:0;min-height:44px;padding:10px 12px;font:inherit;font-size:14px;font-weight:500;border:1px solid var(--border);border-radius:10px;color:var(--text-strong);background:var(--surface);text-overflow:ellipsis}
+.catalog-search>div{position:relative;min-width:0}.catalog-search svg{position:absolute;left:12px;top:13px;width:18px;height:18px;pointer-events:none}.catalog-search input{padding-left:38px}
+.catalog-filter-summary{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:30px;color:var(--muted);font-size:12px}
+.catalog-universities{display:grid;gap:28px}.catalog-university{min-width:0}.catalog-university-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom:1px solid var(--border);padding:0 0 12px;margin-bottom:16px}
+.catalog-university-heading h3{margin:0;font-size:15px;line-height:1.5;color:var(--text-strong);overflow-wrap:anywhere}.catalog-university-heading>span{flex-shrink:0;font-size:11px;color:var(--muted);background:var(--surface-soft);border:1px solid var(--border);padding:5px 9px;border-radius:20px}
+.catalog-preview-note{margin:18px 0 0;color:var(--muted);font-size:12px;line-height:1.6}
+.dashboard-groups-section .group-catalog-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-groups-section .catalog-search{grid-column:1/-1}
+@media(max-width:600px){.group-catalog-filters,.dashboard-groups-section .group-catalog-filters{grid-template-columns:minmax(0,1fr);padding:13px}.group-catalog-filters input,.group-catalog-filters select{font-size:16px}.catalog-university-heading{align-items:flex-start}.catalog-university-heading h3{font-size:14px}}
