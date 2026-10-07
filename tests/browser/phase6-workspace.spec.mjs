@@ -130,8 +130,14 @@ test('Mis grupos: orden académico natural, filtros compartidos y búsqueda sin 
   await page.getByRole('searchbox', { name: 'Buscar grupos' }).fill('grupo inexistente');
   await expect(page.getByRole('heading', { name: 'No encontramos coincidencias' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Crear grupo', exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Ver todos los grupos', exact: true }).click();
-  await page.getByLabel('Universidad', { exact: true }).selectOption(secondUniversity);
+  // Clear + change in the same browser task must not resurrect the old search.
+  await page.getByRole('button', { name: 'Ver todos los grupos', exact: true }).evaluate((button, university) => {
+    button.click();
+    const select = document.querySelector('select[aria-label="Universidad"]');
+    select.value = university;
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  }, secondUniversity);
+  await expect(page.getByRole('searchbox', { name: 'Buscar grupos' })).toHaveValue('');
   await page.getByLabel('Materia', { exact: true }).selectOption('Farmacología');
   await page.getByLabel('Universidad', { exact: true }).selectOption(firstUniversity);
   await expect(page.getByLabel('Materia', { exact: true })).toHaveValue('');
@@ -163,6 +169,7 @@ test.describe('agenda por grupo', () => {
     const state = await fixture(page, false, [first, second], { schedule });
     const color = await page.locator(`.group-card-v2[data-group-id="${groupId}"]`).getAttribute('data-group-color');
     await page.goto('/teacher#/agenda');
+    await page.getByRole('button', { name: 'Lista', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Tu semana', exact: true })).toBeVisible();
     const firstSlots = page.locator('.schedule-slot').filter({ hasText: group.name });
     await expect(firstSlots).toHaveCount(2);
@@ -191,6 +198,111 @@ test.describe('agenda por grupo', () => {
     await expect(page).toHaveURL(/#\/attendance\/other-group$/);
     expect(state.errors).toEqual([]);
     expect(state.writes).toEqual([]);
+  });
+});
+
+test.describe('agenda en cuadrícula', () => {
+  test.use({ timezoneId: 'America/Mazatlan' });
+
+  test('semana por horas, duración proporcional, detalle y selección de día en celular', async ({ page }) => {
+    await page.clock.install({ time: new Date('2026-10-14T10:20:00-07:00') });
+    const subjects = ['Farmacología', 'Farmacocinética', 'Anatomía Humana', 'Embriología'];
+    const groups = Array.from({ length: 8 }, (_, index) => ({ ...group, id: `timetable-${index}`, name: `Medicina · ${index + 1}A`, group_name: `Medicina · ${index + 1}A`, subject: subjects[index % 4] }));
+    const times = [[1,'09:00','10:00'],[2,'07:00','08:00'],[3,'10:00','11:00'],[3,'11:00','12:00'],[1,'12:00','13:00'],[4,'12:00','13:00'],[2,'13:00','14:00'],[4,'13:00','15:00']];
+    const schedule = times.map(([weekday,start_time,end_time], index) => ({ id: `slot-${index}`, group_id: groups[index].id, weekday, start_time, end_time, active: true, room: `Aula B-${index + 1}`, modality: 'Presencial' }));
+    const state = await fixture(page, false, groups, { schedule });
+    await page.goto('/teacher#/agenda');
+    await expect(page.getByRole('button', { name: 'Horario', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.timetable-event')).toHaveCount(8);
+    await expect(page.locator('.timetable-day')).toHaveCount(5);
+    await expect(page.locator('.timetable-event.is-current')).toContainText('Anatomía Humana');
+    await expect(page.locator('.timetable-now')).toHaveAttribute('aria-label', 'Hora actual: 10:20');
+    const event = index => page.locator(`.timetable-event[data-occurrence^="slot-${index}:"]`);
+    const firstColor = await event(0).getAttribute('data-group-color');
+    await expect(page.getByRole('navigation', { name: 'Grupos en tu agenda' }).getByRole('link').filter({ hasText: 'Medicina · 1A' })).toHaveAttribute('data-group-color', firstColor);
+    // The same time aligns across columns, and two hours occupy twice the timeline.
+    expect(await event(4).evaluate(node => node.style.top)).toBe(await event(5).evaluate(node => node.style.top));
+    const oneHour = await event(5).evaluate(node => parseFloat(node.style.height));
+    const twoHours = await event(7).evaluate(node => parseFloat(node.style.height));
+    expect(twoHours + 8).toBe(2 * (oneHour + 8));
+    await page.setViewportSize({ width: 1440, height: 1100 });
+    await noOverflow(page);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({ path: test.info().outputPath('agenda-timetable-desktop.png'), fullPage: true });
+    await event(5).click();
+    let detail = page.getByRole('dialog', { name: 'Farmacocinética', exact: true });
+    await expect(detail).toContainText('Medicina · 6A');
+    await expect(detail.getByRole('link', { name: 'Asistencia', exact: true })).toHaveAttribute('href', '#/attendance/timetable-5?date=2026-10-15');
+    await detail.getByRole('button', { name: 'Editar clase', exact: true }).click();
+    const editor = page.getByRole('dialog', { name: 'Editar clase', exact: true });
+    await expect(editor.getByLabel('Nueva fecha')).toHaveValue('2026-10-15');
+    await expect(editor.getByLabel('Hora de entrada')).toHaveValue('12:00');
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Activar modo oscuro' }).click();
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({ path: test.info().outputPath('agenda-timetable-desktop-dark.png'), fullPage: true });
+    for (const width of [320, 390, 768, 1440]) { await page.setViewportSize({ width, height: 900 }); await noOverflow(page); }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole('group', { name: 'Día del horario', exact: true }).getByRole('button').nth(3).click();
+    await expect(page.locator('.timetable-day:visible')).toHaveCount(1);
+    await expect(page.locator('.timetable-day:visible time')).toHaveAttribute('datetime', '2026-10-15');
+    await expect.poll(() => page.locator('.timetable-scroll').evaluate(node => node.scrollTop)).toBeGreaterThan(400);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({ path: test.info().outputPath('agenda-timetable-mobile-dark.png'), fullPage: true });
+    await event(5).click();
+    detail = page.getByRole('dialog', { name: 'Farmacocinética', exact: true });
+    await expect(detail).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(event(5)).toBeFocused();
+    await page.getByRole('button', { name: 'Ver hoy', exact: true }).click();
+    await expect(page.locator('.timetable-day time')).toHaveAttribute('datetime', '2026-10-14');
+    await expect(page.locator('.timetable-event')).toHaveCount(2);
+    await page.getByRole('button', { name: 'Semana siguiente', exact: true }).click();
+    await expect(page.locator('.timetable-day.is-selected time')).toHaveAttribute('datetime', '2026-10-19');
+    expect(state.errors).toEqual([]); expect(state.writes).toEqual([]);
+  });
+
+  test('empalmes visibles, fin de semana y clases suspendidas o movidas conservan su fecha', async ({ page }) => {
+    await page.clock.install({ time: new Date('2026-10-12T07:00:00-07:00') });
+    const schedule = [
+      { id: 'long', group_id: groupId, weekday: 1, start_time: '08:00', end_time: '10:00' },
+      { id: 'short', group_id: groupId, weekday: 1, start_time: '08:15', end_time: '08:30' },
+      { id: 'cancelled', group_id: groupId, weekday: 6, start_time: '09:00', end_time: '10:00' },
+      { id: 'moved', group_id: groupId, weekday: 5, start_time: '09:00', end_time: '10:00' },
+    ];
+    const exceptions = [
+      { slot_id: 'cancelled', original_date: '2026-10-17', status: 'cancelled', note: 'Suspensión por lluvia' },
+      { slot_id: 'moved', original_date: '2026-10-16', status: 'moved', class_date: '2026-10-18', start_time: '10:00', end_time: '11:00', room: 'Aula domingo' },
+    ];
+    const state = await fixture(page, false, [group], { schedule, exceptions });
+    await page.goto('/teacher#/agenda');
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await expect(page.locator('.timetable-day')).toHaveCount(7);
+    await expect(page.locator('.timetable-event')).toHaveCount(4);
+    const long = await page.locator('[data-occurrence^="long:"]').boundingBox();
+    const short = await page.locator('[data-occurrence^="short:"]').boundingBox();
+    expect(long.x + long.width).toBeLessThanOrEqual(short.x);
+    expect(short.height).toBeGreaterThanOrEqual(44);
+    await page.locator('[data-occurrence^="cancelled:"]').click();
+    let detail = page.getByRole('dialog');
+    await expect(detail).toContainText('Clase suspendida');
+    await expect(detail).toContainText('Suspensión por lluvia');
+    await expect(detail.getByRole('link', { name: 'Asistencia', exact: true })).toHaveCount(0);
+    await detail.getByRole('button', { name: 'Restaurar o editar' }).click();
+    await expect(page.getByRole('dialog', { name: 'Editar clase' }).getByRole('button', { name: 'Restaurar clase', exact: true })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await page.locator('[data-occurrence^="moved:"]').click();
+    detail = page.getByRole('dialog');
+    await expect(detail).toContainText('Reprogramada');
+    await expect(detail).toContainText('Aula domingo');
+    await expect(detail.getByRole('link', { name: 'Asistencia', exact: true })).toHaveAttribute('href', `#/attendance/${groupId}?date=2026-10-18`);
+    await page.keyboard.press('Escape');
+    await page.getByLabel('Ir a una fecha').fill('2026-11-02');
+    await page.getByRole('button', { name: 'Añadir clase:', exact: false }).first().click();
+    await expect(page.getByRole('dialog', { name: 'Programar clase' }).getByLabel('Primera clase')).toHaveValue('2026-11-03');
+    await page.keyboard.press('Escape');
+    expect(state.errors).toEqual([]); expect(state.writes).toEqual([]);
   });
 });
 
@@ -523,6 +635,7 @@ test.describe('editor de agenda', () => {
     };
     const state = await fixture(page, false, [group], workspace);
     await page.goto('/teacher#/agenda');
+    await page.getByRole('button', { name: 'Lista', exact: true }).click();
     await page.getByRole('button', { name: 'Programar clase', exact: true }).click();
     const editor = page.getByRole('dialog', { name: 'Programar clase' });
     await editor.getByLabel('Repetir hasta').fill('2026-10-26');
@@ -575,6 +688,7 @@ test.describe('editor de agenda', () => {
     };
     const state = await fixture(page, false, [group], workspace);
     await page.goto('/teacher#/agenda');
+    await page.getByRole('button', { name: 'Lista', exact: true }).click();
     await page.getByRole('button', { name: 'Programar clase', exact: true }).click();
     const edit = page.getByRole('dialog');
     await edit.getByRole('combobox', { name: /Repetición/ }).selectOption('once');
@@ -607,6 +721,7 @@ test.describe('editor de agenda', () => {
     };
     const state = await fixture(page, false, [group], workspace);
     await page.goto('/teacher#/agenda');
+    await page.getByRole('button', { name: 'Lista', exact: true }).click();
     await page.locator('.schedule-slot').getByRole('button', { name: 'Editar clase' }).click();
     let edit = page.getByRole('dialog');
     await edit.getByLabel('Aplicar a').selectOption('future');
@@ -614,6 +729,7 @@ test.describe('editor de agenda', () => {
     await page.evaluate(() => { window.location.hash = '#/groups'; });
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await page.goto('/teacher#/agenda');
+    await page.getByRole('button', { name: 'Lista', exact: true }).click();
     await page.locator('.schedule-slot').getByRole('button', { name: 'Editar clase' }).click();
     edit = page.getByRole('dialog');
     await expect(edit.getByLabel('Aula o ubicación')).toHaveValue('Borrador conservado');

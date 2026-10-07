@@ -33,6 +33,7 @@ import './styles/workspace-premium.css';
 import './styles/group-workspace.css';
 import './styles/group-catalog.css';
 import './styles/agenda-premium.css';
+import './styles/agenda-timetable.css';
 import './styles/reports-premium.css';
 
 const queryClient = new QueryClient({
