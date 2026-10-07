@@ -130,8 +130,14 @@ test('Mis grupos: orden académico natural, filtros compartidos y búsqueda sin 
   await page.getByRole('searchbox', { name: 'Buscar grupos' }).fill('grupo inexistente');
   await expect(page.getByRole('heading', { name: 'No encontramos coincidencias' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Crear grupo', exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Ver todos los grupos', exact: true }).click();
-  await page.getByLabel('Universidad', { exact: true }).selectOption(secondUniversity);
+  // Clear + change in the same browser task must not resurrect the old search.
+  await page.getByRole('button', { name: 'Ver todos los grupos', exact: true }).evaluate((button, university) => {
+    button.click();
+    const select = document.querySelector('select[aria-label="Universidad"]');
+    select.value = university;
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  }, secondUniversity);
+  await expect(page.getByRole('searchbox', { name: 'Buscar grupos' })).toHaveValue('');
   await page.getByLabel('Materia', { exact: true }).selectOption('Farmacología');
   await page.getByLabel('Universidad', { exact: true }).selectOption(firstUniversity);
   await expect(page.getByLabel('Materia', { exact: true })).toHaveValue('');

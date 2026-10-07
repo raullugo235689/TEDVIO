@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useLayoutEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { catalogOptions, catalogSubject, catalogUniversity, matchesGroup, orderGroups, type CatalogGroup } from '../core/group-catalog';
 import { Icon } from './icons';
@@ -7,6 +7,8 @@ const emptyGroups: readonly CatalogGroup[] = [];
 
 export function useGroupCatalog<T extends CatalogGroup>(source?: readonly T[] | null) {
   const [params, setParams] = useSearchParams();
+  const latestParams = useRef(params);
+  useLayoutEffect(() => { latestParams.current = params; }, [params]);
   const groups = source || emptyGroups as readonly T[];
   const ordered = useMemo(() => orderGroups(groups), [groups]);
   const universities = useMemo(() => catalogOptions(groups.map(catalogUniversity)), [groups]);
@@ -19,19 +21,19 @@ export function useGroupCatalog<T extends CatalogGroup>(source?: readonly T[] | 
   const filtered = useMemo(() => ordered.filter(group => (!university || catalogUniversity(group) === university) && (!subject || catalogSubject(group) === subject) && matchesGroup(group, query)), [ordered, university, subject, query]);
 
   function change(key: 'q' | 'university' | 'subject', value: string) {
-    setParams(current => {
-      const next = new URLSearchParams(current);
-      if (value) next.set(key, value); else next.delete(key);
-      if (key === 'university') next.delete('subject');
-      return next;
-    }, { replace: true });
+    // Router search-param callbacks do not queue like React state updates.
+    // Preserve rapid edits before the navigation has committed its next render.
+    const next = new URLSearchParams(latestParams.current);
+    if (value) next.set(key, value); else next.delete(key);
+    if (key === 'university') next.delete('subject');
+    latestParams.current = next;
+    setParams(next, { replace: true });
   }
   function clear() {
-    setParams(current => {
-      const next = new URLSearchParams(current);
-      for (const key of ['q', 'university', 'subject']) next.delete(key);
-      return next;
-    }, { replace: true });
+    const next = new URLSearchParams(latestParams.current);
+    for (const key of ['q', 'university', 'subject']) next.delete(key);
+    latestParams.current = next;
+    setParams(next, { replace: true });
   }
   const linkParams = new URLSearchParams();
   if (university) linkParams.set('university', university);
