@@ -45,8 +45,8 @@ export function GroupCatalogFilters({ catalog }: { catalog: ReturnType<typeof us
   return (
     <div className="group-catalog-filters">
       <label className="catalog-search">Buscar grupos<div><Icon name="search" /><input type="search" value={catalog.query} onChange={event => catalog.change('q', event.target.value)} placeholder="Grupo, materia o universidad" /></div></label>
-      <label>Universidad<select value={catalog.university} onChange={event => catalog.change('university', event.target.value)}><option value="">Todas las universidades</option>{catalog.universities.map(name => <option key={name} value={name}>{name}</option>)}</select></label>
-      <label>Materia<select value={catalog.subject} onChange={event => catalog.change('subject', event.target.value)}><option value="">Todas las materias</option>{catalog.subjects.map(name => <option key={name} value={name}>{name}</option>)}</select></label>
+      <label>Universidad<select aria-label="Universidad" value={catalog.university} onChange={event => catalog.change('university', event.target.value)}><option value="">Todas las universidades</option>{catalog.universities.map(name => <option key={name} value={name}>{name}</option>)}</select></label>
+      <label>Materia<select aria-label="Materia" value={catalog.subject} onChange={event => catalog.change('subject', event.target.value)}><option value="">Todas las materias</option>{catalog.subjects.map(name => <option key={name} value={name}>{name}</option>)}</select></label>
       <div className="catalog-filter-summary"><span role="status">{catalog.filtered.length} de {catalog.total} grupos</span>{catalog.active ? <button type="button" className="button ghost compact" onClick={catalog.clear}>Limpiar filtros</button> : null}</div>
     </div>
   );
