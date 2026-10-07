@@ -96,6 +96,57 @@ test('perfil docente: nombre profesional completo, título e iniciales se actual
   expect(state.errors).toEqual([]);
 });
 
+test('Mis grupos: orden académico natural, filtros compartidos y búsqueda sin acentos', async ({ page }) => {
+  const firstUniversity = 'Universidad Álamo', secondUniversity = 'Universidad de Los Mochis';
+  const make = (id, name, subject, university) => ({ ...group, id, name, group_name: name, subject, university });
+  const groups = [
+    make('z-c', '1-C', 'Anatomía', secondUniversity),
+    make('a-ten', '1-10', 'Anatomía', firstUniversity),
+    make('unassigned', '10', 'Anatomía', null),
+    make('z-pharm', '2-02', 'Farmacología', secondUniversity),
+    make('a-prop', '3-08', 'Propedéutica', firstUniversity),
+    make('a-two', '1-02', 'Anatomía', firstUniversity),
+    make('z-b', '1-B', 'Anatomía', secondUniversity),
+  ];
+  const state = await fixture(page, false, groups);
+  const ids = locator => locator.evaluateAll(cards => cards.map(card => card.dataset.groupId));
+  await expect.poll(() => ids(page.locator('.group-card-v2'))).toEqual(['a-two', 'a-ten', 'a-prop', 'z-b']);
+  await expect(page.getByText('Mostrando los primeros 4 de 7 grupos.', { exact: false })).toBeVisible();
+  await page.getByLabel('Universidad', { exact: true }).selectOption(secondUniversity);
+  await page.getByLabel('Materia', { exact: true }).selectOption('Anatomía');
+  await expect.poll(() => ids(page.locator('.group-card-v2'))).toEqual(['z-b', 'z-c']);
+  await page.getByRole('searchbox', { name: 'Buscar grupos' }).fill('1-c');
+  await page.getByRole('link', { name: 'Ver todos', exact: true }).click();
+  await expect.poll(() => ids(page.locator('.group-catalog-card'))).toEqual(['z-c']);
+  await page.reload();
+  await expect(page.getByLabel('Universidad', { exact: true })).toHaveValue(secondUniversity);
+  await expect(page.getByLabel('Materia', { exact: true })).toHaveValue('Anatomía');
+  await expect(page.getByRole('searchbox', { name: 'Buscar grupos' })).toHaveValue('1-c');
+  await page.getByRole('button', { name: 'Limpiar filtros', exact: true }).click();
+  await expect.poll(() => ids(page.locator('.group-catalog-card'))).toEqual(['a-two', 'a-ten', 'a-prop', 'z-b', 'z-c', 'z-pharm', 'unassigned']);
+  await expect(page.locator('.catalog-university-heading h3')).toHaveText([firstUniversity, secondUniversity, 'Institución sin asignar']);
+  await page.getByRole('searchbox', { name: 'Buscar grupos' }).fill('anatomia');
+  await expect(page.locator('.group-catalog-card')).toHaveCount(5);
+  await page.getByRole('searchbox', { name: 'Buscar grupos' }).fill('grupo inexistente');
+  await expect(page.getByRole('heading', { name: 'No encontramos coincidencias' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Crear grupo', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Ver todos los grupos', exact: true }).click();
+  await page.getByLabel('Universidad', { exact: true }).selectOption(secondUniversity);
+  await page.getByLabel('Materia', { exact: true }).selectOption('Farmacología');
+  await page.getByLabel('Universidad', { exact: true }).selectOption(firstUniversity);
+  await expect(page.getByLabel('Materia', { exact: true })).toHaveValue('');
+  await expect(page.locator('.group-catalog-card')).toHaveCount(3);
+  await page.getByRole('button', { name: 'Limpiar filtros', exact: true }).click();
+  for (const width of [320, 390, 768, 1440]) { await page.setViewportSize({ width, height: 900 }); await noOverflow(page); }
+  await page.screenshot({ path: test.info().outputPath('groups-organized-desktop.png'), fullPage: true });
+  await page.getByRole('button', { name: 'Activar modo oscuro' }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await noOverflow(page);
+  await page.screenshot({ path: test.info().outputPath('groups-organized-mobile-dark.png'), fullPage: true });
+  expect(state.errors).toEqual([]);
+  expect(state.writes).toEqual([]);
+});
+
 test.describe('agenda por grupo', () => {
   test.use({ timezoneId: 'America/Mazatlan' });
 
@@ -110,7 +161,7 @@ test.describe('agenda por grupo', () => {
       { id: 'inactive', group_id: second.id, weekday: 5, start_time: '09:00:00', end_time: '13:00:00', active: false },
     ];
     const state = await fixture(page, false, [first, second], { schedule });
-    const color = await page.locator('.group-card-v2').first().getAttribute('data-group-color');
+    const color = await page.locator(`.group-card-v2[data-group-id="${groupId}"]`).getAttribute('data-group-color');
     await page.goto('/teacher#/agenda');
     await expect(page.getByRole('heading', { name: 'Tu semana', exact: true })).toBeVisible();
     const firstSlots = page.locator('.schedule-slot').filter({ hasText: group.name });
@@ -191,7 +242,7 @@ test('espacio docente: cinco áreas, rutas anteriores y menú accesible', async 
 
 test('grupo: accesos conservan el contexto y preseleccionan el examen', async ({ page }) => {
   const state = await fixture(page);
-  await page.locator('.group-card-v2').first().getByRole('link', { name: 'Abrir grupo' }).click();
+  await page.locator(`.group-card-v2[data-group-id="${groupId}"]`).getByRole('link', { name: 'Abrir grupo' }).click();
   await expect(page.getByRole('heading', { name: 'Resumen del grupo', exact: true })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Identidad del grupo' })).toContainText(group.name);
   await expect.poll(() => page.evaluate(() => scrollY)).toBe(0);
@@ -212,8 +263,8 @@ test('grupo: identidad y sección se conservan entre pantallas, enlaces directos
   const branded = { ...group, institution_logo_path: `${userId}/institution-branding/university/logo-a.png` };
   const other = { ...group, id: '33333333-3333-4333-8333-333333333333', group_name: 'Medicina · 3B', name: 'Medicina · 3B', subject: 'Anatomía', university: 'Otra universidad' };
   const state = await fixture(page, false, [branded, other]);
-  const color = await page.locator('.group-card-v2').first().getAttribute('data-group-color');
-  await page.locator('.group-card-v2').first().getByRole('link', { name: 'Abrir grupo' }).click();
+  const color = await page.locator(`.group-card-v2[data-group-id="${groupId}"]`).getAttribute('data-group-color');
+  await page.locator(`.group-card-v2[data-group-id="${groupId}"]`).getByRole('link', { name: 'Abrir grupo' }).click();
   const identity = page.getByRole('region', { name: 'Identidad del grupo' });
   const navigation = page.getByRole('navigation', { name: 'Secciones del grupo' });
   await expect(identity).toContainText(group.subject);
@@ -325,18 +376,18 @@ test('logos institucionales: identidad estable, iniciales y archivo faltante', a
   const state = await fixture(page, false, identityGroups, workspace);
   const cards = page.locator('.group-card-v2');
   await expect(cards).toHaveCount(4);
-  await expect(cards.nth(0).locator('.group-institution-mark img')).toHaveAttribute('src', new RegExp(`${institutionA}/logo-a\\.png$`));
-  await expect(cards.nth(1).locator('.group-institution-mark img')).toHaveCount(0);
-  await expect(cards.nth(1).locator('.group-institution-mark > span')).toHaveText('UC');
-  await expect(cards.nth(2).locator('.group-institution-mark img')).toHaveAttribute('src', new RegExp(`${institutionB}/logo-b\\.png$`));
-  await cards.nth(3).scrollIntoViewIfNeeded();
-  await expect(cards.nth(3).locator('.group-institution-mark > span')).toHaveText('ULM');
+  await expect(cards.filter({ has: page.locator(`a[href="#/groups/${groupId}"]`) }).locator('.group-institution-mark img')).toHaveAttribute('src', new RegExp(`${institutionA}/logo-a\\.png$`));
+  await expect(cards.filter({ has: page.locator(`a[href="#/groups/${'without-linked-institution'}"]`) }).locator('.group-institution-mark img')).toHaveCount(0);
+  await expect(cards.filter({ has: page.locator(`a[href="#/groups/${'without-linked-institution'}"]`) }).locator('.group-institution-mark > span')).toHaveText('UC');
+  await expect(cards.filter({ has: page.locator(`a[href="#/groups/${'other-institution'}"]`) }).locator('.group-institution-mark img')).toHaveAttribute('src', new RegExp(`${institutionB}/logo-b\\.png$`));
+  await cards.filter({ has: page.locator(`a[href="#/groups/${'broken-logo'}"]`) }).scrollIntoViewIfNeeded();
+  await expect(cards.filter({ has: page.locator(`a[href="#/groups/${'broken-logo'}"]`) }).locator('.group-institution-mark > span')).toHaveText('ULM');
   await page.getByRole('link', { name: 'Ver todos' }).click();
   const catalogue = page.locator('.group-catalog-card');
   await expect(catalogue).toHaveCount(4);
-  await expect(catalogue.nth(0).locator('.group-institution-mark img')).toHaveAttribute('src', new RegExp(`${institutionA}/logo-a\\.png$`));
-  await expect(catalogue.nth(1).locator('.group-institution-mark > span')).toHaveText('UC');
-  await expect(catalogue.nth(2).locator('.group-institution-mark img')).toHaveAttribute('src', new RegExp(`${institutionB}/logo-b\\.png$`));
+  await expect(catalogue.filter({ has: page.locator(`a[href="#/groups/${groupId}"]`) }).locator('.group-institution-mark img')).toHaveAttribute('src', new RegExp(`${institutionA}/logo-a\\.png$`));
+  await expect(catalogue.filter({ has: page.locator(`a[href="#/groups/${'without-linked-institution'}"]`) }).locator('.group-institution-mark > span')).toHaveText('UC');
+  await expect(catalogue.filter({ has: page.locator(`a[href="#/groups/${'other-institution'}"]`) }).locator('.group-institution-mark img')).toHaveAttribute('src', new RegExp(`${institutionB}/logo-b\\.png$`));
   await page.getByRole('button', { name: 'Estructura académica' }).click();
   const linkedUniversities = page.locator('.structure-catalog > article').filter({ has: page.locator('.structure-branding-select') });
   await expect(linkedUniversities).toHaveCount(4);
@@ -367,7 +418,7 @@ test('reportes premium: identidad vinculada, búsqueda, documento completo e imp
       { id: institutionId, name: 'Institución de prueba', report_display_name: 'Universidad del grupo', report_logo_path: path },
     ],
   });
-  const color = await page.locator('.group-card-v2').first().getAttribute('data-group-color');
+  const color = await page.locator(`.group-card-v2[data-group-id="${groupId}"]`).getAttribute('data-group-color');
   await page.goto('/teacher#/reports');
   await expect(page.getByRole('heading', { name: 'Centro de reportes', exact: true })).toBeVisible();
   await expect(page.locator('.report-group-card')).toHaveAttribute('data-group-color', color);
