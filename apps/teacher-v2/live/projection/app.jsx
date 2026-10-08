@@ -8,6 +8,7 @@ import { createRoot } from "react-dom/client";
 import { LiveSurfaceErrorBoundary } from "../shared/LiveSurfaceErrorBoundary.jsx";
 import "./base.css";
 import "./premium.css";
+import { estimateServerClockOffset, classroomSecondsRemaining } from "../../src/core/classroom-clock";
 
 const h = React.createElement;
 const cfg = window.TEDVIO_CONFIG || {};
@@ -22,7 +23,9 @@ async function getProjectionClient() {
   if (!projectionClientPromise) {
     projectionClientPromise = import("@supabase/supabase-js")
       .then(({ createClient }) => {
-        projectionClient = createClient(cfg.SUPABASE_URL, cfg.SUPABASE_PUBLISHABLE_KEY);
+        projectionClient = createClient(cfg.SUPABASE_URL, cfg.SUPABASE_PUBLISHABLE_KEY, {
+          auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+        });
         return projectionClient;
       })
       .catch((error) => {
@@ -68,7 +71,8 @@ async function loadProjection(client, code, previous = null) {
   if (me) throw me;
   const s = meta?.[0];
   if (!s) return null;
-  const [countsResult, sessionResult, peopleResult] =
+  const clockRequestedAt = Date.now();
+  const [countsResult, sessionResult, peopleResult, clockResult] =
     await Promise.all([
       sb.rpc("v2_public_live_counts", { p_code: code }),
       sb
@@ -77,7 +81,12 @@ async function loadProjection(client, code, previous = null) {
         .eq("id", s.session_id)
         .maybeSingle(),
       sb.rpc("v2_public_session_people", { p_code: code }),
+      sb.rpc("v2_public_server_clock"),
     ]);
+  const measuredOffset = clockResult.error ? null : estimateServerClockOffset(
+    clockResult.data, clockRequestedAt, Date.now(),
+  );
+  const clockOffsetMs = measuredOffset ?? previous?.clockOffsetMs ?? 0;
   if (sessionResult.error) throw sessionResult.error;
   const srow = sessionResult.data;
   if (!srow) return null;
@@ -94,7 +103,7 @@ async function loadProjection(client, code, previous = null) {
   if (srow.current_question_id) {
     const questionResult = await sb
       .from("v2_questions")
-      .select("*")
+.select("id,session_id,position,prompt,question_type,options,media_url,media_type,timer_seconds,status,launched_at,closed_at")
       .eq("id", srow.current_question_id)
       .maybeSingle();
     if (questionResult.error || !questionResult.data) {
@@ -102,14 +111,23 @@ async function loadProjection(client, code, previous = null) {
       q = previous?.q?.id === srow.current_question_id ? previous.q : null;
     } else q = questionResult.data;
     if (q?.status === "revealed") {
-      const result = await sb.rpc("v2_public_question_results", {
-        p_session_id: s.session_id,
-        p_question_id: q.id,
-      });
+      const [result, revealed] = await Promise.all([
+        sb.rpc("v2_public_question_results", {
+          p_session_id: s.session_id, p_question_id: q.id,
+        }),
+        sb.rpc("v2_public_revealed_question", {
+          p_code: code, p_question_id: q.id,
+        }),
+      ]);
       if (result.error) {
         issues.push("results");
         results = previous?.q?.id === q.id ? previous.results || [] : [];
       } else results = result.data || [];
+      if (revealed.error) {
+        issues.push("revealed_answer");
+      } else if (revealed.data && typeof revealed.data === "object") {
+        q = { ...q, ...revealed.data };
+      }
     }
   }
   const currentSession = { ...s, ...srow };
@@ -131,19 +149,14 @@ async function loadProjection(client, code, previous = null) {
     closed: srow.status === "closed",
     partial: issues,
     transitioning: Boolean(srow.current_question_id && !q),
+    clockOffsetMs,
     lastAttemptedAt: attemptedAt,
     lastSyncedAt: issues.length ? previous?.lastSyncedAt || null : attemptedAt,
   };
 }
-function remaining(q) {
+function remaining(q, clockOffsetMs = 0) {
   if (!q?.launched_at || q.status !== "live") return 0;
-  return Math.max(
-    0,
-    Math.ceil(
-      Number(q.timer_seconds || 30) -
-        (Date.now() - new Date(q.launched_at).getTime()) / 1000,
-    ),
-  );
+  return classroomSecondsRemaining(q.launched_at, q.timer_seconds, clockOffsetMs);
 }
 function logo() {
   return h("img", {
@@ -496,7 +509,7 @@ function Lobby({ x, code, connection, warning }) {
 }
 function Live({ x, code, tick, connection, warning }) {
   const q = x.q;
-  const rem = remaining(q);
+  const rem = remaining(q, x.clockOffsetMs);
   const pct = Math.max(
     0,
     Math.min(100, (rem / Math.max(1, Number(q.timer_seconds || 30))) * 100),
