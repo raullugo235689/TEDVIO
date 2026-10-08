@@ -9,6 +9,7 @@ import { createRoot } from "react-dom/client";
 import { LiveSurfaceErrorBoundary } from "../shared/LiveSurfaceErrorBoundary.jsx";
 import "./base.css";
 import "./premium.css";
+import "./student-v3.css";
 
 const h = React.createElement;
 const cfg = window.TEDVIO_CONFIG || {};
@@ -724,135 +725,126 @@ function JoinScreen({ initialCode, busy, error, onJoin }) {
   const [team, setTeam] = useState("");
   return h(
     "main",
-    { className: "entry-shell" },
+    { className: "entry-shell student-v3-entry" },
     h(
       "section",
-      { className: "entry-card" },
-      h("img", {
-        src: "../assets/tedvio_official_horizontal.svg",
-        alt: "TEDVIO",
-        className: "entry-logo",
-      }),
-      h("span", { className: "eyebrow" }, "CLASE EN VIVO"),
-      h("h1", null, "Entra a tu sesión"),
-      h(
-        "p",
-        { className: "lead" },
-        "Escribe el código que aparece en pantalla y tus datos de identificación.",
+      { className: "entry-card student-v3-entry-card" },
+      h("div", { className: "entry-hero" },
+        h("div", { className: "entry-brand-row" },
+          h("img", { src: "../assets/tedvio_official_horizontal.svg", alt: "TEDVIO", className: "entry-logo" }),
+          h("span", { className: "entry-edition" }, "STUDENT 3.0"),
+        ),
+        h("div", { className: "entry-hero-copy" },
+          h("span", { className: "entry-status" }, h("i", { "aria-hidden": true }), " CLASE INTERACTIVA"),
+          h("h1", null, "Entra a tu sesión"),
+          h("p", { className: "lead" }, "Tu espacio para participar, responder y aprender en tiempo real."),
+        ),
+        h("div", { className: "entry-hero-art", "aria-hidden": true },
+          h("span", { className: "entry-orbit-one" }),
+          h("span", { className: "entry-orbit-two" }),
+          h("span", { className: "entry-orbit-core" }, "T"),
+        ),
+        h("div", { className: "entry-hero-caption" }, "Una experiencia TEDVIO. Todo desde tu dispositivo."),
       ),
-      h(
-        "form",
-        {
-          onSubmit: (e) => {
-            e.preventDefault();
+      h("div", { className: "entry-form-panel" },
+        h("div", { className: "entry-form-heading" },
+          h("span", { className: "eyebrow" }, "ACCESO A CLASE"),
+          h("h2", null, "Listo para participar"),
+          h("p", null, "Ingresa el código que compartió tu docente y confirma tus datos."),
+        ),
+        h("form", {
+          className: "entry-form",
+          onSubmit: (event) => {
+            event.preventDefault();
             onJoin({ code, name, matricula, team });
           },
         },
-        h(
-          "label",
-          null,
-          "Código de clase",
-          h("input", {
-            value: code,
-            onChange: (e) =>
-              setCode(e.target.value.toUpperCase().replace(/\s/g, "")),
-            placeholder: "ABC123",
-            maxLength: 12,
-            autoCapitalize: "characters",
-            autoComplete: "one-time-code",
-            spellCheck: false,
-            required: true,
-          }),
-        ),
-        h(
-          "label",
-          null,
-          "Nombre",
-          h("input", {
-            value: name,
-            onChange: (e) => setName(e.target.value),
-            placeholder: "Tu nombre completo",
-            maxLength: 100,
-            autoComplete: "name",
-            required: true,
-          }),
-        ),
-        h(
-          "label",
-          null,
-          "Matrícula (si tu docente la solicita)",
-          h("input", {
-            value: matricula,
-            onChange: (e) => setMatricula(e.target.value),
-            placeholder: "Tu matrícula registrada",
-            maxLength: 40,
-            inputMode: "numeric",
-          }),
-        ),
-        h(
-          "label",
-          null,
-          "Equipo (si la clase es por equipos)",
-          h("input", {
-            value: team,
-            onChange: (e) => setTeam(e.target.value),
-            placeholder: "Nombre de tu equipo",
-            maxLength: 50,
-          }),
-        ),
-        error ? h("div", { className: "error-box" }, error) : null,
-        h(
-          "button",
-          {
-            className: "primary-btn",
+          h("label", { className: "entry-code-field" }, "Código de clase",
+            h("input", {
+              className: "entry-code-input",
+              value: code,
+              onChange: (event) => setCode(event.target.value.toUpperCase().replace(/\s/g, "")),
+              placeholder: "ABC123", maxLength: 12, autoCapitalize: "characters",
+              autoComplete: "one-time-code", spellCheck: false, required: true,
+            }),
+          ),
+          h("label", null, "Nombre",
+            h("input", {
+              value: name, onChange: (event) => setName(event.target.value),
+              placeholder: "Tu nombre completo", maxLength: 100, autoComplete: "name", required: true,
+            }),
+          ),
+          h("div", { className: "entry-optional-fields" },
+            h("label", null, "Matrícula (si tu docente la solicita)",
+              h("input", {
+                value: matricula, onChange: (event) => setMatricula(event.target.value),
+                placeholder: "Matrícula registrada", maxLength: 40, inputMode: "text",
+              }),
+            ),
+            h("label", null, "Equipo (si la clase es por equipos)",
+              h("input", {
+                value: team, onChange: (event) => setTeam(event.target.value),
+                placeholder: "Nombre del equipo", maxLength: 50,
+              }),
+            ),
+          ),
+          error ? h("div", { className: "error-box", role: "alert" }, error) : null,
+          h("button", {
+            className: "primary-btn entry-submit",
             disabled: busy || !code.trim() || !name.trim(),
             type: "submit",
-          },
-          busy ? "Entrando…" : "Entrar a clase",
+          }, busy ? "Entrando…" : "Entrar a clase"),
         ),
-      ),
-      h(
-        "small",
-        { className: "privacy" },
-        "Tu respuesta se registra únicamente dentro de la sesión académica activa.",
+        h("p", { className: "entry-privacy" },
+          h("span", { "aria-hidden": true }, "✓"),
+          " Tu participación pertenece únicamente a esta sesión.",
+        ),
       ),
     ),
   );
 }
 
 function Waiting({ student, session, answered }) {
+  const initials = (safeText(student.name, "A").trim().split(/\s+/).slice(0, 2)
+    .map((part) => part.slice(0, 1)).join("").toUpperCase() || "A");
   return h(
     "section",
-    { className: "state-card center" },
-    h("div", { className: "pulse" }, h("i")),
-    h("span", { className: "eyebrow" }, "SESIÓN ACTIVA"),
+    { className: "state-card center student-v3-waiting" },
+    h("div", { className: "waiting-topline" },
+      h("span", { className: "eyebrow" }, "SALA DE ESPERA"),
+      h("span", { className: "waiting-ready-pill" }, h("i", { "aria-hidden": true }), " EN LA SESIÓN"),
+    ),
+    h("div", { className: "waiting-orb", "aria-hidden": true },
+      h("span", { className: "waiting-ring waiting-ring-outer" }),
+      h("span", { className: "waiting-ring waiting-ring-inner" }),
+      h("span", { className: "waiting-orb-core" }, "✦"),
+    ),
+    h("span", { className: "waiting-overline" }, "TODO LISTO PARA COMENZAR"),
     h("h1", null, "Estás dentro."),
-    h("p", null, "Espera a que tu profesor lance la siguiente pregunta."),
-    h(
-      "div",
-      { className: "identity" },
-      h("strong", null, student.name || "Alumno"),
-      h(
-        "span",
-        null,
-        `${session.title || "TEDVIO"}${student.team ? ` · ${student.team}` : ""}`,
+    h("p", { className: "waiting-message" },
+      "Cuando tu docente active la siguiente pregunta, aparecerá aquí automáticamente.",
+    ),
+    h("div", { className: "identity waiting-identity" },
+      h("span", { className: "waiting-avatar", "aria-hidden": true }, initials),
+      h("div", { className: "waiting-identity-copy" },
+        h("span", null, "PARTICIPANTE"),
+        h("strong", null, student.name || "Alumno"),
+        h("p", null, session.title || "TEDVIO"),
+        student.team ? h("small", null, "Equipo: " + student.team) : null,
       ),
     ),
-    h(
-      "div",
-      { className: "mini-grid" },
-      h(
-        "div",
-        null,
-        h("span", null, "Respuestas"),
+    h("div", { className: "mini-grid waiting-facts" },
+      h("div", null,
+        h("span", null, "RESPUESTAS EN ESTA CLASE"),
         h("b", null, String(answered)),
       ),
-      h(
-        "div",
-        null,
-        h("span", null, "Código"),
-        h("b", null, session.code || "—"),
+      h("div", null,
+        h("span", null, "CÓDIGO DE SESIÓN"),
+        h("b", { className: "waiting-code" }, session.code || "—"),
       ),
+    ),
+    h("p", { className: "waiting-bottom-note" },
+      h("span", { "aria-hidden": true }, "↗"), " Puedes mantener esta pantalla abierta mientras esperas.",
     ),
   );
 }
@@ -876,6 +868,16 @@ function Media({ question }) {
     alt: "Recurso de la pregunta",
     className: "media",
   });
+}
+
+function questionTypeLabel(type) {
+  const names = {
+    multiple_choice: "Opción múltiple", multiple_select: "Selección múltiple",
+    true_false: "Verdadero o falso", open_text: "Respuesta abierta",
+    numeric: "Respuesta numérica", poll: "Encuesta", scale_5: "Escala",
+    ordering: "Ordenamiento", hotspot: "Señalar en imagen",
+  };
+  return names[type] || "Actividad";
 }
 
 function Question({ question, questionCount, own, pending, submitting, onSubmit }) {
@@ -903,35 +905,35 @@ function Question({ question, questionCount, own, pending, submitting, onSubmit 
   if (own) {
     return h(
       "section",
-      { className: "state-card center" },
-      h("div", { className: "success-mark" }, "✓"),
+      { className: "state-card center student-v3-confirmed" },
+      h("div", { className: "success-mark", "aria-hidden": true }, "✓"),
       h("span", { className: "eyebrow" }, "RESPUESTA REGISTRADA"),
       h("h1", null, "Listo."),
       h(
         "p",
         null,
-        "Tu respuesta quedó guardada. Espera a que el profesor muestre el resultado.",
+        "Tu respuesta fue confirmada. Espera a que tu docente comparta el resultado.",
       ),
       );
   }
   if (pending) {
     return h(
       "section",
-      { className: "state-card center" },
+      { className: "state-card center student-v3-pending" },
       h("div", { className: "muted-mark" }, "↻"),
       h("span", { className: "eyebrow" }, "RESPUESTA PROTEGIDA"),
       h("h1", null, "Pendiente de sincronizar"),
       h(
         "p",
         null,
-        "TEDVIO conserva tu respuesta y volverá a enviarla automáticamente. Mantén esta pantalla abierta.",
+        "Tu respuesta está protegida en este dispositivo y pendiente de confirmación. Mantén la pantalla abierta.",
       ),
     );
   }
   if (question.status !== "live" || remaining <= 0) {
     return h(
       "section",
-      { className: "state-card center" },
+      { className: "state-card center student-v3-closed" },
       h("div", { className: "muted-mark" }, "⌛"),
       h("h1", null, "Respuestas cerradas"),
       h("p", null, "Espera a que el profesor continúe la sesión."),
@@ -973,6 +975,7 @@ function Question({ question, questionCount, own, pending, submitting, onSubmit 
             {
               key: opt,
               className: `option${active ? " selected" : ""}`,
+              "aria-pressed": active,
               onClick: () =>
                 setSelected((cur) =>
                   active ? cur.filter((x) => x !== opt) : [...cur, opt],
@@ -998,7 +1001,7 @@ function Question({ question, questionCount, own, pending, submitting, onSubmit 
       "div",
       { className: "scale" },
       ...["1", "2", "3", "4", "5"].map((v) =>
-        h("button", { key: v, onClick: () => onSubmit(v) }, v),
+        h("button", { key: v, disabled: submitting, onClick: () => onSubmit(v) }, v),
       ),
     );
   } else if (question.question_type === "open_text") {
@@ -1148,7 +1151,7 @@ function Question({ question, questionCount, own, pending, submitting, onSubmit 
     null,
     h(
       "div",
-      { className: "progress" },
+      { className: "progress" + (remaining <= 10 ? " progress-urgent" : "") },
       h(
         "div",
         null,
@@ -1157,23 +1160,24 @@ function Question({ question, questionCount, own, pending, submitting, onSubmit 
           null,
           `Pregunta ${question.position} de ${Math.max(questionCount, question.position || 1)}`,
         ),
-        h("b", null, `${remaining} s`),
+        h("b", { role: "timer", "aria-label": "Tiempo restante" }, `${remaining} s`),
       ),
-      h("i", null, h("b", { style: { width: `${pct}%` } })),
+      h("i", { role: "progressbar", "aria-label": "Tiempo disponible", "aria-valuemin": 0, "aria-valuemax": 100, "aria-valuenow": Math.round(pct) }, h("b", { style: { width: `${pct}%` } })),
     ),
     h(
       "section",
-      { className: "question-card" },
+      { className: "question-card student-v3-question" },
       h(
         "div",
         { className: "chips" },
-        h("span", null, safeText(question.question_type, "reactivo").replace(/_/g, " ")),
+        h("span", null, questionTypeLabel(question.question_type)),
         h("span", { className: "live" }, "Respondiendo"),
       ),
+      h("p", { className: "question-overline" }, "LEE CON ATENCIÓN"),
       h("h1", null, question.prompt),
       h(Media, { question }),
       h("div", { className: "answer-area" }, answerControl),
-      h("p", { className: "secure" }, "Tu respuesta se registra una sola vez."),
+      h("p", { className: "secure" }, "Tu respuesta se envía una sola vez y se verifica de forma segura."),
     ),
   );
 }
@@ -1198,7 +1202,7 @@ function Result({ reveal, question, session }) {
   );
   return h(
     "section",
-    { className: "result-card" },
+    { className: "result-card student-v3-result" },
     h(
       "div",
       { className: `personal ${tone}` },
@@ -1207,7 +1211,7 @@ function Result({ reveal, question, session }) {
         { className: "result-icon" },
         correct === true ? "✓" : correct === false ? "×" : "•",
       ),
-      h("span", { className: "eyebrow" }, "RESULTADO"),
+      h("span", { className: "eyebrow" }, "TU RESULTADO"),
       h(
         "h1",
         null,
@@ -1268,7 +1272,7 @@ function Result({ reveal, question, session }) {
       ? h(
           "div",
           { className: "group-results" },
-          h("h2", null, "Resultados del grupo"),
+          h("h2", null, "Así respondió tu grupo"),
           ...options.map((opt, i) => {
             const n = counts.get(opt) || 0;
             const p = total ? Math.round((n / total) * 100) : 0;
@@ -1290,7 +1294,7 @@ function Result({ reveal, question, session }) {
       ? h(
           "div",
           { className: "explanation" },
-          h("b", null, "Explicación"),
+          h("b", null, "Explicación de la respuesta"),
           h("p", null, reveal.explanation),
         )
       : null,
@@ -1300,43 +1304,28 @@ function Result({ reveal, question, session }) {
 function Finished({ student, rank, onLeave }) {
   return h(
     "section",
-    { className: "state-card center" },
-    h("div", { className: "finish-mark" }, "✓"),
-    h("span", { className: "eyebrow" }, "SESIÓN FINALIZADA"),
-    h("h1", null, "Clase completada"),
-    h("p", null, `Gracias por participar, ${student.name || "alumno"}.`),
-    h(
-      "div",
-      { className: "mini-grid final" },
-      h(
-        "div",
-        null,
-        h("span", null, "Respondidas"),
-        h("b", null, rank?.answered_count ?? "—"),
-      ),
-      h(
-        "div",
-        null,
-        h("span", null, "Correctas"),
-        h("b", null, rank?.correct_count ?? "—"),
-      ),
-      h(
-        "div",
-        null,
-        h("span", null, "Puntos"),
-        h("b", null, rank?.total_points ?? "—"),
-      ),
-      h(
-        "div",
-        null,
-        h("span", null, "Posición"),
-        h("b", null, rank?.rank ? `#${rank.rank}` : "—"),
-      ),
+    { className: "state-card center student-v3-finished" },
+    h("div", { className: "finished-hero" },
+      h("div", { className: "finished-emblem", "aria-hidden": true }, "✓"),
+      h("span", { className: "eyebrow" }, "SESIÓN FINALIZADA"),
+      h("h1", null, "Clase completada"),
+      h("p", null, "Gracias por participar, " + (student.name || "alumno") + "."),
     ),
-    h(
-      "button",
-      { className: "secondary-btn", onClick: onLeave },
-      "Entrar a otra sesión",
+    h("div", { className: "finished-content" },
+      h("div", { className: "finished-summary-header" },
+        h("h2", null, "Tu resumen"),
+        h("span", null, "Actividad de esta sesión"),
+      ),
+      h("div", { className: "mini-grid final" },
+        h("div", null, h("span", null, "Respondidas"), h("b", null, rank?.answered_count ?? "—")),
+        h("div", null, h("span", null, "Correctas"), h("b", null, rank?.correct_count ?? "—")),
+        h("div", null, h("span", null, "Puntos"), h("b", null, rank?.total_points ?? "—")),
+        h("div", null, h("span", null, "Posición"), h("b", null, rank?.rank ? "#" + rank.rank : "—")),
+      ),
+      h("p", { className: "finished-footnote" }, "Los resultados mostrados corresponden a la información publicada por tu docente."),
+      h("button", { className: "secondary-btn finished-return", type: "button", onClick: onLeave },
+        "Entrar a otra sesión",
+      ),
     ),
   );
 }
@@ -1914,7 +1903,7 @@ function App() {
     studentLiveStage = "boot";
     return h(
       "div",
-      { className: "app-shell" },
+      { className: "app-shell student-v3-shell" },
       h("main", { className: "main" }, h("section", { className: "state-card center" },
         h("div", { className: "pulse" }, h("i")),
         h("h1", null, "Recuperando tu clase…"),
@@ -1925,7 +1914,7 @@ function App() {
   if (!configReady)
     return h(
       "div",
-      { className: "app-shell" },
+      { className: "app-shell student-v3-shell" },
       h("main", { className: "main" }, h("section", { className: "state-card center" },
         h("div", { className: "muted-mark" }, "!"),
         h("h1", null, "No pudimos iniciar TEDVIO"),
@@ -1941,7 +1930,7 @@ function App() {
     studentLiveStage = "boot";
     return h(
       "div",
-      { className: "app-shell" },
+      { className: "app-shell student-v3-shell" },
       h(Header, { session: null, connection: online ? connection : "offline" }),
       h(
         "main",
@@ -1983,7 +1972,7 @@ function App() {
 
   return h(
     "div",
-    { className: "app-shell" },
+    { className: "app-shell student-v3-shell" },
     h(Header, { session, connection: online ? connection : "offline" }),
     h(
       "main",

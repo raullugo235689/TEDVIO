@@ -60,7 +60,9 @@ must(!app.includes('MigrationPage'), 'el router no contiene pantallas de migraci
 must(!/OPENAI|AI_GATEWAY|gpt-/i.test(`${main}\n${boundary}\n${swRegister}\n${login}\n${appShell}`), 'Fase 6 no introduce IA generativa ni costo por tokens');
 must(version.version === '2026.08.28.76' && version.revision === '76.2-quality-core' && version.audit === 'academic-periods', 'version.json conserva la compatibilidad académica v76');
 must(version.product_version === '2.0.0' && version.product_revision === 'phase6-production-cutover' && version.product_channel === 'production' && version.canonical_path === '/teacher', 'version.json registra el corte del producto 2.0');
-must(workflow.includes('phase6-cutover.spec.mjs') && workflow.includes('playwright install --with-deps chromium webkit'), 'CI prueba el corte en Chromium y WebKit');
+must(workflow.includes('phase6-cutover.spec.mjs') &&
+  /playwright install (?:--with-deps )?chromium webkit/.test(workflow),
+  'CI prueba el corte en Chromium y WebKit');
 must(browserSpec.includes("page.goto('/teacher'") && browserSpec.includes("page.goto('/teacher-legacy'"), 'navegador valida ruta principal y rollback');
 
 if (failures.length) {

@@ -41,7 +41,7 @@ must(student.includes('LiveSurfaceErrorBoundary') && projection.includes('LiveSu
 must(liveBoundary.includes('RECUPERACIÓN SEGURA') && liveBoundary.includes('tedvio.live.last_fatal_error'), 'la recuperación conserva una referencia diagnóstica local');
 must(liveBoundary.includes('retryCount') && liveBoundary.includes('onFatal'), 'la superficie reintenta una vez e informa el fallo sin bloquear');
 must(student.includes('client_render_failed') && student.includes('classifyRenderError'), 'Student registra fallos fatales con una categoría segura');
-must(student.includes('.replace(/_/g, " ")') && !student.includes('question.question_type.replaceAll'), 'Student evita replaceAll en la transición a pregunta');
+must(student.includes('questionTypeLabel(question.question_type)') && !student.includes('question.question_type.replaceAll'), 'Student presenta tipos de reactivos legibles sin replaceAll');
 must(student.includes('normalizeQuestion') && student.includes('normalizeSession') && student.includes('normalizeStoredStudent'), 'Student normaliza datos remotos y estado local antes de renderizar');
 must(student.includes('probeStudentReadiness') && student.includes('probeDurableStorage'), 'Student comprueba API, almacenamiento, navegador y Realtime');
 must(student.includes('client_ready') && student.includes('client_degraded') && student.includes('client_update_required'), 'Student informa preparación sin contenido académico');

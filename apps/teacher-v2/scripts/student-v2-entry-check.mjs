@@ -6,6 +6,7 @@ const repositoryRoot = path.resolve(root, '../..');
 const entry = fs.readFileSync(path.join(repositoryRoot, 'student-v2/index.html'), 'utf8');
 const app = fs.readFileSync(path.join(root, 'live/student/app.jsx'), 'utf8');
 const css = fs.readFileSync(path.join(root, 'live/student/base.css'), 'utf8');
+const premiumV3 = fs.readFileSync(path.join(root, 'live/student/student-v3.css'), 'utf8');
 const redirect = fs.readFileSync(path.join(repositoryRoot, 'student-v2/legacy-redirect.js'), 'utf8');
 const legacy = fs.readFileSync(path.join(repositoryRoot, 'beta.html'), 'utf8');
 const classroom = fs.readFileSync(path.join(root, 'src/core/classroom.ts'), 'utf8');
@@ -35,6 +36,15 @@ must(app.includes('settleTransaction') && app.includes('1_500'), 'el almacenamie
 must(!app.includes('https://esm.sh') && !entry.includes('https://esm.sh'), 'Student no depende de runtimes CDN');
 must(app.includes("v2_student_answer_feedback") && app.includes("v2_student_feedback"), 'Student 2.x conserva feedback y ranking académico');
 must(css.includes('.question-card') && css.includes('.entry-card'), 'Student 2.x tiene sistema visual propio');
+must(app.includes('import "./student-v3.css"'), 'Student 3.0 carga su sistema visual sin alterar la API de sesión');
+must(app.includes('student-v3-entry-card') && app.includes('student-v3-waiting') && app.includes('student-v3-question')
+  && app.includes('student-v3-confirmed') && app.includes('student-v3-pending')
+  && app.includes('student-v3-result') && app.includes('student-v3-finished'),
+  'Student 3.0 implementa las escenas premium de ingreso, espera, preguntas, recibos, resultados y cierre');
+must(premiumV3.includes('.live-fatal-card') && premiumV3.includes('.readiness-strip'),
+  'Student 3.0 incorpora recuperación y reconexión premium');
+must(premiumV3.includes('prefers-reduced-motion') && premiumV3.includes('focus-visible'),
+  'Student 3.0 respeta accesibilidad y movimiento reducido');
 must(redirect.includes('/student-v2/'), 'el puente heredado apunta a Student 2.x');
 must(legacy.includes('student-v2/legacy-redirect.js?v=210'), 'beta.html entrega las nuevas uniones a Student 2.x');
 must(classroom.includes('/student-v2/'), 'los enlaces nuevos del docente apuntan a Student 2.x');
