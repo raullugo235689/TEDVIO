@@ -565,8 +565,21 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
   }
 
   return (
-    <div className="view-stack classroom-control">
-      <PageHeader eyebrow="MODO CLASE" title={session.title || 'Sesión TEDVIO'} detail={`${group?.subject || session.educational_program || 'Clase'} · Código ${session.code}`} actions={<div className="page-actions"><Link className="button ghost" to="/classroom">← Sesiones</Link>{session.group_id ? <Link className="button ghost" to={`/attendance/${session.group_id}`}>Asistencia</Link> : null}<Link className="button secondary" to={`/classroom/${session.id}/health`}><Icon name="shield" />Salud</Link><button className="button secondary" type="button" onClick={openProjection}>Proyectar</button></div>} />
+    <div className="view-stack classroom-control classroom31-control">
+      <PageHeader eyebrow="CLASSROOM 3.1 · CONTROL EN VIVO" title={session.title || 'Sesión TEDVIO'} detail={`${group?.subject || session.educational_program || 'Clase'} · Código ${session.code}`} actions={<div className="page-actions"><Link className="button ghost" to="/classroom">← Sesiones</Link>{session.group_id ? <Link className="button ghost" to={`/attendance/${session.group_id}`}>Asistencia</Link> : null}<Link className="button secondary" to={`/classroom/${session.id}/health`}><Icon name="shield" />Salud</Link><button className="button secondary" type="button" onClick={openProjection}>Proyectar</button></div>} />
+
+      <section className="classroom31-hero" aria-label="Centro de control docente">
+        <div className="classroom31-hero-copy">
+          <span className="classroom31-hero-eyebrow">{closed ? 'SESIÓN FINALIZADA' : current ? 'SESIÓN EN DIRECTO' : 'PREPARACIÓN DEL AULA'}</span>
+          <h2>{current ? 'Controla cada momento de la clase' : closed ? 'Tu evidencia quedó guardada' : 'Prepara la experiencia en vivo'}</h2>
+          <p>{closed ? 'Consulta resultados y conserva el registro académico de la sesión.' : 'Una sola vista para estudiantes, preguntas, tiempo y proyección.'}</p>
+        </div>
+        <div className="classroom31-hero-facts">
+          <span><b>{participants.length}</b><small>Participantes</small></span>
+          <span><b>{current ? currentResponses.length : completed}</b><small>{current ? 'Respondieron' : 'Preguntas listas'}</small></span>
+          <button type="button" className="button primary classroom31-project" onClick={openProjection}>Abrir proyección <Icon name="arrow" /></button>
+        </div>
+      </section>
 
       <div className={`classroom-connection ${connection}`} role="status"><i /><span>{connection === 'connected' ? 'Sincronización en vivo activa' : connection === 'offline' ? 'Sin internet · la clase se conserva y se recuperará al volver' : 'Reconectando · comprobando el estado guardado de la clase'}</span><small className="classroom31-clock-status">{clock.data != null ? 'Reloj del servidor sincronizado' : 'Sincronizando reloj · respaldo local'}</small></div>
 
@@ -579,7 +592,7 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
       {notice ? <div className="success-strip" role="status"><Icon name="check" /><span>{notice}</span><button type="button" aria-label="Cerrar aviso" onClick={() => setNotice('')}>×</button></div> : null}
       {actionError ? <ErrorPanel title="No se pudo completar la acción" detail={(actionError as Error).message || 'Intenta nuevamente.'} /> : null}
 
-      <section className={`classroom-status-bar ${closed ? 'closed' : session.status}`}>
+      <section className={`classroom-status-bar classroom31-status-bar ${closed ? 'closed' : session.status}`}>
         <div><span className="live-indicator" /><span><small>ESTADO</small><b>{sessionLabel(session.status)}</b></span></div>
         <div><small>DURACIÓN</small><b>{durationLabel(elapsed)}</b></div>
         <div><small>PARTICIPANTES</small><b>{participants.length}</b></div>
@@ -612,7 +625,7 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
       ) : (
         <>
           {!current ? (
-            <section className="classroom-lobby-grid premium-stage" key={`lobby:${session.id}`}>
+            <section className="classroom-lobby-grid premium-stage classroom31-lobby" key={`lobby:${session.id}`}>
               <div className="classroom-lobby-main">
                 <span className="eyebrow">SALA DE ESPERA</span><h2>{session.title}</h2><p>Los alumnos pueden entrar con el código o mediante el enlace de acceso.</p>
                 <div className="join-code-panel"><div><small>CÓDIGO</small><b>{session.code}</b></div><div><button className="button secondary" type="button" onClick={() => void copy(studentJoinUrl(session.code), 'Enlace para alumnos')}>Copiar enlace de alumnos</button><button className="button secondary" type="button" onClick={openProjection}>Abrir proyección</button></div></div>
@@ -626,20 +639,20 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
             </section>
           ) : (
             <>
-              <nav className="classroom-question-strip" aria-label="Preguntas de la sesión">{questions.map((question) => <button type="button" key={question.id} className={`${question.status}${current.id === question.id ? ' current' : ''}`} disabled={question.status === 'queued' || actionMutation.isPending} onClick={() => question.status !== 'queued' && actionMutation.mutate({ type: 'launch', questionId: question.id })}>{question.position}</button>)}</nav>
-              <section className="classroom-stage-grid premium-stage" key={current.id}>
-                <article className={`classroom-question-stage stage-${current.status}`}>
+              <nav className="classroom-question-strip classroom31-strip" aria-label="Preguntas de la sesión">{questions.map((question) => <button type="button" key={question.id} className={`${question.status}${current.id === question.id ? ' current' : ''}`} disabled={question.status === 'queued' || actionMutation.isPending} onClick={() => question.status !== 'queued' && actionMutation.mutate({ type: 'launch', questionId: question.id })}>{question.position}</button>)}</nav>
+              <section className="classroom-stage-grid premium-stage classroom31-stage" key={current.id}>
+                <article className={`classroom-question-stage classroom31-question-stage stage-${current.status}`}>
                   <header><div><div className="question-chips"><StatusPill tone={current.status === 'live' ? 'green' : current.status === 'revealed' ? 'violet' : 'neutral'}>{questionLabel(current.status)}</StatusPill><StatusPill>Pregunta {current.position} de {questions.length}</StatusPill><StatusPill>{current.question_type.replaceAll('_', ' ')}</StatusPill></div><h2>{current.prompt}</h2></div><div className={`classroom-timer${remaining <= 5 && current.status === 'live' ? ' urgent' : ''}`}><b>{current.status === 'live' ? remaining : '—'}</b><span>{current.status === 'live' ? 'segundos' : 'cerrada'}</span></div></header>
                   {current.media_url ? current.media_type === 'image' ? <img className="classroom-media" src={current.media_url} alt="Recurso de la pregunta" /> : current.media_type === 'audio' ? <audio controls src={current.media_url} /> : <video className="classroom-media" controls src={current.media_url} /> : null}
                   <Distribution question={current} responses={currentResponses} />
                   {current.status === 'revealed' && current.explanation ? <div className="question-explanation"><Icon name="check" /><div><b>Explicación</b><p>{current.explanation}</p></div></div> : null}
                 </article>
-                <aside className="classroom-live-side">
+                <aside className="classroom-live-side classroom31-live-side">
                   <SectionCard><div className="section-heading compact"><div><span className="eyebrow">RESPUESTAS</span><h2>{responseRate}% del grupo</h2><p>{currentResponses.length} respondieron · {Math.max(0, participants.length - currentResponses.length)} pendientes</p></div></div><div className="response-progress"><i style={{ width: `${responseRate}%` }} /></div><div className="response-roster">{participants.length ? participants.map((participant) => <article className={answeredIds.has(participant.id) ? 'answered' : ''} key={participant.id}><i /><div><b>{participant.display_name}</b><small>{participant.team_name || participant.matricula || ''}</small></div><span>{answeredIds.has(participant.id) ? 'Respondió' : 'Esperando'}</span></article>) : <p className="muted-copy">Aún no hay participantes.</p>}</div></SectionCard>
                   {session.competitive ? <SectionCard><div className="section-heading compact"><div><span className="eyebrow">RANKING EN VIVO</span><h2>{session.team_mode ? 'Por equipos' : 'Individual'}</h2></div><button className="button ghost compact" type="button" onClick={() => setShowRanking((value) => !value)}>{showRanking ? 'Ocultar' : 'Mostrar'}</button></div>{showRanking ? <div className="ranking-list">{ranking.length ? ranking.slice(0, 10).map((row, index) => <article key={row.id}><span>{index + 1}</span><div><b>{row.name}</b><small>{row.correct} correctas · racha {row.streak}</small></div><strong>{row.points}</strong></article>) : <p className="muted-copy">Aún no hay puntuación.</p>}</div> : null}</SectionCard> : null}
                 </aside>
               </section>
-              <section className="classroom-toolbar">
+              <section className="classroom-toolbar classroom31-toolbar">
                 <div><button className="button ghost" type="button" onClick={() => navigate(`/bank?session=${session.id}${session.group_id ? `&group=${session.group_id}` : ''}`)}>＋ Banco</button><button className="button ghost" type="button" onClick={() => void workspace.refetch()}>Actualizar</button></div>
                 <div>{current.status === 'live' ? <button className="button secondary" type="button" disabled={actionMutation.isPending} onClick={() => actionMutation.mutate({ type: 'close-question', questionId: current.id })}>Cerrar respuestas</button> : null}{current.status !== 'revealed' && current.question_type !== 'poll' && current.question_type !== 'scale_5' && current.question_type !== 'open_text' ? <button className="button secondary" type="button" disabled={actionMutation.isPending} onClick={() => actionMutation.mutate({ type: 'reveal', questionId: current.id })}>Mostrar respuesta</button> : null}{nextQuestion ? <button className="button primary" type="button" disabled={actionMutation.isPending} onClick={() => actionMutation.mutate({ type: 'launch', questionId: nextQuestion.id })}>Siguiente <Icon name="arrow" /></button> : <Link className="button primary" to={`/bank?session=${session.id}${session.group_id ? `&group=${session.group_id}` : ''}`}>Añadir siguiente</Link>}</div>
               </section>
