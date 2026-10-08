@@ -68,7 +68,17 @@ test('Student 2.x: nombre → sesión preparada → regreso en iPhone sin pantal
   await expect(page.getByRole('heading', { name: 'Entra a tu sesión' })).toBeVisible();
   await page.getByLabel('Nombre', { exact: true }).fill('Alumno de prueba');
   await page.getByRole('button', { name: 'Entrar a clase' }).dblclick();
-  await expect(page.getByRole('heading', { name: 'Estás dentro.' })).toBeVisible({ timeout: 15_000 });
+  try {
+    await expect(page.getByRole('heading', { name: 'Estás dentro.' })).toBeVisible({ timeout: 15_000 });
+  } catch (error) {
+    const detail = await page.evaluate(() => ({
+      visibleText: document.querySelector('#studentApp')?.innerText?.slice(0, 900) || '',
+      savedFatal: localStorage.getItem('tedvio.live.last_fatal_error'),
+      location: location.href,
+    }));
+    console.error('STUDENT_JOIN_DIAGNOSTIC', JSON.stringify({ ...detail, joins, pageErrors, authorizationHeaders }));
+    throw error;
+  }
   await expect(page.locator('.live-fatal-card')).toHaveCount(0);
   expect(joins).toBe(1);
   expect(authorizationHeaders.some(header => header.includes('synthetic-teacher-secret'))).toBe(false);
