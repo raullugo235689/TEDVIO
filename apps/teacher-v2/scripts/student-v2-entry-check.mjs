@@ -35,6 +35,12 @@ must(redirect.includes('/student-v2/'), 'el puente heredado apunta a Student 2.x
 must(legacy.includes('student-v2/legacy-redirect.js?v=210'), 'beta.html entrega las nuevas uniones a Student 2.x');
 must(classroom.includes('/student-v2/'), 'los enlaces nuevos del docente apuntan a Student 2.x');
 
+const rootEntry = fs.readFileSync(path.join(repositoryRoot, 'index.html'), 'utf8');
+const rootRedirect = fs.readFileSync(path.join(repositoryRoot, 'root-redirect.js'), 'utf8');
+must(rootEntry.includes('src="/root-redirect.js"') && !rootEntry.includes('<script>location.replace'), 'la entrada principal ejecuta una redirección permitida por CSP');
+must(rootRedirect.includes('legacyStudentRoute') && rootRedirect.includes('/student-v2/?code='), 'los QR heredados llevan a la entrada del alumno');
+must(rootRedirect.includes('/teacher') && rootRedirect.includes('hash'), 'los enlaces docentes preservan sus parámetros');
+
 if (failures.length) {
   console.error(`\n${failures.length} regla(s) de Student 2.x fallaron.`);
   process.exit(1);
