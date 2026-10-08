@@ -71,12 +71,15 @@ export class LiveSurfaceErrorBoundary extends Component {
           { className: "live-fatal-actions" },
           h("button", {
             type: "button",
+            // Never offer a tappable control that an automatic retry is about to remove.
+            disabled: this.state.retryCount === 0,
+            "aria-busy": this.state.retryCount === 0,
             onClick: () => this.setState((current) => ({
               error: null,
               reference: "",
               retryCount: current.retryCount + 1,
             })),
-          }, "Reintentar ahora"),
+          }, this.state.retryCount === 0 ? "Recuperando…" : "Reintentar ahora"),
           h("a", { href: this.props.homeHref || "/" }, "Volver al acceso"),
         ),
         h("small", null, "Si vuelve a ocurrir, comparte la referencia con soporte."),
