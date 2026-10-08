@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildAnalyticsCsvRows } from '../src/core/analytics.ts';
+import { buildAnalyticsCsvRows } from '../src/core/analytics-export.ts';
 
 const data = {
   meta: { from:'2026-10-01',to:'2026-10-08',accuracy_threshold:60,participation_threshold:60 },
