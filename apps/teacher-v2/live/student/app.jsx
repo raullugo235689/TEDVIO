@@ -1497,7 +1497,8 @@ function App() {
       setWorkspace((current) => {
         if (activeStudentKeyRef.current !== studentKey) return current;
         if (
-          current?.current?.id === next.current?.id
+          current?.current?.id
+          && current.current.id === next.current?.id
           && current.own?.submitted_at
           && !next.own?.submitted_at
         ) return { ...next, own: current.own };
