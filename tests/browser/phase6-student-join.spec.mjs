@@ -10,8 +10,19 @@ const origin = 'https://student-join-fixture.supabase.test';
 
 test('Student 2.x: nombre → sesión preparada → regreso en iPhone sin pantalla fatal', async ({ page }) => {
   const pageErrors = [];
+  const authorizationHeaders = [];
   let joins = 0;
   page.on('pageerror', error => pageErrors.push(error.message));
+  // A teacher login must remain completely separate from public Student 2.x.
+  await page.addInitScript(() => {
+    localStorage.setItem('sb-student-join-fixture-auth-token', JSON.stringify({
+      access_token: 'synthetic-teacher-secret',
+      refresh_token: 'synthetic-teacher-refresh',
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+      token_type: 'bearer',
+      user: { id: '44444444-4444-4444-8444-444444444444', role: 'authenticated' },
+    }));
+  });
 
   await page.route('**/config.js*', route => route.fulfill({
     contentType: 'application/javascript',
@@ -20,6 +31,7 @@ test('Student 2.x: nombre → sesión preparada → regreso en iPhone sin pantal
   await page.route(`${origin}/**`, route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
+    authorizationHeaders.push(request.headers()['authorization'] || '');
     const headers = {
       'access-control-allow-origin': '*',
       'access-control-allow-methods': 'GET, POST, OPTIONS',
@@ -59,6 +71,7 @@ test('Student 2.x: nombre → sesión preparada → regreso en iPhone sin pantal
   await expect(page.getByRole('heading', { name: 'Estás dentro.' })).toBeVisible({ timeout: 15_000 });
   await expect(page.locator('.live-fatal-card')).toHaveCount(0);
   expect(joins).toBe(1);
+  expect(authorizationHeaders.some(header => header.includes('synthetic-teacher-secret'))).toBe(false);
 
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('heading', { name: 'Estás dentro.' })).toBeVisible({ timeout: 15_000 });
