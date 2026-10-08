@@ -9,7 +9,8 @@ must(beta.includes('beta.js?v=56')&&beta.includes('student-v60.js?v=60')&&beta.i
 must(teacher.includes('tedvio-premium-v54.css?v=56')&&teacher.includes('beta-executive-v56.css?v=56')&&teacher.includes('teacher-core-v68-6.css?v=686'),'teacher preserves premium base plus split-core visual layer');
 must(loader.includes('beta-groups-core-v3.js?v=56')&&loader.includes('beta-group-center-v2.js?v=56')&&loader.includes('beta-attendance-pro-v1.js?v=56'),'canonical group/attendance stack is lazy-preserved');
 must(loader.includes('question-studio-v65.js?v=65')&&loader.includes('assignments-v66.js?v=66')&&loader.includes('beta-paper-exams-v2.js?v=56'),'bank/tasks/OMR remain lazy-preserved');
-must(root.includes("location.replace('/teacher')")&&!root.includes('app.js'),'legacy root remains quarantined and routes to teacher');
+const rootRedirect=read('root-redirect.js');
+must(root.includes('src="/root-redirect.js"')&&!root.includes('app.js')&&!root.includes('<script>location.replace')&&rootRedirect.includes('/student-v2/?code=')&&rootRedirect.includes('/teacher'),'legacy root remains isolated, respects CSP and preserves QR access');
 must(groups.includes('attendance_session_id:attSession.id'),'manual attendance uses active attendance session id');
 must(!groups.includes("select('attendance_session_id').eq('student_id'"),'attendance never infers session from student row');
 must(groups.includes('v2_universities')&&groups.includes('v2_programs')&&groups.includes('v2_groups'),'groups use canonical academic hierarchy');
