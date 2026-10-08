@@ -35,6 +35,12 @@ async function fixture(page, empty = false, dashboardGroups = null, workspace = 
       const groups = empty ? [] : dashboardGroups || [group, { ...group, id: 'other-group', name: 'Medicina · 3B', group_name: 'Medicina · 3B', subject: 'Anatomía', students: 32 }];
       rows = { groups, groups_count: groups.length, pending_attendance: 0, risk_students: 0, watch_students: 0, priority_students: [] };
     }
+    else if (table === 'v2_public_server_clock') rows = workspace.serverNow || new Date().toISOString();
+    else if (table === 'v2_sessions') rows = workspace.sessions || [];
+    else if (table === 'v2_questions') rows = workspace.questions || [];
+    else if (table === 'v2_participants') rows = workspace.participants || [];
+    else if (table === 'v2_responses') rows = workspace.responses || [];
+    else if (table === 'v2_student_notes') rows = workspace.notes || [];
     else if (table === 'v2_groups') {
       rows = empty ? [] : workspace.groups || dashboardGroups || [group];
       const selectedId = url.searchParams.get('id')?.replace(/^eq\./, '');
@@ -747,4 +753,46 @@ test.describe('editor de agenda', () => {
     await expect(page.getByRole('dialog')).toHaveCount(0);
     expect(state.errors).toEqual([]);
   });
+});
+
+test('Classroom 3.1: el control docente mantiene acciones y temporizador sincronizado', async ({ page }) => {
+  const sessionId = '55555555-5555-4555-8555-555555555555';
+  const questionId = '66666666-6666-4666-8666-666666666666';
+  await page.clock.install({ time: new Date('2026-10-08T12:00:00Z') });
+  const session = {
+    id: sessionId, teacher_id: userId, code: '123456', title: 'Sesión anatomoclínica',
+    status: 'live', group_id: groupId, competitive: false, team_mode: false,
+    current_question_id: questionId, created_at: '2026-10-08T11:50:00Z',
+    started_at: '2026-10-08T11:50:00Z',
+    scoring_mode: 'none', is_demo: false,
+  };
+  const question = {
+    id: questionId, session_id: sessionId, position: 1,
+    prompt: 'Pregunta anatomoclínica de prueba', question_type: 'multiple_choice',
+    status: 'live', options: ['Correcta de prueba', 'Distractor de prueba'],
+    correct_answer: 'Correcta de prueba', timer_seconds: 60,
+    launched_at: '2026-10-08T12:00:00Z',
+  };
+  const state = await fixture(page, false, null, {
+    sessions: [session], questions: [question],
+    serverNow: '2026-10-08T12:00:10.000Z',
+    participants: [{ id: '77777777-7777-4777-8777-777777777777', session_id: sessionId, display_name: 'Alumno de prueba', joined_at: '2026-10-08T11:59:00Z' }],
+  });
+  await page.goto('/teacher#/classroom/' + sessionId);
+  await expect(page.locator('.classroom31-hero')).toBeVisible();
+  await expect(page.locator('.classroom31-hero')).toContainText('Controla cada momento de la clase');
+  await expect(page.locator('.classroom31-question-stage')).toContainText('Pregunta anatomoclínica de prueba');
+  await expect(page.locator('.classroom31-clock-status')).toContainText('Reloj del servidor sincronizado');
+  const seconds = Number(await page.locator('.classroom-timer b').innerText());
+  expect(seconds).toBeGreaterThanOrEqual(48);
+  expect(seconds).toBeLessThanOrEqual(52);
+  await expect(page.getByRole('button', { name: 'Cerrar respuestas' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Siguiente/ })).toHaveCount(0);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await noOverflow(page);
+  await page.screenshot({ path: test.info().outputPath('classroom31-control-mobile.png'), fullPage: true });
+  await page.setViewportSize({ width: 1365, height: 950 });
+  await noOverflow(page);
+  await page.screenshot({ path: test.info().outputPath('classroom31-control-desktop.png'), fullPage: true });
+  expect(state.errors).toEqual([]);
 });
