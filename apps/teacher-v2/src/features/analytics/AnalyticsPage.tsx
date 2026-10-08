@@ -4,10 +4,11 @@ import { useQuery } from '@tanstack/react-query';
 import {
   analyticsDataKey,
   analyticsWorkspaceKey,
-  downloadAnalyticsCsv,
+  downloadAnalyticsCsv4,
   fetchAnalyticsData,
   fetchAnalyticsWorkspace,
   printAnalyticsReport,
+  type AnalyticsExportScope,
   type AnalyticsGroup,
   type AnalyticsSession,
 } from '../../core/analytics';
@@ -116,6 +117,7 @@ export function AnalyticsPage() {
   const urlTo = searchParams.get('to') || initialTo;
   const [from, setFrom] = useState(urlFrom);
   const [to, setTo] = useState(urlTo);
+  const [exportScope, setExportScope] = useState<AnalyticsExportScope>('aggregate');
   const [accuracyThreshold, setAccuracyThreshold] = useState(60);
   const [participationThreshold, setParticipationThreshold] = useState(60);
   const periodId = searchParams.get('period') || '';
@@ -216,8 +218,10 @@ export function AnalyticsPage() {
   }
 
   function exportCsv() {
-    downloadAnalyticsCsv(data, scopeLabel);
-    setNotice({ message: 'Resumen CSV generado con sesiones, reactivos y seguimiento.', tone: 'success' });
+    downloadAnalyticsCsv4(data, scopeLabel, exportScope);
+    setNotice({ message: exportScope === 'identified'
+      ? 'CSV identificado generado. Contiene datos personales: consérvalo en un lugar seguro.'
+      : 'CSV agregado generado sin nombres ni matrículas de alumnos.', tone: 'success' });
   }
 
   function printReport() {
@@ -230,9 +234,9 @@ export function AnalyticsPage() {
   }
 
   return (
-    <div className="view-stack analytics-page">
+    <div className="view-stack analytics-page analytics4-page">
       <PageHeader
-        eyebrow="TEDVIO ANALYTICS 2.x"
+        eyebrow="TEDVIO ANALYTICS & ASSESSMENT 4.0"
         title={selectedGroup ? scopeLabel : 'Analítica académica'}
         detail={selectedGroup ? 'Tendencias, reactivos difíciles y seguimiento explicable del grupo.' : 'Compara tus grupos y detecta dónde conviene profundizar.'}
         actions={<><button className="button secondary" type="button" disabled={!data.sessions.length} onClick={exportCsv}><Icon name="reports" /> Exportar CSV</button><button className="button secondary" type="button" disabled={!data.sessions.length} onClick={printReport}>Imprimir / PDF</button><button className="button ghost" type="button" onClick={() => void analytics.refetch()}><Icon name="refresh" /> Actualizar</button></>}
@@ -240,6 +244,31 @@ export function AnalyticsPage() {
 
       {notice ? <div className={`success-strip analytics-notice${notice.tone === 'error' ? ' error' : ''}`} role={notice.tone === 'error' ? 'alert' : 'status'}><Icon name={notice.tone === 'error' ? 'alert' : 'check'} /><span>{notice.message}</span><button type="button" aria-label="Cerrar aviso" onClick={() => setNotice(null)}>×</button></div> : null}
 
+      <section className="analytics4-intro" aria-label="Inteligencia académica">
+        <div><span className="eyebrow">TEDVIO · INTELIGENCIA ACADÉMICA</span>
+          <h2>De los resultados a mejores decisiones docentes.</h2>
+          <p>Analiza participación, acierto y cobertura de evidencia sin confundir actividad con aprendizaje demostrado.</p>
+        </div>
+        <div className="analytics4-intro-facts">
+          <span><b>{data.overview.sessions || 0}</b><small>Sesiones analizadas</small></span>
+          <span><b>{data.questions.length}</b><small>Reactivos observados</small></span>
+          <span><b>{data.topics.length}</b><small>Temas registrados</small></span>
+        </div>
+      </section>
+      <SectionCard className="analytics4-privacy">
+        <div><Icon name="shield" /><span><b>Exportación con privacidad por defecto</b>
+          <small>El CSV agregado no incluye nombres, matrículas ni identificadores de alumnos. Para un seguimiento individual, selecciona explícitamente datos identificados.</small></span></div>
+        <label>Contenido de exportación
+          <select aria-label="Privacidad de exportación" value={exportScope}
+            onChange={(event) => setExportScope(event.target.value as AnalyticsExportScope)}>
+            <option value="aggregate">Datos agregados (recomendado)</option>
+            <option value="identified">Incluir datos personales de alumnos</option>
+          </select>
+        </label>
+        {exportScope === 'identified' ? <p role="alert" className="analytics4-sensitive">
+          Este archivo contiene datos personales. Descárgalo únicamente para una finalidad académica autorizada y no lo compartas públicamente.
+        </p> : null}
+      </SectionCard>
       <SectionCard className="analytics-filter-card">
         <div className="analytics-filters">
           <label>Grupo<select value={groupId} onChange={(event) => changeGroup(event.target.value)}><option value="">Todos los grupos</option>{workspace.data.groups.map((group) => <option key={group.id} value={group.id}>{groupSubject(group)} · {groupName(group)}</option>)}</select></label>
@@ -251,7 +280,7 @@ export function AnalyticsPage() {
         {selectedGroup ? <details className="analytics-thresholds"><summary>Configurar umbrales de seguimiento</summary><div><label>Acierto mínimo<input type="number" min="0" max="100" step="5" value={accuracyThreshold} onChange={(event) => setAccuracyThreshold(Math.max(0, Math.min(100, Number(event.target.value))))} /><span>%</span></label><label>Participación mínima<input type="number" min="0" max="100" step="5" value={participationThreshold} onChange={(event) => setParticipationThreshold(Math.max(0, Math.min(100, Number(event.target.value))))} /><span>%</span></label><p>Las alertas son descriptivas: TEDVIO muestra qué umbral se incumplió y en cuántas sesiones.</p></div></details> : null}
       </SectionCard>
 
-      <section className="metrics-grid">
+      <section className="metrics-grid analytics4-metrics">
         <MetricCard icon="classroom" label="Sesiones" value={String(data.overview.sessions || 0)} detail={`${data.overview.active_groups || 0} grupo${data.overview.active_groups === 1 ? '' : 's'} con evidencia`} tone="blue" />
         <MetricCard icon="attendance" label="Participación" value={percent(data.overview.participation)} detail={`${data.overview.participations || 0} participaciones activas`} tone={tone(data.overview.participation, participationThreshold)} />
         <MetricCard icon="check" label="Acierto" value={percent(data.overview.accuracy)} detail="Respuestas calificables acumuladas" tone={tone(data.overview.accuracy, accuracyThreshold)} />
@@ -275,7 +304,7 @@ export function AnalyticsPage() {
             <div><span className="eyebrow">LECTURA EJECUTIVA</span><h2>{repeatedAlerts ? `${repeatedAlerts} alumno${repeatedAlerts === 1 ? '' : 's'} con alertas repetidas` : 'Sin alertas repetidas en el corte'}</h2><p>{difficult[0]?.accuracy != null ? `El reactivo con menor dominio registró ${percent(difficult[0].accuracy)} de acierto.` : 'No hay reactivos calificables suficientes para identificar dificultad.'}</p></div>
           </section>
 
-          <div className="analytics-two-column">
+          <div className="analytics-two-column analytics4-two-column">
             <SectionCard>
               <div className="section-heading compact"><div><span className="eyebrow">REACTIVOS DIFÍCILES</span><h2>Prioridades de refuerzo</h2><p>Ordenadas por menor porcentaje de acierto.</p></div><StatusPill tone={difficult.some((row) => number(row.accuracy) < accuracyThreshold) ? 'amber' : 'green'}>{difficult.filter((row) => number(row.accuracy) < accuracyThreshold).length} bajo umbral</StatusPill></div>
               <div className="analytics-question-list">{difficult.length ? difficult.map((question) => <article key={question.id}><span className={number(question.accuracy) < accuracyThreshold ? 'risk' : 'ok'}>{percent(question.accuracy)}</span><div><b>{question.prompt}</b><small>{question.session_title} · {question.correct_responses}/{question.scored_responses} correctas</small></div><Link className="button ghost compact" to={`/classroom/${question.session_id}`}>Sesión</Link></article>) : <p className="muted-copy">Las encuestas y respuestas abiertas se conservan como evidencia, pero no se clasifican por acierto.</p>}</div>
@@ -287,7 +316,7 @@ export function AnalyticsPage() {
             </SectionCard>
           </div>
 
-          <div className="analytics-two-column">
+          <div className="analytics-two-column analytics4-two-column">
             <SectionCard>
               <div className="section-heading compact"><div><span className="eyebrow">DOMINIO POR TEMA</span><h2>Contenido que conviene retomar</h2><p>El tema procede del banco de reactivos vinculado.</p></div><StatusPill>{data.topics.length} temas</StatusPill></div>
               <div className="analytics-topic-list">{weakTopics.length ? weakTopics.map((topic) => <article key={topic.topic}><div><b>{topic.topic}</b><small>{topic.questions} reactivos · {topic.responses} respuestas</small></div><div><i className={number(topic.accuracy) < accuracyThreshold ? 'risk' : ''} style={{ width: `${Math.max(0, Math.min(100, number(topic.accuracy)))}%` }} /></div><strong>{percent(topic.accuracy)}</strong></article>) : <p className="muted-copy">Asigna temas en el Banco para obtener esta lectura longitudinal.</p>}</div>
