@@ -23,7 +23,11 @@ async function getSupabase() {
   if (!supabaseClientPromise) {
     supabaseClientPromise = import("@supabase/supabase-js")
       .then(({ createClient }) => {
-        supabaseClient = createClient(cfg.SUPABASE_URL, cfg.SUPABASE_PUBLISHABLE_KEY);
+        supabaseClient = createClient(cfg.SUPABASE_URL, cfg.SUPABASE_PUBLISHABLE_KEY, {
+          // Student 2.x is public. Never borrow a teacher's persisted auth
+          // when both experiences are opened in the same iPhone/browser.
+          auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+        });
         return supabaseClient;
       })
       .catch((error) => {
@@ -470,7 +474,18 @@ function classifyRenderError(error) {
   if (/replaceAll/i.test(message)) return "unsupported_string_api";
   if (/object.*react child|react child.*object/i.test(message)) return "invalid_render_value";
   const reactCode = message.match(/Minified React error #(\d+)/i)?.[1];
-  return reactCode ? `react_${reactCode}` : "render_failed";
+  if (reactCode) return `react_${reactCode}`;
+  // Capture a short, privacy-limited exception type in server telemetry.
+  // Details such as URLs, emails, UUIDs and long numbers are suppressed.
+  const name = String(error?.name || "Error").replace(/[^a-z0-9_]/gi, "").slice(0, 20) || "Error";
+  const safeMessage = message
+    .replace(/https?:\/\/\S+/gi, "[url]")
+    .replace(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi, "[email]")
+    .replace(/[a-f0-9]{8}-[a-f0-9-]{27,}/gi, "[id]")
+    .replace(/\b\d{7,}\b/g, "[number]")
+    .replace(/[\r\n\t]+/g, " ")
+    .slice(0, 78 - name.length);
+  return `${name}:${safeMessage || "render_failed"}`.slice(0, 80);
 }
 
 function liveBuildId() {
