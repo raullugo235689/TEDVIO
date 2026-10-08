@@ -22,6 +22,9 @@ must(/\/student-v2\/assets\/app-[^"']+\.js/.test(entry), 'Student 2.x carga un b
 must(!entry.includes('beta.js') && !entry.includes('student-v60.js'), 'Student 2.x ya no carga el runtime visual heredado');
 must(app.includes('from "react"') && app.includes('createRoot'), 'Student 2.x utiliza React empaquetado localmente');
 must(app.includes("v2_join_session_v3") && app.includes("v2_submit_response_v2"), 'Student 2.x usa unión estable y recibos idempotentes');
+must(app.includes('v2_public_revealed_question') && app.includes('v2_public_server_clock') &&
+  !app.includes('.select("correct_answer")'),
+  'Student 3.1 impide lectura directa de respuestas y calibra reloj');
 must(app.includes("persistSession: false") && app.includes("autoRefreshToken: false") && app.includes("detectSessionInUrl: false"), 'Student mantiene identidad pública aislada del docente');
 must(app.includes("safeMessage") && app.includes("error?.name"), 'Student captura diagnóstico seguro del error de render');
 must(app.includes("MATRICULA_REQUIRED") && app.includes("TEAM_REQUIRED") && app.includes("ROSTER_NOT_FOUND"), 'Student explica requisitos reales del servidor al incorporarse');

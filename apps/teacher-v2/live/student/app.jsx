@@ -10,6 +10,7 @@ import { LiveSurfaceErrorBoundary } from "../shared/LiveSurfaceErrorBoundary.jsx
 import "./base.css";
 import "./premium.css";
 import "./student-v3.css";
+import { estimateServerClockOffset, classroomSecondsRemaining } from "../../src/core/classroom-clock";
 
 const h = React.createElement;
 const cfg = window.TEDVIO_CONFIG || {};
@@ -17,6 +18,7 @@ const configReady = Boolean(cfg.SUPABASE_URL && cfg.SUPABASE_PUBLISHABLE_KEY);
 let supabaseClient;
 let supabaseClientPromise;
 let studentLiveStage = "boot";
+let liveClockOffsetMs = 0;
 
 async function getSupabase() {
   if (!configReady) throw new Error("TEDVIO no pudo cargar su configuración.");
@@ -586,9 +588,9 @@ function reportStudentFatal({ reference, reason }) {
 
 function secondsLeft(question) {
   if (!question?.launched_at || question.status !== "live") return 0;
-  const elapsed =
-    (Date.now() - new Date(question.launched_at).getTime()) / 1000;
-  return Math.max(0, Math.ceil(Number(question.timer_seconds || 30) - elapsed));
+  return classroomSecondsRemaining(
+    question.launched_at, question.timer_seconds, liveClockOffsetMs,
+  );
 }
 
 async function fetchWorkspace(student) {
@@ -603,14 +605,23 @@ async function fetchWorkspace(student) {
   if (sessionError) throw sessionError;
   if (!session) throw new Error("SESSION_NOT_FOUND");
 
-  const { data: questions, error: questionError } = await client
-    .from("v2_questions")
-    .select(
-      "id,position,prompt,question_type,options,media_url,media_type,timer_seconds,status,launched_at,closed_at",
-    )
-    .eq("session_id", session.id)
-    .order("position");
+  const clockStartedAt = Date.now();
+  const [questionResult, clockResult] = await Promise.all([
+    client
+      .from("v2_questions")
+      .select("id,position,prompt,question_type,options,media_url,media_type,timer_seconds,status,launched_at,closed_at")
+      .eq("session_id", session.id)
+      .order("position"),
+    client.rpc("v2_public_server_clock"),
+  ]);
+  const { data: questions, error: questionError } = questionResult;
   if (questionError) throw questionError;
+  if (!clockResult.error) {
+    const calibrated = estimateServerClockOffset(
+      clockResult.data, clockStartedAt, Date.now(),
+    );
+    if (calibrated !== null) liveClockOffsetMs = calibrated;
+  }
 
   const safeSession = normalizeSession(session);
   if (!safeSession) throw new Error("SESSION_INVALID");
@@ -650,11 +661,10 @@ async function fetchReveal(student, session, question) {
       p_session_id: session.id,
       p_question_id: question.id,
     }),
-    client
-      .from("v2_questions")
-      .select("correct_answer")
-      .eq("id", question.id)
-      .maybeSingle(),
+    client.rpc("v2_public_revealed_question", {
+      p_code: student.code,
+      p_question_id: question.id,
+    }),
   ]);
   const firstError = [own.error, feedback.error, rank.error, group.error, correct.error].find(Boolean);
   if (firstError) throw firstError;

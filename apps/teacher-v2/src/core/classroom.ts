@@ -1,6 +1,17 @@
 import type { RealtimeChannel, User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
+import { estimateServerClockOffset } from './classroom-clock';
 import type { GroupRecord, StudentRecord } from './types';
+
+/** Recalibrate on focus and periodically; any network failure leaves the UI usable. */
+export async function fetchClassroomClockOffset(): Promise<number> {
+  const started = Date.now();
+  const { data, error } = await supabase.rpc('v2_public_server_clock');
+  if (error) throw new Error('No se pudo sincronizar el reloj de la clase: ' + error.message);
+  const offset = estimateServerClockOffset(data, started, Date.now());
+  if (offset === null) throw new Error('La respuesta del reloj no fue válida.');
+  return offset;
+}
 
 export type ClassroomSessionState = 'draft' | 'live' | 'closed';
 export type ClassroomQuestionState = 'queued' | 'live' | 'closed' | 'revealed';

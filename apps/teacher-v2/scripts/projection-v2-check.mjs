@@ -14,6 +14,11 @@ must(entry.includes('data-tedvio-surface="projection-v2"'),'Projection 2.x decla
 must(app.includes('from "react"')&&app.includes('import("qrcode")'),'Projection usa React local y difiere el QR empaquetado hasta necesitarlo');
 must(app.includes("v2_public_session_meta")&&app.includes("v2_public_live_counts"),'Projection 2.x consume las RPC públicas de sesión');
 must(app.includes("v2_public_ranking")&&app.includes("v2_public_question_results"),'Projection 2.x muestra ranking y resultados');
+must(app.includes('v2_public_revealed_question') && app.includes('v2_public_server_clock') &&
+  !app.includes('.select("*")') && !app.includes('.select("correct_answer")'),
+  'Projection 3.0 consulta campos públicos y revela respuestas sólo con RPC controlada');
+must(app.includes('projection-v3.css') && app.includes('classroomSecondsRemaining'),
+  'Projection 3.0 mantiene identidad premium y temporizador del servidor');
 must(app.includes('/student-v2/?code='),'el QR de Projection 2.x abre Student 2.x');
 must(app.includes("postgres_changes")&&app.includes('schedulePoll')&&app.includes('18_000'),'Projection combina Realtime y polling adaptativo');
 must(app.includes('partial: issues')&&app.includes('lastSyncedAt'),'Projection conserva el último estado ante fallas parciales');
