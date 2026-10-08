@@ -8,6 +8,7 @@ import { createRoot } from "react-dom/client";
 import { LiveSurfaceErrorBoundary } from "../shared/LiveSurfaceErrorBoundary.jsx";
 import "./base.css";
 import "./premium.css";
+import "./projection-v3.css";
 import { estimateServerClockOffset, classroomSecondsRemaining } from "../../src/core/classroom-clock";
 
 const h = React.createElement;
@@ -387,15 +388,18 @@ function Entry({ code, setCode, onOpen, error }) {
       h(
         "form",
         {
-          className: "p2-panel p2-entry",
+          className: "p2-panel p2-entry p3-entry-panel",
           onSubmit: (event) => {
             event.preventDefault();
             onOpen();
           },
         },
         logo(),
-        h("span", { className: "p2-kicker" }, "Projection 2.x"),
+        h("span", { className: "p2-kicker" }, "Projection 3.0"),
         h("h1", null, "Pantalla de proyección"),
+        h("div", { className: "p3-entry-benefits" },
+          h("span", null, "QR para alumnos"), h("span", null, "Preguntas en vivo"), h("span", null, "Resultados académicos"),
+        ),
         h("p", null, "Escribe el código de la sesión para abrir el modo aula."),
         h("input", {
           className: "p2-code-input",
@@ -459,11 +463,12 @@ function Lobby({ x, code, connection, warning }) {
       h(SyncNotice, { warning, lastSyncedAt: x.lastSyncedAt }),
       h(
         "section",
-        { className: "p2-panel p2-lobby" },
+        { className: "p2-panel p2-lobby p3-lobby-panel" },
         h(
           "div",
-          { className: "p2-lobby-primary" },
+          { className: "p2-lobby-primary p3-lobby-primary" },
           h("span", { className: "p2-kicker" }, x.s.university || "TEDVIO"),
+          h("span", { className: "p3-lobby-status" }, "CLASE LISTA PARA PARTICIPAR"),
           h("h1", null, x.s.title || "Clase en vivo"),
           h(
             "p",
@@ -472,6 +477,7 @@ function Lobby({ x, code, connection, warning }) {
               .filter(Boolean)
               .join(" · "),
           ),
+          h("span", { className: "p3-code-caption" }, "CÓDIGO PARA PARTICIPAR"),
           h("div", { className: "p2-big-code" }, code),
           h(
             "p",
@@ -490,7 +496,8 @@ function Lobby({ x, code, connection, warning }) {
         ),
         h(
           "aside",
-          { className: "p2-qr-card" },
+          { className: "p2-qr-card p3-qr-card" },
+          h("span", { className: "p3-qr-eyebrow" }, "ESCANEA PARA PARTICIPAR"),
           h(QR, { code }),
           h(
             "div",
@@ -535,10 +542,10 @@ function Live({ x, code, tick, connection, warning }) {
       h(SyncNotice, { warning, lastSyncedAt: x.lastSyncedAt }),
       h(
         "div",
-        { className: "p2-live" },
+        { className: "p2-live p3-live-layout" },
         h(
           "section",
-          { className: "p2-panel p2-question" },
+          { className: "p2-panel p2-question p3-question-panel" },
           h(
             "div",
             null,
@@ -548,6 +555,7 @@ function Live({ x, code, tick, connection, warning }) {
               `Pregunta ${q.position} · ${typeLabel[q.question_type] || q.question_type}`,
             ),
             h("h1", null, q.prompt),
+            h("p", { className: "p3-question-hint" }, "Contesta desde tu celular · TEDVIO Student"),
           ),
           h(Media, { q }),
           h(Options, { q }),
@@ -569,7 +577,7 @@ function Live({ x, code, tick, connection, warning }) {
           h(
             "section",
             { className: "p2-metric" },
-            h("span", null, q.status === "live" ? "Tiempo" : "Estado"),
+            h("span", null, q.status === "live" ? "TIEMPO RESTANTE" : "ESTADO"),
             h("b", null, q.status === "live" ? `${rem} s` : "Resultado"),
             h(
               "div",
@@ -582,7 +590,7 @@ function Live({ x, code, tick, connection, warning }) {
           h(
             "section",
             { className: "p2-metric" },
-            h("span", null, "Respuestas"),
+            h("span", null, "PARTICIPACIÓN EN VIVO"),
             h(
               "b",
               null,
@@ -611,9 +619,9 @@ function Status({ title, text, onReset }) {
       { className: "p2-main" },
       h(
         "section",
-        { className: "p2-panel p2-status" },
+        { className: "p2-panel p2-status p3-status-panel" },
         logo(),
-        h("span", { className: "p2-kicker" }, "Projection 2.x"),
+        h("span", { className: "p2-kicker" }, "Projection 3.0"),
         h("h1", null, title),
         h("p", null, text),
         onReset
