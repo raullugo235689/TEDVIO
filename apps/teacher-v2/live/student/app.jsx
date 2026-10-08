@@ -445,6 +445,16 @@ function friendly(error) {
   const message = String(
     error?.message || error || "No se pudo completar la operación.",
   );
+  if (/MATRICULA_REQUIRED/i.test(message))
+    return "Esta clase requiere tu matrícula. Escríbela como aparece en la lista del docente.";
+  if (/ROSTER_NOT_FOUND/i.test(message))
+    return "No encontramos esa matrícula en el grupo de la sesión. Revísala con tu docente.";
+  if (/TEAM_REQUIRED/i.test(message))
+    return "Esta sesión requiere el nombre de tu equipo para ingresar.";
+  if (/NAME_REQUIRED/i.test(message))
+    return "Escribe tu nombre completo para entrar a clase.";
+  if (/SESSION_NOT_FOUND/i.test(message))
+    return "Ese código no corresponde a una sesión activa. Verifícalo con tu docente.";
   if (/QUESTION_EXPIRED/i.test(message))
     return "El tiempo para responder terminó.";
   if (/QUESTION_NOT_LIVE/i.test(message))
@@ -755,11 +765,11 @@ function JoinScreen({ initialCode, busy, error, onJoin }) {
         h(
           "label",
           null,
-          "Matrícula",
+          "Matrícula (si tu docente la solicita)",
           h("input", {
             value: matricula,
             onChange: (e) => setMatricula(e.target.value),
-            placeholder: "Opcional",
+            placeholder: "Tu matrícula registrada",
             maxLength: 40,
             inputMode: "numeric",
           }),
@@ -767,11 +777,11 @@ function JoinScreen({ initialCode, busy, error, onJoin }) {
         h(
           "label",
           null,
-          "Equipo",
+          "Equipo (si la clase es por equipos)",
           h("input", {
             value: team,
             onChange: (e) => setTeam(e.target.value),
-            placeholder: "Opcional",
+            placeholder: "Nombre de tu equipo",
             maxLength: 50,
           }),
         ),
@@ -1335,6 +1345,7 @@ function App() {
   const [pendingQuestionIds, setPendingQuestionIds] = useState(() => new Set());
   const currentIdRef = useRef(null);
   const submitLockRef = useRef(false);
+  const joinLockRef = useRef(false);
   const realtimeStatusRef = useRef("");
   const wasOfflineRef = useRef(false);
   const refreshPromiseRef = useRef(null);
@@ -1717,6 +1728,8 @@ function App() {
   }, [connection, student, workspace?.session?.id]);
 
   const onJoin = async ({ code, name, matricula, team }) => {
+    if (joinLockRef.current) return;
+    joinLockRef.current = true;
     setBusy(true);
     setError("");
     setNotice(null);
@@ -1760,6 +1773,7 @@ function App() {
     } catch (e) {
       setError(friendly(e));
     } finally {
+      joinLockRef.current = false;
       setBusy(false);
     }
   };
