@@ -28,7 +28,11 @@ async function fixture(page) {
     };
     if (request.method() === 'OPTIONS') return route.fulfill({ status: 204, headers, body: '' });
     let rows = [];
-    if (endpoint === 'v2_join_session_v3') {
+    if (endpoint === 'v2_public_server_clock') {
+      rows = new Date().toISOString();
+    } else if (endpoint === 'v2_public_revealed_question') {
+      rows = state.phase === 'result' ? { correct_answer: 'Opción A', explanation: 'La opción A corresponde a la respuesta de referencia.' } : null;
+    } else if (endpoint === 'v2_join_session_v3') {
       state.joined++;
       rows = [{
         session_id: ids.session, participant_id: ids.participant,
@@ -44,19 +48,14 @@ async function fixture(page) {
         closed_at: state.phase === 'finished' ? new Date().toISOString() : null,
       }];
     } else if (endpoint === 'v2_questions') {
-      if (url.searchParams.get('select') === 'correct_answer') {
-        rows = [{ correct_answer: 'Opción A' }];
-      } else {
-        rows = [{
-          id: ids.question, position: 1, prompt: '¿Cuál es el diagnóstico más probable?',
-          question_type: 'multiple_choice',
-          options: ['Opción A', 'Opción B', 'Opción C', 'Opción D'],
-          media_url: null, media_type: null,
-          timer_seconds: 120,
-          status: state.phase === 'result' ? 'revealed' : state.phase === 'lobby' ? 'queued' : 'live',
-          launched_at: new Date(Date.now() - 5_000).toISOString(), closed_at: null,
-        }];
-      }
+      rows = [{
+        id: ids.question, position: 1, prompt: '¿Cuál es el diagnóstico más probable?',
+        question_type: 'multiple_choice',
+        options: ['Opción A', 'Opción B', 'Opción C', 'Opción D'],
+        media_url: null, media_type: null, timer_seconds: 120,
+        status: state.phase === 'result' ? 'revealed' : state.phase === 'lobby' ? 'queued' : 'live',
+        launched_at: new Date(Date.now() - 5_000).toISOString(), closed_at: null,
+      }];
     } else if (endpoint === 'v2_student_answer_result') {
       rows = state.answer ? [{
         answer: state.answer, submitted_at: new Date().toISOString(),
