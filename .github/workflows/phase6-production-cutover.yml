@@ -67,6 +67,8 @@ jobs:
           npx playwright install --with-deps chromium webkit
       - name: Student join and recovery — iPhone WebKit
         run: npx playwright test tests/browser/phase6-student-join.spec.mjs --config=tests/browser/phase6-playwright.config.mjs --project=iphone-webkit
+      - name: Student 3.0 full journey — iPhone WebKit and Chromium
+        run: npx playwright test tests/browser/phase6-student-experience.spec.mjs --config=tests/browser/phase6-playwright.config.mjs --project=iphone-webkit --project=desktop-chromium
       - name: Canonical, mobile and rollback browser audit
         run: npx playwright test --config=tests/browser/phase6-playwright.config.mjs
       - name: Save workspace screenshots for design review
