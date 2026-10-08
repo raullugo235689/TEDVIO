@@ -673,6 +673,7 @@ body {
 .live-fatal-reference { font-size: 12px; max-width: 100%; overflow-wrap: anywhere; padding: 11px 13px; }
 .live-fatal-actions button,
 .live-fatal-actions a { font-size: 14px; min-height: 52px; }
+.live-fatal-actions button:disabled { opacity: .66; cursor: progress; box-shadow: none; }
 .live-fatal-card small { font-size: 12px; line-height: 1.5; }
 /* Responsiveness + accessibility. */
 @keyframes s3-float { 50% { transform: translateY(-6px); } }
