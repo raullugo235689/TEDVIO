@@ -21,6 +21,8 @@ must(/\/student-v2\/assets\/app-[^"']+\.js/.test(entry), 'Student 2.x carga un b
 must(!entry.includes('beta.js') && !entry.includes('student-v60.js'), 'Student 2.x ya no carga el runtime visual heredado');
 must(app.includes('from "react"') && app.includes('createRoot'), 'Student 2.x utiliza React empaquetado localmente');
 must(app.includes("v2_join_session_v3") && app.includes("v2_submit_response_v2"), 'Student 2.x usa unión estable y recibos idempotentes');
+must(app.includes("MATRICULA_REQUIRED") && app.includes("TEAM_REQUIRED") && app.includes("ROSTER_NOT_FOUND"), 'Student explica requisitos reales del servidor al incorporarse');
+must(app.includes("joinLockRef.current = true") && app.includes("joinLockRef.current = false"), 'Student impide registros simultáneos repetidos');
 must(app.includes("postgres_changes") && app.includes('schedulePoll') && app.includes('30_000'), 'Student 2.x combina Realtime con recuperación adaptativa');
 must(app.includes('indexedDB') && app.includes('requestId') && app.includes('clearOutbox(pending.requestId)'), 'Student protege y confirma cada respuesta pendiente');
 must(app.includes('navigator.locks') && app.includes('tedvio-student-state'), 'Student serializa la identidad y la cola entre pestañas compatibles');
@@ -34,6 +36,12 @@ must(css.includes('.question-card') && css.includes('.entry-card'), 'Student 2.x
 must(redirect.includes('/student-v2/'), 'el puente heredado apunta a Student 2.x');
 must(legacy.includes('student-v2/legacy-redirect.js?v=210'), 'beta.html entrega las nuevas uniones a Student 2.x');
 must(classroom.includes('/student-v2/'), 'los enlaces nuevos del docente apuntan a Student 2.x');
+
+const rootEntry = fs.readFileSync(path.join(repositoryRoot, 'index.html'), 'utf8');
+const rootRedirect = fs.readFileSync(path.join(repositoryRoot, 'root-redirect.js'), 'utf8');
+must(rootEntry.includes('src="/root-redirect.js"') && !rootEntry.includes('<script>location.replace'), 'la entrada principal ejecuta una redirección permitida por CSP');
+must(rootRedirect.includes('legacyStudentRoute') && rootRedirect.includes('/student-v2/?code='), 'los QR heredados llevan a la entrada del alumno');
+must(rootRedirect.includes('/teacher') && rootRedirect.includes('hash'), 'los enlaces docentes preservan sus parámetros');
 
 if (failures.length) {
   console.error(`\n${failures.length} regla(s) de Student 2.x fallaron.`);
