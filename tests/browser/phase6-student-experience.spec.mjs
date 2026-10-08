@@ -164,9 +164,15 @@ test('Student 3.0: recovery gives usable reference and retry without deleting st
   await page.screenshot({ path: test.info().outputPath('student3-recuperacion.png'), fullPage: true });
   await noHorizontalOverflow(page);
 
-  // On retry, existing durable identity and response must remain intact.
+  // Recovery automatically retries once after 350 ms. If that succeeds, a
+  // manual button must not be required; otherwise the button must stay usable.
   state.fatal = false;
-  await page.getByRole('button', { name: 'Reintentar ahora' }).click();
+  await page.waitForTimeout(600);
+  if (!(await page.getByRole('heading', { name: 'Correcto' }).isVisible())) {
+    const retry = page.getByRole('button', { name: 'Reintentar ahora' });
+    await expect(retry).toBeEnabled();
+    await retry.click();
+  }
   await expect(page.getByRole('heading', { name: 'Correcto' })).toBeVisible({ timeout: 15_000 });
 });
 
