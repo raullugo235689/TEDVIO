@@ -2,12 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { formatPercent, groupName, groupSubject } from '../../core/academic';
+import { classroomSecondsRemaining } from '../../core/classroom-clock';
 import {
   classroomSessionKey,
   classroomSessionsKey,
   closeClassroomQuestion,
   closeClassroomSession,
   fetchClassroomSession,
+  fetchClassroomClockOffset,
   fetchClassroomSessions,
   launchClassroomQuestion,
   projectionUrl,
@@ -453,6 +455,15 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
   }, [auth.user?.id, connection, data?.session.status, queryClient, sessionId]);
 
   const now = useClock(Boolean(data && (data.session.status === 'live' || current?.status === 'live')));
+  const clock = useQuery({
+    queryKey: ['classroom-clock', auth.user?.id, sessionId],
+    queryFn: fetchClassroomClockOffset,
+    enabled: Boolean(auth.user && data && data.session.status !== 'closed'),
+    refetchInterval: 45_000,
+    staleTime: 25_000,
+    refetchOnWindowFocus: true,
+    retry: 1,
+  });
 
   async function invalidate() {
     await Promise.all([
@@ -507,9 +518,9 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
   const participationRate = participants.length ? Math.round(100 * activeParticipants / participants.length) : 0;
   const notes = new Map(data.notes.map((item) => [item.student_id, item.note || '']));
   const elapsedFrom = session.started_at || session.created_at;
-  const elapsed = now - new Date(elapsedFrom).getTime();
-  const remaining = current?.status === 'live' && current.launched_at
-    ? Math.max(0, Math.ceil(Number(current.timer_seconds || 30) - (now - new Date(current.launched_at).getTime()) / 1000))
+  const elapsed = now + (clock.data ?? 0) - new Date(elapsedFrom).getTime();
+  const remaining = current?.status === 'live'
+    ? classroomSecondsRemaining(current.launched_at, current.timer_seconds, clock.data ?? 0, now)
     : 0;
   const responseRate = participants.length ? Math.round((currentResponses.length / participants.length) * 100) : 0;
   const allScored = responses.filter((response) => response.is_correct != null);
@@ -557,7 +568,7 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
     <div className="view-stack classroom-control">
       <PageHeader eyebrow="MODO CLASE" title={session.title || 'Sesión TEDVIO'} detail={`${group?.subject || session.educational_program || 'Clase'} · Código ${session.code}`} actions={<div className="page-actions"><Link className="button ghost" to="/classroom">← Sesiones</Link>{session.group_id ? <Link className="button ghost" to={`/attendance/${session.group_id}`}>Asistencia</Link> : null}<Link className="button secondary" to={`/classroom/${session.id}/health`}><Icon name="shield" />Salud</Link><button className="button secondary" type="button" onClick={openProjection}>Proyectar</button></div>} />
 
-      <div className={`classroom-connection ${connection}`} role="status"><i /><span>{connection === 'connected' ? 'Sincronización en vivo activa' : connection === 'offline' ? 'Sin internet · la clase se conserva y se recuperará al volver' : 'Reconectando · comprobando el estado guardado de la clase'}</span></div>
+      <div className={`classroom-connection ${connection}`} role="status"><i /><span>{connection === 'connected' ? 'Sincronización en vivo activa' : connection === 'offline' ? 'Sin internet · la clase se conserva y se recuperará al volver' : 'Reconectando · comprobando el estado guardado de la clase'}</span><small className="classroom31-clock-status">{clock.data != null ? 'Reloj del servidor sincronizado' : 'Sincronizando reloj · respaldo local'}</small></div>
 
       {!closed ? <section className={`classroom-readiness ${readinessTone}`} role="status" aria-live="polite">
         <div className="classroom-readiness-title"><i /><span><small>PREPARACIÓN DEL GRUPO</small><b>{readinessTone === 'ready' ? 'Todos los dispositivos observados están listos' : readinessTone === 'risk' ? 'Hay dispositivos que deben actualizarse' : readinessTone === 'waiting' ? 'Esperando alumnos' : 'La clase puede continuar con respaldo'}</b></span></div>
