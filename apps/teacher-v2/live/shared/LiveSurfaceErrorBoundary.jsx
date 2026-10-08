@@ -61,6 +61,12 @@ export class LiveSurfaceErrorBoundary extends Component {
         h("p", null, "La sesión y las respuestas guardadas no se eliminaron. TEDVIO conservará el estado disponible en este dispositivo."),
         h("strong", { className: "live-fatal-reference" }, this.state.reference || "Preparando diagnóstico…"),
         h(
+          "details",
+          { className: "live-fatal-details" },
+          h("summary", null, "Información técnica para soporte"),
+          h("code", null, this.props.classifyError?.(this.state.error) || "render_failed"),
+        ),
+        h(
           "div",
           { className: "live-fatal-actions" },
           h("button", {

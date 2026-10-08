@@ -78,6 +78,9 @@
 .live-fatal-card h1 { margin: 10px 0 12px; color: #102d55; font-size: clamp(30px, 7vw, 44px); line-height: 1.04; letter-spacing: -.04em; }
 .live-fatal-card p { color: #667790; line-height: 1.65; }
 .live-fatal-reference { display: inline-flex; margin-top: 8px; padding: 8px 11px; border-radius: 10px; background: #eff5ff; color: #245bb1; font: 800 11px ui-monospace, monospace; }
+.live-fatal-details { margin-top: 12px; padding: 10px 12px; border: 1px solid #e2eaf6; border-radius: 12px; font-size: 12px; color: #536582; }
+.live-fatal-details summary { cursor: pointer; font-weight: 700; }
+.live-fatal-details code { display: block; margin-top: 10px; white-space: normal; overflow-wrap: anywhere; font-size: 11px; }
 .live-fatal-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 24px 0 16px; }
 .live-fatal-actions button,
 .live-fatal-actions a { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; padding: 0 17px; border: 0; border-radius: 14px; font: inherit; font-size: 12px; font-weight: 900; text-decoration: none; cursor: pointer; }
