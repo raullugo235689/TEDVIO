@@ -123,6 +123,11 @@ test('Classroom Visual 5.0: el docente crea etiquetado anatómico sin filtrar cl
   await expect(page.locator('.visual5-editor-image img')).toBeVisible();
   await page.getByRole('button', { name: 'Seleccionar zona 1' }).click();
   await page.locator('.visual5-editor-image').click({ position: { x: 140, y: 110 } });
+  // Clicking arbitrary pixels produces fractional X/Y values. They must remain
+  // valid native number inputs; otherwise the browser silently blocks submit.
+  const markerInputs = page.locator('.visual5-editor-coordinates input[type="number"]');
+  expect(await markerInputs.evaluateAll(nodes => nodes.every(input => input.checkValidity()))).toBe(true);
+  expect(await page.locator('.bank-editor').evaluate(form => form.checkValidity())).toBe(true);
   await page.setViewportSize({ width: 768, height: 1024 });
   await expect(page.locator('.visual5-editor-fields')).toBeVisible();
   await page.screenshot({ path: test.info().outputPath('visual5-author-ipad.png'), fullPage: true });
