@@ -6,8 +6,12 @@ const origin = 'https://classroom31-fixture.supabase.test';
 const sessionId = '11111111-1111-4111-8111-111111111111';
 const questionId = '22222222-2222-4222-8222-222222222222';
 
-async function fixture(page) {
+async function fixture(page, { visual = false } = {}) {
   const state = { phase: 'lobby', safeSelects: [], revealCalls: 0, errors: [] };
+  if (visual) await page.route('https://visual-fixture.test/**', route => route.fulfill({
+    contentType: 'image/svg+xml',
+    body: '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="420"><rect width="640" height="420" fill="#eef1f8"/><ellipse cx="320" cy="210" rx="180" ry="155" fill="#c4cfde"/></svg>',
+  }));
   page.on('pageerror', error => state.errors.push(error.message));
   await page.route('**/config.js*', route => route.fulfill({
     contentType: 'application/javascript',
@@ -43,9 +47,12 @@ async function fixture(page) {
       state.safeSelects.push(u.searchParams.get('select') || '');
       value = [{
         id:questionId,session_id:sessionId,position:1,
-        prompt:'¿Cuál es la estructura anatómica indicada?',
-        question_type:'multiple_choice',options:['Respuesta A','Respuesta B','Respuesta C'],
-        media_url:null,media_type:null,status:state.phase === 'result' ? 'revealed' : 'live',
+        prompt:visual ? 'Ubica los huesos del cráneo' : '¿Cuál es la estructura anatómica indicada?',
+        question_type:visual ? 'ordering' : 'multiple_choice',
+        options:visual ? ['Hueso temporal','Hueso frontal'] : ['Respuesta A','Respuesta B','Respuesta C'],
+        visual_layout:visual ? { kind:'image_labeling',version:1,targets:[{id:'z1',x:30,y:35},{id:'z2',x:65,y:65}] } : null,
+        media_url:visual ? 'https://visual-fixture.test/craneo.svg' : null,
+        media_type:visual ? 'image' : null,status:state.phase === 'result' ? 'revealed' : 'live',
         launched_at:new Date(Date.now()-8_000).toISOString(),timer_seconds:90,closed_at:null,
       }];
     } else if (endpoint === 'v2_public_server_clock') {
@@ -53,7 +60,7 @@ async function fixture(page) {
     } else if (endpoint === 'v2_public_revealed_question') {
       state.revealCalls++;
       value = state.phase === 'result'
-        ? {correct_answer:'Respuesta A',explanation:'Explicación académica de la prueba.'}
+        ? {correct_answer:visual ? ['Hueso frontal','Hueso temporal'] : 'Respuesta A',explanation:'Explicación académica de la prueba.'}
         : null;
     } else if (endpoint === 'v2_public_question_results') {
       value = [{answer:'Respuesta A',votes:7,total:12}];
@@ -115,6 +122,38 @@ test('Projection 3.0: lector QR y escena conservan legibilidad en tablet y móvi
   await expect(page.locator('.p3-question-panel .p2-option')).toHaveCount(3);
   await noOverflow(page);
   await page.setViewportSize({width:768,height:1024});
+  await noOverflow(page);
+  expect(state.errors).toEqual([]);
+});
+
+
+test('Classroom Visual 5.0: Projection sólo revela las etiquetas anatómicas después del RPC seguro', async ({ page }) => {
+  test.setTimeout(80_000);
+  const state = await fixture(page, { visual:true });
+  state.phase='question';
+  await page.goto('/projection-v2/?code=123456', { waitUntil:'domcontentloaded' });
+  await expect(page.locator('.visual5-projection-image img')).toBeVisible({timeout:15_000});
+  await expect(page.locator('.visual5-projection-zone')).toHaveCount(2);
+  await expect(page.locator('.visual5-projection-zone.revealed')).toHaveCount(0);
+  await expect(page.locator('.p3-question-panel')).not.toContainText('Hueso frontal');
+  expect(state.revealCalls).toBe(0);
+  for(const select of state.safeSelects) {
+    expect(select).not.toContain('correct_answer');
+    expect(select).not.toContain('explanation');
+    expect(select).not.toContain('*');
+  }
+  await noOverflow(page);
+  await page.screenshot({path:test.info().outputPath('visual5-projection-hidden.png'),fullPage:true});
+  state.phase='result';
+  await page.reload({ waitUntil:'domcontentloaded' });
+  await expect(page.locator('.visual5-projection-zone.revealed')).toHaveCount(2,{timeout:15_000});
+  await expect(page.locator('.p3-question-panel')).toContainText('Hueso frontal');
+  await expect(page.locator('.p3-question-panel')).toContainText('Hueso temporal');
+  expect(state.revealCalls).toBeGreaterThan(0);
+  await page.setViewportSize({ width:390,height:844 });
+  await noOverflow(page);
+  await page.screenshot({path:test.info().outputPath('visual5-projection-iphone.png'),fullPage:true});
+  await page.setViewportSize({ width:768,height:1024 });
   await noOverflow(page);
   expect(state.errors).toEqual([]);
 });
