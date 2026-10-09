@@ -141,9 +141,9 @@ export function VisualLabelingEditor({ layout, labels, mediaUrl, onChange, onMed
                   setActive(Math.min(active, next.targets.length - 1));
                 }}>×</button>
               <div className="visual5-editor-coordinates">
-                <label>X <input type="number" aria-label={`X de zona ${index + 1}`} min={3} max={97} step={.5}
+                <label>X <input type="number" aria-label={`X de zona ${index + 1}`} min={3} max={97} step="any"
                   value={target.x} onChange={(event) => onChange(repositionImageLabel(layout, index, Number(event.target.value), target.y), labels)}/></label>
-                <label>Y <input type="number" aria-label={`Y de zona ${index + 1}`} min={3} max={97} step={.5}
+                <label>Y <input type="number" aria-label={`Y de zona ${index + 1}`} min={3} max={97} step="any"
                   value={target.y} onChange={(event) => onChange(repositionImageLabel(layout, index, target.x, Number(event.target.value)), labels)}/></label>
               </div>
             </div>
