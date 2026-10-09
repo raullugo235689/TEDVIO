@@ -94,3 +94,39 @@ test('banco: fallo al importar conserva el texto y permite reintentar', async ({
   await expect(page.locator('.bank-question-card')).toHaveCount(1);
   expect(state.inserts).toHaveLength(2);
 });
+
+test('Classroom Visual 5.0: el docente crea etiquetado anatómico sin filtrar claves públicas', async ({ page }) => {
+  const imageUrl = 'https://visual-fixture.test/anatomia.svg';
+  await page.route('https://visual-fixture.test/**', route => route.fulfill({
+    contentType: 'image/svg+xml',
+    body: '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="440" viewBox="0 0 640 440"><rect width="640" height="440" fill="#eef2f7"/><ellipse cx="320" cy="200" rx="180" ry="135" fill="#d8dfea" stroke="#6b7b90" stroke-width="6"/></svg>',
+  }));
+  const state = await fixture(page);
+  await page.getByRole('button', { name: '＋ Nueva pregunta' }).click();
+  await page.getByLabel('Tipo').selectOption('image_labeling');
+  await expect(page.getByRole('heading', { name: 'Etiqueta las estructuras de la imagen' })).toBeVisible();
+  await page.getByLabel('Enunciado').fill('Identifica las dos estructuras del cráneo');
+  await page.getByLabel('URL HTTPS de la imagen').fill(imageUrl);
+  await page.getByLabel('Nombre de estructura 1').fill('Hueso frontal');
+  await page.getByLabel('Nombre de estructura 2').fill('Hueso temporal');
+  await expect(page.locator('.visual5-editor-pin')).toHaveCount(2);
+  await expect(page.locator('.visual5-editor-image img')).toBeVisible();
+  await page.getByRole('button', { name: 'Seleccionar zona 1' }).click();
+  await page.locator('.visual5-editor-image').click({ position: { x: 140, y: 110 } });
+  await page.setViewportSize({ width: 768, height: 1024 });
+  await expect(page.locator('.visual5-editor-fields')).toBeVisible();
+  await page.screenshot({ path: test.info().outputPath('visual5-author-ipad.png'), fullPage: true });
+  await page.getByRole('button', { name: 'Crear reactivo' }).click();
+  await expect(page.locator('.bank-question-card')).toHaveCount(1);
+  const saved = state.inserts.at(-1)?.[0];
+  expect(saved.question_type).toBe('ordering');
+  expect(saved.visual_layout.kind).toBe('image_labeling');
+  expect(saved.visual_layout.targets).toHaveLength(2);
+  expect(saved.correct_answer).toEqual(['Hueso frontal', 'Hueso temporal']);
+  expect(saved.options).toHaveLength(2);
+  expect(saved.options).not.toEqual(saved.correct_answer);
+  expect(JSON.stringify(saved.visual_layout)).not.toContain('Hueso');
+  await expect(page.locator('.bank-question-card .question-chips')).toContainText('Etiquetado anatómico');
+  await page.getByRole('button', { name: 'Respaldar banco JSON' }).click();
+  expect(state.errors).toEqual([]);
+});
