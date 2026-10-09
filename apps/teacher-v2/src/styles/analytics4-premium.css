@@ -1,0 +1,58 @@
+/* TEDVIO Analytics & Assessment 4.0 — extension of existing Analytics 2.x */
+.analytics4-page {gap:20px;}
+.analytics4-intro {position:relative;overflow:hidden;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(310px,.7fr);
+  align-items:center;gap:24px;padding:clamp(25px,4vw,42px);border-radius:27px;color:#fff;
+  border:1px solid rgba(84,128,222,.27);
+  background:radial-gradient(circle at 85% 0%,rgba(108,142,245,.28),transparent 42%),
+    radial-gradient(circle at 0% 115%,rgba(113,75,220,.19),transparent 40%),
+    linear-gradient(135deg,#0d1d3d,#1a3b77);
+  box-shadow:0 22px 51px rgba(14,36,81,.15);}
+.analytics4-intro .eyebrow {color:#a6d9ff;font-size:11px;letter-spacing:.15em;}
+.analytics4-intro h2 {font-size:clamp(26px,3vw,39px);letter-spacing:-.045em;line-height:1.13;
+  max-width:630px;color:#fff;margin:12px 0;}
+.analytics4-intro p {color:#c9d9f4;font-size:14px;line-height:1.7;max-width:630px;margin:0;}
+.analytics4-intro-facts {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;}
+.analytics4-intro-facts span {display:flex;flex-direction:column;justify-content:center;gap:8px;
+  min-height:105px;padding:17px 13px;border:1px solid rgba(179,210,255,.2);
+  border-radius:17px;background:rgba(255,255,255,.065);}
+.analytics4-intro-facts b {color:#fff;font-size:clamp(25px,2.8vw,38px);line-height:1;font-variant-numeric:tabular-nums;}
+.analytics4-intro-facts small {font-size:11px;color:#bcd3f6;line-height:1.4;}
+.analytics4-privacy {display:grid;grid-template-columns:minmax(0,1fr) minmax(230px,.38fr);align-items:center;
+  gap:15px;padding:20px 23px!important;border:1px solid var(--border);border-radius:20px!important;
+  background:var(--surface);}
+.analytics4-privacy > div {display:flex;align-items:flex-start;gap:13px;}
+.analytics4-privacy > div > svg {width:25px;height:25px;flex-shrink:0;color:var(--brand);}
+.analytics4-privacy > div span {display:grid;gap:5px;}
+.analytics4-privacy > div b {font-size:15px;color:var(--text);}
+.analytics4-privacy > div small {font-size:12px;line-height:1.6;color:var(--muted);}
+.analytics4-privacy label {font-size:12px;font-weight:750;color:var(--text);display:grid;gap:7px;}
+.analytics4-privacy select {width:100%;min-height:45px;border:1px solid var(--border);
+  background:var(--surface-soft);color:var(--text);padding:10px;border-radius:11px;font-size:13px;}
+.analytics4-sensitive {grid-column:1/-1;margin:0;padding:13px 15px;border-radius:12px;
+  border:1px solid #e7c993;background:#fff7e7;color:#7a4b15;font-size:13px;line-height:1.5;}
+.analytics4-metrics {gap:13px;}
+.analytics4-metrics > * {border-radius:20px!important;box-shadow:0 13px 29px rgba(18,39,83,.045);}
+.analytics4-page .analytics-filter-card,.analytics4-page .analytics-trend-card,
+.analytics4-page .analytics-two-column > * {border-radius:21px;}
+.analytics4-page .analytics-insight-strip {border-radius:21px;padding:23px 26px;}
+.analytics4-page .analytics-question-list article,
+.analytics4-page .analytics-student-list article {min-height:75px;}
+.analytics4-page .analytics-coverage-grid article {border-radius:14px;}
+.analytics4-page button:focus-visible,.analytics4-page a:focus-visible,
+.analytics4-page select:focus-visible {outline:3px solid var(--brand);outline-offset:3px;}
+@media(max-width:950px) {
+ .analytics4-intro {grid-template-columns:minmax(0,1fr);}
+ .analytics4-intro-facts {max-width:680px;}
+ .analytics4-privacy {grid-template-columns:minmax(0,1fr);}
+}
+@media(max-width:520px) {
+ .analytics4-intro {padding:24px 19px;border-radius:20px;}
+ .analytics4-intro h2 {font-size:29px;}
+ .analytics4-intro-facts span {padding:13px 10px;min-height:94px;}
+ .analytics4-intro-facts b {font-size:27px;}
+ .analytics4-intro-facts small {font-size:10px;}
+ .analytics4-privacy {padding:18px!important;}
+}
+@media(prefers-reduced-motion:reduce) {
+ .analytics4-page * {animation-duration:.01ms!important;transition-duration:.01ms!important;}
+}

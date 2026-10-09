@@ -27,6 +27,7 @@ import './styles/reliability.css';
 import './styles/security.css';
 import './styles/onboarding.css';
 import './styles/analytics.css';
+import './styles/analytics4-premium.css';
 import './styles/pilot-health.css';
 import './styles/session-preflight.css';
 import './styles/workspace-premium.css';

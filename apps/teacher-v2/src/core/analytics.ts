@@ -1,5 +1,6 @@
 import type { User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
+import { buildAnalyticsCsvRows } from './analytics-export';
 import type { AcademicPeriod } from './periods';
 import type { GroupRecord } from './types';
 
@@ -222,6 +223,28 @@ function csvCell(value: unknown): string {
 
 function safeName(value: string): string {
   return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '').slice(0, 70) || 'Analytics';
+}
+
+export type AnalyticsExportScope = 'aggregate' | 'identified';
+
+/**
+ * Identifiable academic evidence must be an explicit teacher choice.
+ * Aggregate exports never contain student names, enrollment or student IDs.
+ */
+export function downloadAnalyticsCsv4(
+  data: AnalyticsData, scopeLabel: string, scope: AnalyticsExportScope = 'aggregate',
+): void {
+  const rows = buildAnalyticsCsvRows(data,scopeLabel,scope);
+  const blob = new Blob([`\ufeff${rows.map(row => row.map(csvCell).join(',')).join('\r\n')}`],
+    {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href=url;
+  anchor.download=`TEDVIO_Analytics4_${scope}_${safeName(scopeLabel)}_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
 }
 
 export function downloadAnalyticsCsv(data: AnalyticsData, scopeLabel: string): void {
