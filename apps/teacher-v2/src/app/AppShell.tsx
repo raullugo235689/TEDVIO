@@ -144,7 +144,7 @@ export function AppShell() {
           <NavLink to="/support" data-area="settings" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
             <Icon name="alert" /><span>Ayuda y soporte</span>
           </NavLink>
-          <div className="rebuild-badge teacher42-trust"><Icon name="shield" /><span><b>TEDVIO TEACHER</b><small>Tu espacio académico seguro</small></span></div>
+          <div className="rebuild-badge teacher42-trust"><Icon name="shield" /><span><b>TEDVIO TEACHER</b><small>Espacio docente protegido</small></span></div>
         </div>
       </aside>
 
