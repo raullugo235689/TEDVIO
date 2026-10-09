@@ -7,7 +7,12 @@ const group = { id: groupId, teacher_id: userId, name: 'Medicina · 3A', group_n
 const allRoutes = ['/', '/agenda', '/groups', '/attendance', '/classroom', '/gradebook', '/students', '/periods', '/prepare', '/bank', '/exams', '/omr', '/reports', '/analytics', '/settings'];
 
 async function fixture(page, empty = false, dashboardGroups = null, workspace = {}) {
-  const state = { errors: [], writes: [] };
+  const state = { errors: [], writes: [], enarmSubmits: [], enarmQuestionsRead: 0,
+    enarmSettings: workspace.enarmSettings || null,
+    enarmAttempts: workspace.enarmAttempts || [],
+    enarmReviews: workspace.enarmReviews || [],
+    enarmNotes: workspace.enarmNotes || [],
+  };
   let profileName = workspace.profileName || null;
   page.on('pageerror', error => state.errors.push(error.message));
   await page.addInitScript(({ userId }) => localStorage.setItem('sb-workspace-fixture-auth-token', JSON.stringify({ access_token: 'synthetic-access-token', refresh_token: 'synthetic-refresh-token', expires_at: Math.floor(Date.now() / 1000) + 3600, expires_in: 3600, token_type: 'bearer', user: { id: userId, email: 'docente@example.test', aud: 'authenticated', role: 'authenticated' } })), { userId });
@@ -34,6 +39,50 @@ async function fixture(page, empty = false, dashboardGroups = null, workspace = 
     else if (table === 'v2_teacher_today_dashboard') {
       const groups = empty ? [] : dashboardGroups || [group, { ...group, id: 'other-group', name: 'Medicina · 3B', group_name: 'Medicina · 3B', subject: 'Anatomía', students: 32 }];
       rows = { groups, groups_count: groups.length, pending_attendance: 0, risk_students: 0, watch_students: 0, priority_students: [] };
+    }
+
+    else if (table === 'tedvio_enarm2027_catalog') {
+      state.enarmQuestionsRead++;
+      rows = workspace.enarmCatalog || [];
+    }
+    else if (table === 'tedvio_enarm2027_settings') {
+      if (request.method() === 'POST' || request.method() === 'PATCH') {
+        state.enarmSettings = request.postDataJSON();
+      }
+      rows = state.enarmSettings;
+    }
+    else if (table === 'tedvio_enarm2027_attempts') rows = state.enarmAttempts;
+    else if (table === 'tedvio_enarm2027_review') rows = state.enarmReviews;
+    else if (table === 'tedvio_enarm2027_notes') {
+      if (request.method() === 'POST') {
+        const body = request.postDataJSON();
+        state.enarmNotes = [body, ...state.enarmNotes.filter(x=>x.question_id!==body.question_id)];
+      }
+      rows = state.enarmNotes;
+    }
+    else if (table === 'tedvio_enarm2027_submit') {
+      const body = request.postDataJSON();
+      state.enarmSubmits.push(body);
+      const correct = body.p_answer_index === 1;
+      const now = new Date().toISOString();
+      const result = {
+        attempt_id: 'attempt-'+state.enarmSubmits.length,
+        correct, correct_index:1,
+        rationale:'La conducta adecuada integra la historia clínica, la gravedad y el tratamiento oportuno.',
+        reference_hint:'Consulta GPC y guías clínicas vigentes.',
+        area:'medicina_interna', topic:'Diagnóstico clínico', stage:correct?1:0,
+        due_at:new Date(Date.now()+86400000).toISOString(),
+      };
+      state.enarmAttempts = [{
+        id:result.attempt_id,question_id:body.p_question_id,
+        answer_index:body.p_answer_index,is_correct:correct,
+        mode:body.p_mode,seconds_taken:body.p_seconds_taken,answered_at:now,
+      }, ...state.enarmAttempts];
+      state.enarmReviews = [{
+        user_id:userId,question_id:body.p_question_id,
+        stage:correct?1:0,tries:1,successes:correct?1:0,due_at:result.due_at,last_answered_at:now,
+      },...state.enarmReviews.filter(x=>x.question_id!==body.p_question_id)];
+      rows = result;
     }
     else if (table === 'v2_public_server_clock') rows = workspace.serverNow || new Date().toISOString();
     else if (table === 'v2_sessions') rows = workspace.sessions || [];
@@ -880,4 +929,99 @@ test('Group Detail 4.3: padrón premium respeta legibilidad, filtros, acciones y
   await page.screenshot({ path: test.info().outputPath('group43-students-ipad-dark.png'), fullPage: true });
   expect(state.errors).toEqual([]);
   expect(state.writes).toEqual([]);
+});
+
+
+const enarmAreas = [
+  'medicina_interna','pediatria','ginecologia_obstetricia','cirugia',
+  'urgencias','medicina_familiar','salud_publica',
+];
+function enarmFixtureCases() {
+  return enarmAreas.flatMap((area,index) => Array.from({length:2},(_,number)=>({
+    id:`enarm-${index}-${number}`,slug:`case-${index}-${number}`,area,
+    topic:`Tema clínico ${index+1}`, difficulty:number?'avanzado':'intermedio',
+    vignette:'Paciente de prueba con síntomas característicos que requiere análisis, diagnóstico diferencial y decisión clínica.',
+    prompt:'¿Cuál es la conducta más apropiada para este caso?',
+    options:['Conducta A de prueba','Conducta B de prueba','Conducta C de prueba','Conducta D de prueba'],
+  })));
+}
+
+test('ENARM 2027: espacio separado, siete áreas, navegación privada y diseño adaptable', async ({page})=>{
+  const state=await fixture(page,false,null,{enarmCatalog:enarmFixtureCases()});
+  const study=page.locator('.sidebar-bottom').getByRole('link',{name:/ENARM 2027/});
+  await expect(study).toBeVisible();
+  await study.click();
+  await expect(page.locator('[data-enarm-app="2027"]')).toBeVisible();
+  await expect(page.getByRole('heading',{name:/ENARM 2027/})).toBeVisible();
+  await expect(page.locator('.enarm-area-row')).toHaveCount(7);
+  await expect(page.locator('.enarm-metric')).toHaveCount(4);
+  await expect(page.locator('.enarm-hero')).toContainText('Mi espacio personal'.toUpperCase().split(' ')[0],{ignoreCase:true});
+  await expect(page.locator('.enarm2027-footer')).toContainText('no oficial');
+  await expect(page.locator('.enarm-metric').first()).toContainText('Comienza tu primer entrenamiento');
+  expect(state.enarmQuestionsRead).toBeGreaterThan(0);
+  await page.setViewportSize({width:1440,height:900});
+  await page.screenshot({path:test.info().outputPath('enarm2027-desktop.png'),fullPage:true});
+  for(const width of [320,390,768,1024,1440]){
+    await page.setViewportSize({width,height:900});
+    await noOverflow(page);
+  }
+  await page.setViewportSize({width:390,height:844});
+  await page.getByRole('button',{name:'Activar modo oscuro'}).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
+  await expect(page.locator('[data-enarm-app="2027"]')).toBeVisible();
+  await page.screenshot({path:test.info().outputPath('enarm2027-iphone-dark.png'),fullPage:true});
+  expect(state.errors).toEqual([]);
+  expect(state.writes).toEqual([]);
+});
+
+test('ENARM 2027: practicar oculta clave antes de respuesta y conserva notas personales',async({page})=>{
+  const state=await fixture(page,false,null,{enarmCatalog:enarmFixtureCases()});
+  await page.goto('/teacher#/enarm-2027?tab=practica');
+  await expect(page.locator('.enarm-question-card')).toBeVisible();
+  await expect(page.locator('.enarm-feedback')).toHaveCount(0);
+  await expect(page.getByRole('button',{name:'Confirmar respuesta'})).toBeDisabled();
+  await page.locator('.enarm-answer').nth(1).click();
+  await expect(page.getByRole('button',{name:'Confirmar respuesta'})).toBeEnabled();
+  await page.getByRole('button',{name:'Confirmar respuesta'}).click();
+  await expect(page.locator('.enarm-feedback')).toContainText('Respuesta correcta');
+  await expect(page.locator('.enarm-feedback')).toContainText('Razonamiento clínico');
+  expect(state.enarmSubmits).toHaveLength(1);
+  expect(state.enarmSubmits[0].p_answer_index).toBe(1);
+  expect(state.enarmSubmits[0].p_mode).toBe('practica');
+  await page.getByLabel('Apunte personal').fill('Repasar algoritmo diagnóstico.');
+  await page.getByRole('button',{name:'Guardar nota'}).click();
+  await expect(page.getByText('Nota guardada en tu cuenta')).toBeVisible();
+  expect(state.enarmNotes[0].note).toBe('Repasar algoritmo diagnóstico.');
+  await page.getByRole('button',{name:'Siguiente caso'}).click();
+  await expect(page.locator('.enarm-feedback')).toHaveCount(0);
+  expect(state.errors).toEqual([]);
+});
+
+test('ENARM 2027: mini simulador guarda respuesta sin revelar solución hasta finalizar',async({page})=>{
+  const state=await fixture(page,false,null,{enarmCatalog:enarmFixtureCases()});
+  await page.goto('/teacher#/enarm-2027?tab=simulador');
+  await expect(page.getByRole('button',{name:/Iniciar simulador de 10 casos/})).toBeVisible();
+  await page.getByRole('button',{name:/Iniciar simulador de 10 casos/}).click();
+  await expect(page.locator('.enarm-question-card')).toBeVisible();
+  await expect(page.locator('.enarm-feedback')).toHaveCount(0);
+  await page.locator('.enarm-answer').nth(1).click();
+  await page.getByRole('button',{name:/Guardar y continuar/}).click();
+  await expect(page.locator('.enarm-sim-progress')).toContainText('2 de 10');
+  expect(state.enarmSubmits[0].p_mode).toBe('simulador');
+  await expect(page.locator('.enarm-feedback')).toHaveCount(0);
+  expect(state.errors).toEqual([]);
+});
+
+test('ENARM 2027: objetivos del plan permanecen aislados de datos académicos',async({page})=>{
+  const state=await fixture(page,false,null,{enarmCatalog:enarmFixtureCases()});
+  await page.goto('/teacher#/enarm-2027?tab=plan');
+  await expect(page.getByRole('heading',{name:'Un plan que se adapte a tu tiempo.'})).toBeVisible();
+  await page.getByLabel('Especialidad que me interesa').fill('Medicina Interna');
+  await page.getByLabel('Fecha objetivo personal (opcional)').fill('2027-09-30');
+  await page.getByRole('button',{name:'Guardar objetivos'}).click();
+  await expect(page.getByText('Objetivos guardados en tu cuenta TEDVIO')).toBeVisible();
+  expect(state.enarmSettings.desired_specialty).toBe('Medicina Interna');
+  expect(state.enarmSettings.target_date).toBe('2027-09-30');
+  expect(state.writes).toEqual(['tedvio_enarm2027_settings']);
+  expect(state.errors).toEqual([]);
 });
