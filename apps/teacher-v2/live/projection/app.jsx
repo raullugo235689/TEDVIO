@@ -9,6 +9,8 @@ import { LiveSurfaceErrorBoundary } from "../shared/LiveSurfaceErrorBoundary.jsx
 import "./base.css";
 import "./premium.css";
 import "./projection-v3.css";
+import "./visual5.css";
+import { normalizeImageLabelingLayout } from "../../src/core/visual-question";
 import { estimateServerClockOffset, classroomSecondsRemaining } from "../../src/core/classroom-clock";
 
 const h = React.createElement;
@@ -104,7 +106,7 @@ async function loadProjection(client, code, previous = null) {
   if (srow.current_question_id) {
     const questionResult = await sb
       .from("v2_questions")
-.select("id,session_id,position,prompt,question_type,options,media_url,media_type,timer_seconds,status,launched_at,closed_at")
+ .select("id,session_id,position,prompt,question_type,options,visual_layout,media_url,media_type,timer_seconds,status,launched_at,closed_at")
       .eq("id", srow.current_question_id)
       .maybeSingle();
     if (questionResult.error || !questionResult.data) {
@@ -279,6 +281,26 @@ function Distribution({ q, rows }) {
 }
 function Media({ q }) {
   if (!q?.media_url) return null;
+  const visual = q.question_type === "ordering" ? normalizeImageLabelingLayout(q.visual_layout) : null;
+  if (visual && q.media_type === "image") {
+    const key = q.status === "revealed" && Array.isArray(q.correct_answer) ? q.correct_answer : null;
+    return h("div", { className: "visual5-projection", "data-visual-mode": "image_labeling" },
+      h("div", { className: "visual5-projection-image" },
+        h("img", { src: q.media_url, alt: "Esquema anatómico de la pregunta" }),
+        ...visual.targets.map((target, index) =>
+          h("div", { className: `visual5-projection-zone${key ? " revealed" : ""}`,
+            key: target.id,
+            style: { left: `${target.x}%`, top: `${target.y}%` } },
+            h("b", null, index + 1),
+            key ? h("span", null, String(key[index] || "")) : null,
+          ),
+        ),
+      ),
+      h("p", { className: "visual5-projection-caption" }, key
+        ? "Solución anatómica · Todas las estructuras identificadas"
+        : `Actividad de etiquetado · ${visual.targets.length} estructuras por localizar`),
+    );
+  }
   if (q.media_type === "image")
     return h(
       "div",
@@ -321,6 +343,11 @@ function Media({ q }) {
   return null;
 }
 function Options({ q }) {
+  if (q.question_type === "ordering" && normalizeImageLabelingLayout(q.visual_layout)) {
+    return h("div", { className: "p2-option visual5-projection-instruction" }, q.status === "revealed"
+      ? "Revisa la clave sobre la imagen. Cada número corresponde a una estructura."
+      : "Coloca las etiquetas en sus ubicaciones desde tu dispositivo.");
+  }
   if (q.question_type === "open_text")
     return h("div", { className: "p2-option" }, "Respuesta abierta");
   if (q.question_type === "numeric")
@@ -552,7 +579,7 @@ function Live({ x, code, tick, connection, warning }) {
             h(
               "span",
               { className: "p2-kicker" },
-              `Pregunta ${q.position} · ${typeLabel[q.question_type] || q.question_type}`,
+              `Pregunta ${q.position} · ${normalizeImageLabelingLayout(q.visual_layout) ? "Etiquetado anatómico" : typeLabel[q.question_type] || q.question_type}`,
             ),
             h("h1", null, q.prompt),
             h("p", { className: "p3-question-hint" }, "Contesta desde tu celular · TEDVIO Student"),
@@ -567,7 +594,7 @@ function Live({ x, code, tick, connection, warning }) {
                 h("div", { style: { marginTop: "6px" } }, q.explanation),
               )
             : null,
-          q.status === "revealed"
+          q.status === "revealed" && !normalizeImageLabelingLayout(q.visual_layout)
             ? h(Distribution, { q, rows: x.results })
             : null,
         ),
