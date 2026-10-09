@@ -109,7 +109,7 @@ export function EnarmPractice({ workspace, mode, onProgress }: {
         <div className="enarm-practice-buttons">
           {submit.isError ? <p role="alert" className="enarm-error">{submit.error.message}</p> : null}
           {!feedback
-            ? <button className="enarm-primary" type="button" disabled={chosen === null || submit.isPending} onClick={()=>submit.mutate()}>
+            ? <button className="enarm-primary" type="button" disabled={chosen === null || submit.isPending} onClick={()=>{setQuestionId(question.id);submit.mutate();}}>
                 {submit.isPending ? 'Verificando respuesta…' : 'Confirmar respuesta'} <Icon name="arrow"/>
               </button>
             : <button className="enarm-primary" type="button" onClick={next}>Siguiente caso <Icon name="arrow"/></button>}
