@@ -23,8 +23,13 @@ export function EnarmSimulator({ workspace, onProgress }: {
 
   useEffect(() => {
     if (!cases.length || finished) return;
-    const timer = window.setInterval(() => setElapsed(Math.max(0, Math.floor((Date.now()-startedAt)/1000))),1000);
-    return () => window.clearInterval(timer);
+    let timer = 0;
+    const tick = () => {
+      setElapsed(Math.max(0, Math.floor((Date.now()-startedAt)/1000)));
+      timer = window.setTimeout(tick, 1000);
+    };
+    tick();
+    return () => window.clearTimeout(timer);
   }, [cases.length, finished, startedAt]);
 
   const submit = useMutation({
