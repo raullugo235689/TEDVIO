@@ -1,4 +1,4 @@
-import { useState, type MouseEvent } from 'react';
+import { useEffect, useState, type MouseEvent } from 'react';
 import {
   MAX_IMAGE_LABELS, MIN_IMAGE_LABELS, appendImageLabel, removeImageLabel,
   repositionImageLabel, type ImageLabelingLayout,
@@ -15,6 +15,7 @@ interface Props {
 export function VisualLabelingEditor({ layout, labels, mediaUrl, onChange }: Props) {
   const [active, setActive] = useState(0);
   const [imageBroken, setImageBroken] = useState(false);
+  useEffect(() => { setImageBroken(false); }, [mediaUrl]);
   const url = mediaUrl.trim();
   const ready = /^https:\/\//i.test(url) && !imageBroken;
 
