@@ -1,0 +1,62 @@
+/* TEDVIO Classroom Visual 5.0 — authoring + teacher stage.
+   Coordinates carry no answer data; correct keys live in protected question secrets. */
+.visual5-editor{display:grid;gap:18px;padding:clamp(18px,2.5vw,28px);border:1px solid color-mix(in srgb,var(--brand) 28%,var(--border));border-radius:23px;background:linear-gradient(130deg,color-mix(in srgb,var(--brand) 5%,var(--surface)),var(--surface));}
+.visual5-editor-heading{display:flex;gap:20px;align-items:flex-start;justify-content:space-between;}
+.visual5-editor-heading h3{font-size:clamp(18px,2vw,24px);margin:8px 0 7px;letter-spacing:-.03em;color:var(--text-strong);}
+.visual5-editor-heading p,.visual5-editor-label-title p{max-width:60ch;margin:0;color:var(--muted);font-size:13px;line-height:1.55;}
+.visual5-editor-count{border:1px solid var(--border);background:var(--surface);color:var(--brand);border-radius:100px;padding:9px 12px;font-size:12px;font-weight:800;white-space:nowrap;}
+.visual5-editor-layout{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(260px,.88fr);gap:22px;min-width:0;}
+.visual5-editor-figure{display:grid;align-content:start;gap:12px;min-width:0;}
+.visual5-editor-image{position:relative;display:block;width:fit-content;max-width:100%;overflow:visible;border:1px solid var(--border);border-radius:19px;background:#edf2f8;box-shadow:0 10px 26px rgba(8,26,60,.08);cursor:crosshair;}
+.visual5-editor-image>img{display:block;width:auto;max-width:100%;height:auto;max-height:55vh;object-fit:contain;border-radius:18px;pointer-events:none;}
+.visual5-editor-pin{position:absolute;transform:translate(-50%,-50%);width:37px;height:37px;display:grid;place-items:center;border:2px solid #fff;border-radius:99px;background:#174a98;color:#fff;box-shadow:0 5px 13px rgba(3,20,51,.35);font-weight:900;font-size:13px;cursor:pointer;}
+.visual5-editor-pin.selected{background:#f3a336;color:#132445;box-shadow:0 0 0 6px rgba(243,163,54,.3),0 6px 13px rgba(3,20,51,.3);}
+.visual5-editor-image button:focus-visible{outline:3px solid var(--brand);outline-offset:7px;}
+.visual5-editor-empty{min-height:250px;border:1px dashed var(--border-strong);border-radius:18px;display:grid;place-content:center;justify-items:center;gap:10px;padding:20px;background:var(--surface-soft);text-align:center;}
+.visual5-editor-empty>span{font-size:36px;color:var(--muted);}
+.visual5-editor-empty>b{font-size:15px;color:var(--text-strong);}
+.visual5-editor-empty>p{max-width:40ch;color:var(--muted);font-size:12px;line-height:1.5;}
+.visual5-editor-hint{margin:0;color:var(--muted);font-size:12px;line-height:1.5;}
+.visual5-editor-fields{display:grid;align-content:start;gap:11px;min-width:0;}
+.visual5-editor-label-title h4{color:var(--text-strong);font-size:17px;margin:0 0 5px;}
+.visual5-editor-label{display:grid;grid-template-columns:40px minmax(0,1fr) 34px;align-items:center;gap:9px 11px;padding:12px;border:1px solid var(--border);border-radius:16px;background:var(--surface);}
+.visual5-editor-label.selected{border-color:color-mix(in srgb,var(--brand) 47%,var(--border));box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 8%,transparent);}
+.visual5-editor-number{width:39px;height:39px;border:0;border-radius:12px;background:color-mix(in srgb,var(--brand) 11%,var(--surface));color:var(--brand);font-weight:900;cursor:pointer;}
+.visual5-editor-number[aria-pressed=true]{background:var(--brand);color:#fff;}
+.visual5-editor-label>label{display:grid;gap:5px;min-width:0;color:var(--muted);font-size:11px;font-weight:700;}
+.visual5-editor-label>label input{width:100%;min-width:0;min-height:43px;padding:10px 11px;border:1px solid var(--border);border-radius:11px;color:var(--text-strong);background:var(--surface);font-size:14px;font-weight:600;}
+.visual5-editor-delete{width:34px;height:34px;border:1px solid var(--border);border-radius:9px;background:var(--surface);font-size:20px;color:var(--muted);cursor:pointer;}
+.visual5-editor-delete:disabled{opacity:.36;cursor:default;}
+.visual5-editor-coordinates{grid-column:2/4;display:flex;gap:12px;align-items:center;}
+.visual5-editor-coordinates label{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:750;color:var(--muted);}
+.visual5-editor-coordinates input{width:70px;min-height:34px;padding:5px 6px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text-strong);font-size:12px;}
+.visual5-add-zone{width:100%;justify-self:stretch;}
+.visual5-editor-security{margin:0;padding:12px 15px;border-radius:13px;background:color-mix(in srgb,var(--green) 7%,var(--surface));color:var(--green);font-size:12px;line-height:1.55;font-weight:650;}
+.visual5-media-fields input[readonly]{color:var(--brand);font-weight:750;background:color-mix(in srgb,var(--brand) 7%,var(--surface));}
+.visual5-teacher-figure{width:100%;margin:14px 0;display:flex;justify-content:center;}
+.visual5-teacher-picture{position:relative;width:fit-content;max-width:100%;border-radius:18px;background:#eef1f6;}
+.visual5-teacher-picture>img.classroom-media{display:block;width:auto;max-width:100%;height:auto;max-height:48vh;object-fit:contain;margin:0;border-radius:18px;}
+.visual5-teacher-pin{position:absolute;left:0;top:0;transform:translate(-50%,-50%);display:flex;align-items:center;gap:5px;pointer-events:none;}
+.visual5-teacher-pin>b{display:grid;place-items:center;flex:0 0 32px;width:32px;height:32px;border-radius:99px;background:#234ca0;border:2px solid white;color:white;box-shadow:0 5px 12px rgba(10,25,50,.25);font-size:12px;}
+.visual5-teacher-pin>small{padding:5px 8px;border:1px solid #c1edcf;border-radius:8px;background:#f0fff5;color:#165c37;font-size:11px;font-weight:800;max-width:145px;overflow-wrap:anywhere;line-height:1.25;}
+.visual5-teacher-summary{display:flex;flex-wrap:wrap;gap:12px;}
+.visual5-teacher-summary>div:not(.visual5-teacher-analysis){flex:1 1 120px;display:grid;gap:4px;padding:15px;border:1px solid var(--border);border-radius:13px;background:var(--surface-soft);}
+.visual5-teacher-summary>div>b{font-size:22px;color:var(--text-strong);font-variant-numeric:tabular-nums;}
+.visual5-teacher-summary>div>span{font-size:11px;color:var(--muted);font-weight:650;}
+.visual5-teacher-summary>p{font-size:12px;color:var(--muted);}
+.visual5-teacher-analysis{display:grid;gap:11px;flex:1 1 100%;padding:13px;border:1px solid var(--border);border-radius:14px;}
+.visual5-teacher-analysis>div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;}
+.visual5-teacher-analysis>div>span{color:var(--text-strong);font-size:13px;font-weight:650;overflow-wrap:anywhere;}
+.visual5-teacher-analysis>div>b{font-size:13px;color:var(--brand);font-weight:850;}
+.visual5-teacher-analysis .result-bar{grid-column:1/-1;height:6px;border-radius:99px;}
+@media(max-width:1000px){.visual5-editor-layout{grid-template-columns:minmax(0,1fr);}}
+@media(max-width:600px){.visual5-editor{padding:15px 12px;}.visual5-editor-heading{display:grid;gap:10px;}.visual5-editor-count{justify-self:start;}.visual5-editor-label{grid-template-columns:36px minmax(0,1fr) 32px;gap:8px;}.visual5-editor-coordinates{grid-column:1/-1;justify-content:flex-end;}.visual5-editor-image>img{max-height:46vh;}}
+@media(prefers-reduced-motion:reduce){.visual5-editor *{animation:none!important;transition:none!important;}}
+
+.visual5-upload-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:11px 15px;border:1px dashed color-mix(in srgb,var(--brand) 34%,var(--border));border-radius:15px;background:var(--surface-soft);}
+.visual5-upload-row>span{color:var(--muted);font-size:11px;line-height:1.4;}
+.visual5-upload-button{position:relative;display:inline-flex;justify-content:center;align-items:center;min-height:44px;padding:11px 16px;border:1px solid var(--brand);border-radius:12px;background:var(--brand);color:#fff;font-size:13px;font-weight:800;cursor:pointer;overflow:hidden;}
+.visual5-upload-button input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;}
+.visual5-upload-button:focus-within{outline:3px solid var(--brand);outline-offset:3px;}
+.visual5-upload-error{flex:1 1 100%;margin:0;color:var(--red);font-size:12px;font-weight:700;line-height:1.4;}
+@media(max-width:600px){.visual5-upload-row{align-items:stretch;flex-direction:column;}.visual5-upload-button{width:100%;}.visual5-upload-row>span{text-align:center;}}

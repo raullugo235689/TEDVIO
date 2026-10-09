@@ -10,6 +10,9 @@ import { LiveSurfaceErrorBoundary } from "../shared/LiveSurfaceErrorBoundary.jsx
 import "./base.css";
 import "./premium.css";
 import "./student-v3.css";
+import "./visual5.css";
+import { normalizeImageLabelingLayout } from "../../src/core/visual-question";
+import { ImageLabelingAnswer } from "./ImageLabelingAnswer.jsx";
 import { estimateServerClockOffset, classroomSecondsRemaining } from "../../src/core/classroom-clock";
 
 const h = React.createElement;
@@ -240,6 +243,7 @@ function normalizeQuestion(value) {
     options: Array.isArray(value.options)
       ? value.options.map((option) => safeText(option)).filter(Boolean)
       : [],
+    visual_layout: questionType === "ordering" ? normalizeImageLabelingLayout(value.visual_layout) : null,
     media_url: safeText(value.media_url) || null,
     media_type: safeText(value.media_type) || null,
     status: ["queued", "live", "closed", "revealed"].includes(status) ? status : "queued",
@@ -609,7 +613,7 @@ async function fetchWorkspace(student) {
   const [questionResult, clockResult] = await Promise.all([
     client
       .from("v2_questions")
-      .select("id,position,prompt,question_type,options,media_url,media_type,timer_seconds,status,launched_at,closed_at")
+       .select("id,position,prompt,question_type,options,visual_layout,media_url,media_type,timer_seconds,status,launched_at,closed_at")
       .eq("session_id", session.id)
       .order("position"),
     client.rpc("v2_public_server_clock"),
@@ -860,7 +864,7 @@ function Waiting({ student, session, answered }) {
 }
 
 function Media({ question }) {
-  if (!question.media_url || question.question_type === "hotspot") return null;
+  if (!question.media_url || question.question_type === "hotspot" || question.visual_layout?.kind === "image_labeling") return null;
   if (question.media_type === "audio")
     return h("audio", {
       controls: true,
@@ -1059,6 +1063,15 @@ function Question({ question, questionCount, own, pending, submitting, onSubmit 
         "Enviar respuesta",
       ),
     );
+  } else if (question.question_type === "ordering" && question.visual_layout?.kind === "image_labeling" && question.media_url) {
+    answerControl = h(ImageLabelingAnswer, {
+      key: question.id,
+      layout: question.visual_layout,
+      imageUrl: question.media_url,
+      labels: options,
+      submitting,
+      onSubmit,
+    });
   } else if (question.question_type === "ordering") {
     const remainingOptions = options.filter((opt) => !order.includes(opt));
     answerControl = h(
@@ -1180,7 +1193,7 @@ function Question({ question, questionCount, own, pending, submitting, onSubmit 
       h(
         "div",
         { className: "chips" },
-        h("span", null, questionTypeLabel(question.question_type)),
+        h("span", null, question.visual_layout?.kind === "image_labeling" ? "Etiquetado anatómico" : questionTypeLabel(question.question_type)),
         h("span", { className: "live" }, "Respondiendo"),
       ),
       h("p", { className: "question-overline" }, "LEE CON ATENCIÓN"),

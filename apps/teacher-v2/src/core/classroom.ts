@@ -1,6 +1,7 @@
 import type { RealtimeChannel, User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import { estimateServerClockOffset } from './classroom-clock';
+import type { ImageLabelingLayout } from './visual-question';
 import type { GroupRecord, StudentRecord } from './types';
 
 /** Recalibrate on focus and periodically; any network failure leaves the UI usable. */
@@ -55,6 +56,7 @@ export interface ClassroomQuestion {
   correct_answer?: unknown;
   media_url?: string | null;
   media_type?: string | null;
+  visual_layout?: ImageLabelingLayout | null;
   timer_seconds: number;
   status: ClassroomQuestionState;
   launched_at?: string | null;

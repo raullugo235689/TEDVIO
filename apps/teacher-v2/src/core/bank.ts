@@ -1,5 +1,6 @@
 import type { User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
+import { normalizeImageLabelingLayout, shuffledImageLabels, validateImageLabelingDraft, type ImageLabelingLayout } from './visual-question';
 
 export type BankQuestionType =
   | 'multiple_choice'
@@ -28,6 +29,8 @@ export interface BankQuestion {
   correct_answer?: unknown;
   media_url?: string | null;
   media_type?: QuestionMediaType | null;
+  /** Public coordinates only. The correct label order remains in correct_answer. */
+  visual_layout?: ImageLabelingLayout | null;
   created_at: string;
   updated_at: string;
   explanation?: string | null;
@@ -69,6 +72,7 @@ export interface BankQuestionDraft {
   bloom: BloomLevel;
   mediaUrl: string;
   mediaType: QuestionMediaType;
+  visualLayout?: ImageLabelingLayout | null;
   favorite: boolean;
   archived: boolean;
 }
@@ -156,12 +160,14 @@ export function emptyBankDraft(): BankQuestionDraft {
     bloom: 'comprender',
     mediaUrl: '',
     mediaType: '',
+    visualLayout: null,
     favorite: false,
     archived: false,
   };
 }
 
 export function bankDraftFromQuestion(question: BankQuestion): BankQuestionDraft {
+  const visual = normalizeImageLabelingLayout(question.visual_layout);
   const options = Array.isArray(question.options) ? question.options.map((value) => String(value)) : [];
   const answers = Array.isArray(question.correct_answer)
     ? question.correct_answer.map((value) => String(value))
@@ -175,7 +181,7 @@ export function bankDraftFromQuestion(question: BankQuestion): BankQuestionDraft
     topic: question.topic || '',
     questionType: question.question_type,
     prompt: question.prompt || '',
-    options: options.length ? options : ['', '', '', ''],
+    options: visual ? answers : options.length ? options : ['', '', '', ''],
     correctAnswers: answers,
     explanation: question.explanation || '',
     difficulty: question.difficulty || '',
@@ -184,14 +190,21 @@ export function bankDraftFromQuestion(question: BankQuestion): BankQuestionDraft
     bloom: question.bloom || '',
     mediaUrl: question.media_url || '',
     mediaType: question.media_type || '',
+    visualLayout: visual,
     favorite: Boolean(question.favorite),
     archived: Boolean(question.archived),
   };
 }
 
 function bankQuestionPayload(draft: BankQuestionDraft) {
-  const options = normalizeOptions(draft);
-  const correctAnswer = normalizeCorrectAnswer(draft, options);
+  const visual = draft.visualLayout
+    ? validateImageLabelingDraft(draft.visualLayout, draft.options, draft.mediaUrl, draft.mediaType)
+    : null;
+  if (visual && draft.questionType !== 'ordering') {
+    throw new Error('Las etiquetas anatómicas deben usar calificación de ordenamiento.');
+  }
+  const options = visual ? shuffledImageLabels(visual.answer) : normalizeOptions(draft);
+  const correctAnswer = visual ? visual.answer : normalizeCorrectAnswer(draft, options);
   validateDraft(draft, options, correctAnswer);
   const prompt = text(draft.prompt);
   return {
@@ -202,6 +215,7 @@ function bankQuestionPayload(draft: BankQuestionDraft) {
     prompt,
     options,
     correct_answer: correctAnswer,
+    visual_layout: visual?.layout || null,
     media_url: text(draft.mediaUrl) || null,
     media_type: draft.mediaType || null,
     explanation: text(draft.explanation) || null,
