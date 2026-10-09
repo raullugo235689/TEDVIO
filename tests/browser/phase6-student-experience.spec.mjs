@@ -10,8 +10,12 @@ const ids = {
   question: '33333333-3333-4333-8333-333333333333',
   response: '44444444-4444-4444-8444-444444444444',
 };
-async function fixture(page) {
-  const state = { phase: 'lobby', answer: null, joined: 0, fatal: false, errors: [] };
+async function fixture(page, { visual = false } = {}) {
+  const state = { phase: 'lobby', answer: null, joined: 0, submitted: 0, fatal: false, errors: [], publicSelections: [] };
+  if (visual) await page.route('https://visual-fixture.test/**', route => route.fulfill({
+    contentType: 'image/svg+xml',
+    body: '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="420"><rect width="640" height="420" fill="#edf1f8"/><ellipse cx="320" cy="210" rx="180" ry="155" fill="#d0d9e9"/></svg>',
+  }));
   page.on('pageerror', e => state.errors.push(e.message));
   await page.route('**/config.js*', route => route.fulfill({
     contentType: 'application/javascript',
@@ -31,7 +35,9 @@ async function fixture(page) {
     if (endpoint === 'v2_public_server_clock') {
       rows = new Date().toISOString();
     } else if (endpoint === 'v2_public_revealed_question') {
-      rows = state.phase === 'result' ? { correct_answer: 'Opción A', explanation: 'La opción A corresponde a la respuesta de referencia.' } : null;
+      rows = state.phase === 'result'
+        ? { correct_answer: visual ? ['Hueso frontal', 'Hueso temporal'] : 'Opción A',
+            explanation: 'Clave de referencia para la revisión.' } : null;
     } else if (endpoint === 'v2_join_session_v3') {
       state.joined++;
       rows = [{
@@ -48,11 +54,15 @@ async function fixture(page) {
         closed_at: state.phase === 'finished' ? new Date().toISOString() : null,
       }];
     } else if (endpoint === 'v2_questions') {
+      state.publicSelections.push(url.searchParams.get('select') || '');
       rows = [{
-        id: ids.question, position: 1, prompt: '¿Cuál es el diagnóstico más probable?',
-        question_type: 'multiple_choice',
-        options: ['Opción A', 'Opción B', 'Opción C', 'Opción D'],
-        media_url: null, media_type: null, timer_seconds: 120,
+        id: ids.question, position: 1,
+        prompt: visual ? 'Ubica los huesos del cráneo' : '¿Cuál es el diagnóstico más probable?',
+        question_type: visual ? 'ordering' : 'multiple_choice',
+        options: visual ? ['Hueso temporal', 'Hueso frontal'] : ['Opción A', 'Opción B', 'Opción C', 'Opción D'],
+        visual_layout: visual ? { kind: 'image_labeling', version: 1, targets: [{id:'z1',x:30,y:35},{id:'z2',x:65,y:65}] } : null,
+        media_url: visual ? 'https://visual-fixture.test/anatomia.svg' : null,
+        media_type: visual ? 'image' : null, timer_seconds: 120,
         status: state.phase === 'result' ? 'revealed' : state.phase === 'lobby' ? 'queued' : 'live',
         launched_at: new Date(Date.now() - 5_000).toISOString(), closed_at: null,
       }];
@@ -63,6 +73,7 @@ async function fixture(page) {
       }] : [];
     } else if (endpoint === 'v2_submit_response_v2') {
       const requestBody = request.postDataJSON();
+      state.submitted++;
       state.answer = requestBody.p_answer;
       rows = {
         receipt_version: 1, confirmed: true, status: 'recorded',
@@ -193,4 +204,38 @@ test('Student 3.0: screens fit a narrow phone without changing answer functional
   expect(minimumTapHeight).toBeGreaterThanOrEqual(44);
   await page.setViewportSize({ width: 390, height: 844 });
   await noHorizontalOverflow(page);
+});
+
+
+test('Classroom Visual 5.0: iPhone y Chromium colocan etiquetas anatómicas y envían una sola respuesta', async ({ page }) => {
+  const state = await fixture(page, { visual: true });
+  await page.goto('/student-v2/?code=ABC123', { waitUntil: 'domcontentloaded' });
+  await page.getByLabel('Nombre', { exact: true }).fill('Alumna de Anatomía');
+  await page.getByRole('button', { name: 'Entrar a clase' }).click();
+  await expect(page.getByRole('heading', { name: 'Estás dentro.' })).toBeVisible({ timeout: 15_000 });
+  state.phase = 'question';
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.getByRole('heading', { name: 'Ubica los huesos del cráneo' })).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator('[data-visual-mode="image_labeling"]')).toBeVisible();
+  await expect(page.locator('.visual5-drop-zone')).toHaveCount(2);
+  await expect(page.locator('.visual5-label-chip')).toHaveCount(2);
+  await expect(page.locator('.visual5-student-picture img')).toBeVisible();
+  for (const select of state.publicSelections) {
+    expect(select).not.toContain('correct_answer');
+    expect(select).not.toContain('explanation');
+  }
+  await expect(page.getByRole('button', { name: /Enviar etiquetado/ })).toBeDisabled();
+  await page.getByRole('button', { name: 'Hueso frontal', exact: true }).click();
+  await page.locator('[data-visual-zone="z1"]').click();
+  await page.getByRole('button', { name: 'Hueso temporal', exact: true }).click();
+  await page.locator('[data-visual-zone="z2"]').click();
+  await expect(page.locator('.visual5-drop-zone.filled')).toHaveCount(2);
+  await expect(page.getByRole('button', { name: /Enviar etiquetado/ })).toBeEnabled();
+  await noHorizontalOverflow(page);
+  await page.screenshot({ path: test.info().outputPath('visual5-anatomy-labeled.png'), fullPage: true });
+  await page.getByRole('button', { name: /Enviar etiquetado/ }).click();
+  await expect(page.getByRole('heading', { name: 'Listo.' })).toBeVisible({ timeout: 15_000 });
+  expect(state.answer).toEqual(['Hueso frontal', 'Hueso temporal']);
+  expect(state.submitted).toBe(1);
+  expect(state.errors).toEqual([]);
 });
