@@ -61,7 +61,7 @@ function MobileTools({ onDismiss, onSupport }: { onDismiss: () => void; onSuppor
     <header><div><span className="eyebrow">TU ESPACIO DOCENTE</span><h2 id="workspace-tools-title">Todas las herramientas</h2></div><button type="button" className="icon-button" onClick={onDismiss} aria-label="Cerrar herramientas">×</button></header>
     <nav aria-label="Todas las herramientas" onClick={(event) => { if ((event.target as HTMLElement).closest('a')) onDismiss(); }}>
       {navigationGroups.map((group) => <section className="workspace-tools-section" data-area={navigationArea(group.to)} key={group.to}><h3>{group.label}</h3><div><NavItem item={group} />{group.children.map((item) => <NavItem item={item} key={item.to} />)}</div></section>)}
-      <div className="workspace-tools-footer"><NavLink to="/support" data-area="settings" className="nav-item"><Icon name="alert" /><span>Ayuda y soporte</span></NavLink><button className="button secondary" type="button" onClick={onSupport}>Reportar un problema</button></div>
+      <div className="workspace-tools-footer"><NavLink to="/enarm-2027" data-area="enarm" className="nav-item enarm2027-access"><Icon name="exam"/><span>ENARM 2027 · Mi preparación</span></NavLink><NavLink to="/support" data-area="settings" className="nav-item"><Icon name="alert" /><span>Ayuda y soporte</span></NavLink><button className="button secondary" type="button" onClick={onSupport}>Reportar un problema</button></div>
     </nav>
   </dialog>;
 }
@@ -141,6 +141,9 @@ export function AppShell() {
         </nav>
 
         <div className="sidebar-bottom">
+          <NavLink to="/enarm-2027" data-area="enarm" className={({ isActive }) => `nav-item enarm2027-access${isActive?' active':''}`}>
+            <Icon name="exam"/><span>ENARM 2027<small>Mi preparación médica</small></span>
+          </NavLink>
           <NavLink to="/support" data-area="settings" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
             <Icon name="alert" /><span>Ayuda y soporte</span>
           </NavLink>
@@ -151,7 +154,7 @@ export function AppShell() {
       <div className="workspace">
         <header className="topbar teacher42-topbar">
           <div className="topbar-title">
-            <span>ESPACIO DOCENTE <span aria-hidden="true">/</span> {navigationAreaLabel[area]}</span>
+            <span>{area === 'enarm' ? 'FORMACIÓN PERSONAL' : 'ESPACIO DOCENTE'} <span aria-hidden="true">/</span> {navigationAreaLabel[area]}</span>
             <p className="workspace-route-title">{routeTitle}</p>
           </div>
           <div className="topbar-actions">
@@ -196,7 +199,7 @@ export function AppShell() {
 
       <nav className="mobile-nav" aria-label="Navegación móvil">
         {mobileItems.map((item) => <NavItem item={item} mobile groupActive={isNavigationGroupActive(item, location.pathname)} key={item.to} />)}
-        <button data-area="settings" className={moreOpen || location.pathname === '/settings' || location.pathname === '/support' ? 'nav-item mobile active' : 'nav-item mobile'} type="button" aria-haspopup="dialog" aria-expanded={moreOpen} onClick={() => setMoreOpen((value) => !value)}>
+        <button data-area="settings" className={moreOpen || location.pathname.startsWith('/enarm-2027') || location.pathname === '/settings' || location.pathname === '/support' ? 'nav-item mobile active' : 'nav-item mobile'} type="button" aria-haspopup="dialog" aria-expanded={moreOpen} onClick={() => setMoreOpen((value) => !value)}>
           <Icon name="more" /><span>Más</span>
         </button>
       </nav>
