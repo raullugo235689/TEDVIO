@@ -836,3 +836,48 @@ test('Teacher Experience 4.2: diseño premium conserva navegación, identidad, t
   expect(state.errors).toEqual([]);
   expect(state.writes).toEqual([]);
 });
+
+test('Group Detail 4.3: padrón premium respeta legibilidad, filtros, acciones y tamaños de iPad/iPhone', async ({ page }) => {
+  const students = [
+    { id: 'group43-a', group_id: groupId, teacher_id: userId, enrollment: '2025158', full_name: 'CANOBBIO OSUNA ITZEL ARANTXA', active: true },
+    { id: 'group43-b', group_id: groupId, teacher_id: userId, enrollment: '2698017', full_name: 'CASTRO VALENZUELA STEYCI VERONICA', active: true },
+    { id: 'group43-c', group_id: groupId, teacher_id: userId, enrollment: '2698005', full_name: 'FIERRO JIMENEZ LUIS DONALDO', active: false },
+  ];
+  const state = await fixture(page, false, [group], { students });
+  await page.goto(`/teacher#/groups/${groupId}?tab=students`);
+  await expect(page.getByRole('heading', { name: 'Alumnos del grupo' })).toBeVisible();
+  await expect(page.locator('.group43-roster-table .group43-student-name')).toHaveCount(2);
+  const firstName = page.locator('.group43-student-name').first();
+  await expect(firstName).toContainText(students[0].full_name);
+  const readable = await firstName.evaluate(element => ({
+    size: Number.parseFloat(getComputedStyle(element).fontSize),
+    color: getComputedStyle(element).color,
+    strong: getComputedStyle(document.documentElement).getPropertyValue('--text-strong').trim(),
+  }));
+  expect(readable.size).toBeGreaterThanOrEqual(16);
+  expect(readable.color).not.toBe('rgb(166, 56, 100)');
+  await expect(page.locator('.group43-student-avatar').first()).toHaveText('CO');
+  await expect(page.locator('.group43-attendance-rate.unknown').first()).toContainText('Sin datos');
+
+  await page.getByRole('searchbox', { name: 'Buscar alumnos' }).fill('STEYCI');
+  await expect(page.locator('.group43-student-row')).toHaveCount(1);
+  await page.getByRole('searchbox', { name: 'Buscar alumnos' }).fill('');
+  await page.getByLabel('Mostrar inactivos').check();
+  await expect(page.locator('.group43-student-row')).toHaveCount(3);
+  await page.locator('.group43-student-row').first().getByRole('button', { name: 'Editar' }).click();
+  await expect(page.getByLabel('Nombre completo')).toHaveValue(students[0].full_name);
+  await page.getByRole('button', { name: 'Cancelar' }).click();
+
+  for (const width of [320, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await noOverflow(page);
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.screenshot({ path: test.info().outputPath('group43-students-desktop.png'), fullPage: true });
+  await page.getByRole('button', { name: 'Activar modo oscuro' }).click();
+  await page.setViewportSize({ width: 768, height: 1024 });
+  await noOverflow(page);
+  await page.screenshot({ path: test.info().outputPath('group43-students-ipad-dark.png'), fullPage: true });
+  expect(state.errors).toEqual([]);
+  expect(state.writes).toEqual([]);
+});
