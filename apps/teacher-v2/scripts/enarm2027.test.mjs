@@ -116,8 +116,6 @@ test('base privada y banco original: 28 casos, claves no visibles, aislamiento p
     assert.equal(catalog.length,28);
     assert.equal(Object.hasOwn(catalog[0],'correct_index'),false);
     assert.equal(Object.hasOwn(catalog[0],'rationale'),false);
-    const first=(await db.query('select id,correct_index from public.tedvio_enarm2027_questions')).rows[0];
-    void first;
     await db.exec('reset role');
     const target=(await db.query("select id,correct_index from public.tedvio_enarm2027_questions where slug='mi-hiperk'")).rows[0];
     await db.exec('set role authenticated');
