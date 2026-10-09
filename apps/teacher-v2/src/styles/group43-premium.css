@@ -1,0 +1,428 @@
+/* TEDVIO Group Detail Premium 4.3
+ * Visual layer only: existing attendance snapshots, drafts, statuses and mutations stay unchanged.
+ * Intent: readable student identity, scannable states, complete multiline observations.
+ */
+.group-workspace .group-section-nav {
+  gap: 7px;
+  padding: 7px;
+  border-radius: 19px;
+  box-shadow: 0 11px 28px rgba(16, 42, 90, .065);
+}
+.group-workspace .group-section-nav a {
+  min-height: 53px;
+  border-radius: 13px;
+  font-size: 14px;
+  font-weight: 720;
+  letter-spacing: -.01em;
+}
+.group-workspace .group-section-nav a[aria-current] {
+  background: color-mix(in srgb, var(--group-accent) 11%, var(--surface));
+  box-shadow: inset 0 -3px var(--group-accent);
+  font-weight: 800;
+}
+
+/* Roster: premium hybrid table on wide displays and cards on smaller ones. */
+.group43-students-panel {
+  padding: clamp(18px, 2vw, 29px);
+  border-radius: 23px;
+}
+.group43-students-panel > .section-heading { align-items: center; }
+.group43-students-panel .section-heading h2 {
+  font-size: clamp(21px, 2.1vw, 27px);
+  letter-spacing: -.035em;
+}
+.group43-students-toolbar { margin: 23px 0 17px; }
+.group43-students-toolbar .search-field {
+  min-height: 52px;
+  border-radius: 15px;
+  background: var(--surface-soft);
+}
+.group43-students-toolbar input { font-size: 15px; }
+.group43-roster-wrap { border: 0; border-radius: 0; background: transparent; }
+.group43-roster-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 9px;
+  color: var(--text);
+}
+.group43-roster-table th {
+  position: static;
+  border-bottom: 0;
+  background: transparent;
+  padding: 7px 18px 10px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .095em;
+}
+.group43-roster-table th:first-child { width: 123px; }
+.group43-roster-table th:nth-child(2) { width: 36%; }
+.group43-roster-table th:last-child { width: 215px; }
+.group43-roster-table td {
+  padding: 15px 16px;
+  vertical-align: middle;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  transition: border-color .15s, background-color .15s;
+}
+.group43-roster-table .group43-student-row:hover td {
+  border-top-color: color-mix(in srgb, var(--group-accent) 36%, var(--border));
+  border-bottom-color: color-mix(in srgb, var(--group-accent) 36%, var(--border));
+  background: color-mix(in srgb, var(--group-accent) 2%, var(--surface));
+}
+.group43-roster-table td:first-child {
+  border-left: 3px solid var(--group-accent);
+  border-top-left-radius: 16px;
+  border-bottom-left-radius: 16px;
+}
+.group43-roster-table td:last-child {
+  border-right: 1px solid var(--border);
+  border-top-right-radius: 16px;
+  border-bottom-right-radius: 16px;
+}
+.group43-student-row.inactive-row { opacity: 1; }
+.group43-student-row.inactive-row td {
+  background: color-mix(in srgb, var(--muted) 3%, var(--surface));
+}
+.group43-enrollment strong {
+  display: inline-block;
+  color: var(--text-strong);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: .015em;
+  font-variant-numeric: tabular-nums;
+}
+.group43-student-profile { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.group43-student-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--group-accent) 10%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--group-accent) 19%, var(--border));
+  color: var(--group-accent);
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: .035em;
+}
+.group43-student-copy { display: grid; gap: 5px; min-width: 0; }
+.group43-detail .group43-roster-table .group43-student-name {
+  display: block;
+  min-width: 0;
+  color: var(--text-strong);
+  font-size: clamp(16px, 1.3vw, 18px);
+  font-weight: 780;
+  line-height: 1.4;
+  letter-spacing: -.013em;
+  text-decoration: none;
+  text-underline-offset: 4px;
+  overflow-wrap: anywhere;
+}
+.group43-detail .group43-roster-table .group43-student-name:hover {
+  color: var(--group-accent);
+  text-decoration: underline;
+}
+.group43-student-copy small {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 560;
+  line-height: 1.35;
+}
+.group43-student-copy small svg { width: 13px; height: 13px; }
+.group43-attendance-rate {
+  display: grid;
+  gap: 7px;
+  width: min(100%, 115px);
+  font-variant-numeric: tabular-nums;
+}
+.group43-attendance-rate strong {
+  color: var(--text-strong);
+  font-size: 15px;
+  font-weight: 790;
+}
+.group43-attendance-rate.low strong { color: var(--red); }
+.group43-attendance-rate.unknown strong { font-size: 12px; font-weight: 700; color: var(--muted); }
+.group43-rate-track {
+  display: block;
+  width: 100%;
+  height: 5px;
+  background: color-mix(in srgb, var(--muted) 18%, var(--surface));
+  border-radius: 99px;
+  overflow: hidden;
+}
+.group43-rate-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--green);
+}
+.group43-attendance-rate.low .group43-rate-track i { background: var(--red); }
+.group43-state-cell .status-pill {
+  font-size: 11px;
+  font-weight: 820;
+  min-height: 32px;
+  padding: 6px 11px;
+  letter-spacing: .02em;
+}
+.group43-roster-table td.group43-row-actions {
+  gap: 8px;
+  padding-right: 15px;
+  white-space: normal;
+}
+.group43-row-actions .button {
+  min-height: 43px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 750;
+  padding: 8px 12px;
+  white-space: nowrap;
+}
+.group43-row-actions .button:last-child {
+  color: var(--muted);
+  border-color: var(--border);
+}
+.group43-row-actions .button:last-child:hover {
+  color: var(--red);
+  border-color: color-mix(in srgb, var(--red) 32%, var(--border));
+  background: color-mix(in srgb, var(--red) 5%, var(--surface));
+}
+.group43-student-row.inactive-row .group43-row-actions .button:last-child:hover {
+  color: var(--green);
+  border-color: color-mix(in srgb, var(--green) 32%, var(--border));
+}
+
+/* Attendance: identity first, high-contrast status controls, wrapping notes. */
+.group43-attendance-panel {
+  border-radius: 24px;
+  padding: clamp(18px, 2.2vw, 29px);
+}
+.group43-attendance-panel .attendance-heading h2 {
+  font-size: clamp(22px, 2vw, 27px);
+  letter-spacing: -.035em;
+}
+.group43-attendance-roster { gap: 12px; margin-top: 22px; }
+.group43-attendance-roster .group43-attendance-card {
+  --group43-state: var(--border-strong);
+  display: grid;
+  grid-template-columns: minmax(210px, .88fr) minmax(360px, 1.35fr) minmax(240px, .9fr);
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--group43-state);
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: 0 8px 23px rgba(16, 42, 91, .045);
+  transition: border-color .16s, box-shadow .16s;
+  min-width: 0;
+}
+.group43-attendance-card.status-present { --group43-state: var(--green); }
+.group43-attendance-card.status-late { --group43-state: var(--amber); }
+.group43-attendance-card.status-absent { --group43-state: var(--red); }
+.group43-attendance-card.status-justified { --group43-state: var(--violet); }
+.group43-attendance-roster .group43-attendance-card:hover {
+  border-top-color: color-mix(in srgb, var(--group43-state) 24%, var(--border));
+  border-right-color: color-mix(in srgb, var(--group43-state) 24%, var(--border));
+  border-bottom-color: color-mix(in srgb, var(--group43-state) 24%, var(--border));
+  box-shadow: 0 12px 30px rgba(16, 42, 91, .08);
+}
+.group43-attendance-person { display: flex; align-items: center; gap: 13px; min-width: 0; }
+.group43-attendance-person > .group43-attendance-avatar {
+  flex: 0 0 43px;
+  width: 43px;
+  height: 43px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--group43-state) 22%, var(--border));
+  background: color-mix(in srgb, var(--group43-state) 9%, var(--surface));
+  color: var(--group43-state);
+  font-size: 12px;
+  font-weight: 850;
+}
+.group43-attendance-identity { display: grid; gap: 5px; min-width: 0; }
+.group43-attendance-editor .group43-attendance-identity strong {
+  color: var(--text-strong);
+  font-size: clamp(16px, 1.25vw, 18px);
+  font-weight: 790;
+  line-height: 1.35;
+  letter-spacing: -.016em;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.group43-attendance-identity > span:not(.status-pill) {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .01em;
+  font-variant-numeric: tabular-nums;
+}
+.group43-attendance-identity .status-pill { justify-self: start; }
+.group43-attendance-editor .group43-status-picker { gap: 7px; min-width: 0; }
+.group43-attendance-editor .group43-status-picker button {
+  min-height: 50px;
+  border-radius: 13px;
+  padding: 10px 5px;
+  border: 1px solid var(--border);
+  background: var(--surface-soft);
+  transition: background-color .15s, border-color .15s, box-shadow .15s;
+}
+.group43-attendance-editor .group43-status-picker button span {
+  display: inline;
+  font-size: 12px;
+  font-weight: 770;
+  line-height: 1.2;
+  white-space: normal;
+}
+.group43-attendance-editor .group43-status-picker button b { display: none; }
+.group43-attendance-editor .group43-status-picker button.active {
+  font-weight: 840;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 20%, transparent);
+}
+.group43-attendance-editor .group43-status-picker button[aria-pressed='false']:not(:disabled):hover {
+  color: var(--text-strong);
+  border-color: var(--border-strong);
+  background: var(--surface-strong);
+}
+.group43-attendance-editor .group43-status-picker button:disabled { opacity: .8; }
+.group43-attendance-note-field { display: grid; gap: 7px; min-width: 0; }
+.group43-attendance-note-field > span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 780;
+  letter-spacing: .055em;
+  text-transform: uppercase;
+}
+.group43-attendance-editor .group43-attendance-note-field .attendance-note {
+  box-sizing: border-box;
+  width: 100%;
+  grid-column: auto;
+  min-height: 66px;
+  height: auto;
+  max-height: 260px;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: var(--surface-soft);
+  color: var(--text-strong);
+  -webkit-text-fill-color: var(--text-strong);
+  font-size: 13px;
+  line-height: 1.48;
+  font-weight: 550;
+  resize: vertical;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.group43-attendance-note-field .attendance-note:disabled {
+  opacity: 1;
+  cursor: default;
+  background: color-mix(in srgb, var(--muted) 5%, var(--surface));
+}
+.group43-attendance-note-field .attendance-note::placeholder {
+  color: var(--muted);
+  -webkit-text-fill-color: var(--muted);
+}
+.group43-attendance-editor .group43-attendance-note-field .attendance-note:focus-visible {
+  border-color: var(--brand);
+  outline-offset: 2px;
+}
+
+/* Adapt gracefully on iPad / smaller desktop workspaces. */
+@media (max-width: 1370px) {
+  .group43-attendance-roster .group43-attendance-card {
+    grid-template-columns: minmax(190px, .75fr) minmax(300px, 1.25fr);
+    gap: 13px 18px;
+  }
+  .group43-attendance-note-field { grid-column: 1 / -1; }
+  .group43-attendance-editor .group43-attendance-note-field .attendance-note { min-height: 58px; }
+}
+@media (max-width: 1180px) {
+  .group43-roster-wrap { overflow: visible; }
+  .group43-roster-table, .group43-roster-table tbody { display: grid; gap: 10px; }
+  .group43-roster-table thead { display: none; }
+  .group43-detail .group43-roster-table tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px 18px;
+    padding: 16px 18px;
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--group-accent);
+    border-radius: 17px;
+    background: var(--surface);
+    box-shadow: 0 7px 21px rgba(16, 42, 91, .04);
+    min-width: 0;
+  }
+  .group43-roster-table td, .group43-roster-table td:first-child, .group43-roster-table td:last-child {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+  .group43-roster-table td::before {
+    content: attr(data-label);
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .065em;
+    text-transform: uppercase;
+  }
+  .group43-roster-table td.group43-name-cell {
+    order: -1;
+    grid-column: 1 / -1;
+  }
+  .group43-roster-table td.group43-name-cell::before { display: none; }
+  .group43-roster-table td.group43-row-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 9px;
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+  }
+  .group43-roster-table td.group43-row-actions::before { display: none; }
+  .group43-roster-table .group43-student-row:hover td {
+    background: transparent;
+    border-top-color: transparent;
+    border-bottom-color: transparent;
+  }
+  .group43-detail .group43-roster-table .group43-student-name { font-size: 17px; }
+  .group43-attendance-rate { width: min(100%, 150px); }
+}
+@media (max-width: 900px) {
+  .group43-attendance-roster .group43-attendance-card { grid-template-columns: minmax(0, 1fr); }
+  .group43-attendance-note-field { grid-column: auto; }
+  .group43-attendance-editor .group43-status-picker button { min-height: 48px; }
+}
+@media (max-width: 680px) {
+  .group-workspace .group-section-nav { border-radius: 16px; padding: 5px; gap: 4px; }
+  .group-workspace .group-section-nav a { font-size: 12px; min-height: 56px; padding: 8px 4px; }
+  .group43-students-panel, .group43-attendance-panel { padding: 17px 14px; border-radius: 19px; }
+  .group43-students-toolbar { gap: 12px; }
+  .group43-detail .group43-roster-table tr { padding: 16px 14px; gap: 11px 14px; }
+  .group43-student-avatar { flex-basis: 40px; height: 40px; border-radius: 12px; }
+  .group43-student-profile { gap: 10px; }
+  .group43-detail .group43-roster-table .group43-student-name { font-size: 16px; }
+  .group43-roster-table td.group43-row-actions { flex-wrap: wrap; }
+  .group43-row-actions .button { flex: 1 1 auto; }
+  .group43-attendance-roster .group43-attendance-card { padding: 16px 13px; border-radius: 17px; gap: 13px; }
+  .group43-attendance-editor .group43-status-picker { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .group43-attendance-editor .group43-status-picker button { min-height: 45px; }
+  .group43-attendance-note-field > span { font-size: 10px; }
+  .group43-attendance-editor .group43-attendance-note-field .attendance-note { font-size: 14px; min-height: 72px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .group43-roster-table td, .group43-attendance-roster .group43-attendance-card, .group43-attendance-editor .group43-status-picker button { transition: none; }
+}
+@media print {
+  .group43-roster-table td { background: white; }
+  .group43-attendance-card { break-inside: avoid; box-shadow: none !important; }
+}
