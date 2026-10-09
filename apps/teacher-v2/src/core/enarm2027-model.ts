@@ -43,7 +43,7 @@ export function calculateEnarmPerformance(cases: EnarmCase[], attempts: EnarmAtt
     studied: new Set(validAttempts.map(a => a.question_id)).size,
     due: marked.filter(r => r.tries > 0 && new Date(r.due_at).getTime() <= now).length,
     wrongCases: marked.filter(r => r.tries > r.successes).length,
-    lastStudiedAt: validAttempts[0]?.answered_at || null,
+    lastStudiedAt: validAttempts.map(a=>a.answered_at).sort().at(-1) || null,
     byArea,
   };
 }
@@ -51,7 +51,10 @@ export function calculateEnarmPerformance(cases: EnarmCase[], attempts: EnarmAtt
 /** One learning task at a time: prioritize new cases, then due reviews. */
 export function orderPracticeCases(cases: EnarmCase[], attempts: EnarmAttempt[], reviews: EnarmReview[], now = Date.now()): EnarmCase[] {
   const lastSeen = new Map<string, number>();
-  for (const attempt of attempts) if (!lastSeen.has(attempt.question_id)) lastSeen.set(attempt.question_id, new Date(attempt.answered_at).getTime());
+  for (const attempt of attempts) {
+    const when = new Date(attempt.answered_at).getTime();
+    if (when > (lastSeen.get(attempt.question_id) ?? -Infinity)) lastSeen.set(attempt.question_id, when);
+  }
   const reviewById = new Map(reviews.map(r => [r.question_id, r]));
   return [...cases].sort((a,b) => {
     const aSeen = lastSeen.has(a.id), bSeen = lastSeen.has(b.id);
@@ -70,7 +73,12 @@ export function dueReviewCases(cases: EnarmCase[], reviews: EnarmReview[], now =
 
 export function needsReinforcement(cases: EnarmCase[], attempts: EnarmAttempt[]): EnarmCase[] {
   const last = new Map<string,EnarmAttempt>();
-  for (const row of attempts) if (!last.has(row.question_id)) last.set(row.question_id,row);
+  for (const row of attempts) {
+    const previous = last.get(row.question_id);
+    if (!previous || new Date(row.answered_at).getTime() > new Date(previous.answered_at).getTime()) {
+      last.set(row.question_id, row);
+    }
+  }
   return cases.filter(c => last.has(c.id) && last.get(c.id)?.is_correct === false);
 }
 
