@@ -116,8 +116,8 @@ export function DashboardPage() {
     : '/groups';
 
   return (
-    <div className="view-stack dashboard-workspace">
-      <section className="dashboard-hero" aria-label="Panorama de tu jornada">
+    <div className="view-stack dashboard-workspace teacher42-dashboard">
+      <section className="dashboard-hero teacher42-dashboard-hero" aria-label="Panorama de tu jornada">
         <PageHeader
           eyebrow={new Intl.DateTimeFormat('es-MX', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()).toUpperCase()}
           title={<><span className="dashboard-greeting">{greeting()}, </span><span className="dashboard-teacher-name">{identity.displayName}</span></>}
@@ -147,7 +147,7 @@ export function DashboardPage() {
         <div className="warning-strip"><Icon name="alert" /><span>Algunos datos complementarios no pudieron cargarse: {data.warnings.join(' · ')}</span></div>
       ) : null}
 
-      <nav className="workspace-quick-actions" aria-label="Acciones rápidas">
+      <nav className="workspace-quick-actions teacher42-quick-actions" aria-label="Acciones rápidas">
         <Link to={currentOrNext ? `/attendance/${currentOrNext.slot.group_id}` : '/attendance'}><Icon name="attendance" /><span>Tomar asistencia<small>Comienza con tu grupo</small></span><Icon name="arrow" /></Link>
         <Link to="/bank"><Icon name="bank" /><span>Banco de preguntas<small>Organiza y reutiliza</small></span><Icon name="arrow" /></Link>
         <Link to="/exams/new"><Icon name="exam" /><span>Crear examen<small>Prepara tu evaluación</small></span><Icon name="arrow" /></Link>
@@ -161,7 +161,7 @@ export function DashboardPage() {
         <MetricCard icon="shield" label="Seguimiento" value={String(watch)} detail="Vigilancia preventiva" tone={watch ? 'violet' : 'neutral'} />
       </section>
 
-      <div className="dashboard-columns">
+      <div className="dashboard-columns teacher42-dashboard-columns">
         <SectionCard className="dashboard-groups-section">
           <div className="section-heading"><div><span className="eyebrow">TU AULA, A UN CLIC</span><h2>Mis grupos</h2><p>Por universidad, materia y número de grupo.</p></div><Link className="button ghost" to={catalog.allGroupsPath}>Ver todos <Icon name="arrow" /></Link></div>
           <div className={`workspace-next-action tone-${action.tone}`}><Icon name={pending ? 'clock' : 'check'} /><div><b>{action.title}</b><p>{action.detail}</p></div><Link to={nextActionPath} className="button ghost compact">{action.groupId ? 'Revisar' : 'Ver grupos'}</Link></div>
