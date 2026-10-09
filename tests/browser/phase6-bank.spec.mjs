@@ -3,13 +3,21 @@ import fs from 'node:fs/promises';
 test.use({ serviceWorkers: 'block' });
 const userId = '11111111-1111-4111-8111-111111111111';
 async function fixture(page) {
-  const state = { bank: [], inserts: [], patches: [], errors: [], fail: false };
+  const state = { bank: [], inserts: [], patches: [], errors: [], mediaUploads: [], fail: false };
   page.on('pageerror', error => state.errors.push(error.message));
   await page.addInitScript(({ userId }) => localStorage.setItem('sb-bank-fixture-auth-token', JSON.stringify({ access_token: 'synthetic-access-token', refresh_token: 'synthetic-refresh-token', expires_at: Math.floor(Date.now() / 1000) + 3600, expires_in: 3600, token_type: 'bearer', user: { id: userId, email: 'teacher@example.test', aud: 'authenticated', role: 'authenticated' } })), { userId });
   await page.route('**/config.js*', route => route.fulfill({ contentType: 'application/javascript', body: 'window.TEDVIO_CONFIG={SUPABASE_URL:"https://bank-fixture.supabase.test",SUPABASE_PUBLISHABLE_KEY:"synthetic-publishable-key"};' }));
   await page.route('https://bank-fixture.supabase.test/**', async route => {
     const request = route.request(), url = new URL(request.url()), table = url.pathname.split('/').at(-1);
     let rows = [];
+    if (url.pathname.includes('/storage/v1/object/tedvio-media-v2/') && request.method() === 'POST') {
+      state.mediaUploads.push(url.pathname);
+      return route.fulfill({ status: 200, json: { Key: url.pathname } });
+    }
+    if (url.pathname.includes('/storage/v1/object/public/tedvio-media-v2/')) {
+      return route.fulfill({ status: 200, contentType: 'image/png',
+        body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=', 'base64') });
+    }
     if (table === 'tedvio_required_legal_documents_v21') rows = [{ document_key: 'terms', version: 'test', required: true, title: 'Prueba', content_html: '<p>Prueba.</p>' }];
     else if (table === 'tedvio_user_consents') rows = [{ document_key: 'terms', document_version: 'test' }];
     else if (table === 'tedvio_onboarding_snapshot_v21') rows = { completed: true, score: 5, dismissed: true };
@@ -130,5 +138,21 @@ test('Classroom Visual 5.0: el docente crea etiquetado anatómico sin filtrar cl
   expect(JSON.stringify(saved.visual_layout)).not.toContain('Hueso');
   await expect(page.locator('.bank-question-card .question-chips')).toContainText('Etiquetado anatómico');
   await page.getByRole('button', { name: 'Respaldar banco JSON' }).click();
+  expect(state.errors).toEqual([]);
+});
+
+test('Classroom Visual 5.0: subir imagen exige cuenta propietaria y URL pública HTTPS', async ({ page }) => {
+  const state=await fixture(page);
+  await page.getByRole('button', { name: '＋ Nueva pregunta' }).click();
+  await page.getByLabel('Tipo').selectOption('image_labeling');
+  const upload=page.getByLabel('Subir imagen anatómica');
+  await upload.setInputFiles({
+    name:'anatomia.png',mimeType:'image/png',
+    buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=', 'base64'),
+  });
+  await expect(page.getByLabel('URL HTTPS de la imagen')).toHaveValue(/\/storage\/v1\/object\/public\/tedvio-media-v2\//);
+  await expect(page.locator('.visual5-editor-image img')).toBeVisible();
+  expect(state.mediaUploads).toHaveLength(1);
+  expect(state.mediaUploads[0]).toContain(`/${userId}/visual5/`);
   expect(state.errors).toEqual([]);
 });
