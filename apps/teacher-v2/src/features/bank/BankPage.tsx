@@ -155,7 +155,8 @@ function QuestionEditor({
               placeholder="https://…/craneo.png" required /></label>
           </div>
           <VisualLabelingEditor layout={draft.visualLayout} labels={draft.options} mediaUrl={draft.mediaUrl}
-            onChange={(visualLayout, options) => onChange({ ...draft, visualLayout, options, mediaType: 'image', correctAnswers: [] })} />
+            onChange={(visualLayout, options) => onChange({ ...draft, visualLayout, options, mediaType: 'image', correctAnswers: [] })}
+            onMediaUrlChange={(mediaUrl) => onChange({ ...draft, mediaUrl, mediaType: 'image' })} />
         </>
       ) : null}
 
