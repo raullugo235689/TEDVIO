@@ -170,15 +170,27 @@ function ExamsHome({ workspace }: { workspace: ExamWorkspace }) {
   const overallAverage = averages.length ? averages.reduce((sum, value) => sum + value, 0) / averages.length : null;
 
   return (
-    <div className="view-stack exams-page">
+    <div className="view-stack exams-page assessment41-page">
       <PageHeader
-        eyebrow="ETAPA 4A · EVALUACIÓN"
-        title="Evaluaciones"
-        detail="Construye exámenes desde tu banco de preguntas, prepara versiones e imprime el material para tus alumnos."
+        eyebrow="TEDVIO · ASSESSMENT STUDIO 4.1"
+        title="Assessment Studio"
+        detail="Diseña, prepara, revisa y analiza evaluaciones universitarias con versiones y evidencias académicas."
         actions={<Link className="button primary" to="/exams/new">＋ Nueva evaluación</Link>}
       />
 
-      <section className="metric-grid four">
+      <section className="assessment41-hero" aria-label="Centro de evaluación">
+        <div>
+          <span className="assessment41-eyebrow">DISEÑO Y CONTROL DE EVALUACIONES</span>
+          <h2>Exámenes profesionales, de principio a fin.</h2>
+          <p>Trabaja desde el banco de reactivos, conserva versiones estables y registra resultados con trazabilidad.</p>
+        </div>
+        <div className="assessment41-hero-steps">
+          <span><b>01</b><small>Selecciona reactivos</small></span>
+          <span><b>02</b><small>Prepara versiones</small></span>
+          <span><b>03</b><small>Evalúa resultados</small></span>
+        </div>
+      </section>
+      <section className="metric-grid four assessment41-metrics">
         <MetricCard label="Evaluaciones activas" value={String(active.length)} detail={`${workspace.exams.filter((exam) => exam.status === 'draft').length} en borrador`} icon="exam" tone="blue" />
         <MetricCard label="Listas para aplicar" value={String(workspace.exams.filter((exam) => exam.status === 'ready').length)} detail="Composición protegida" icon="check" tone="green" />
         <MetricCard label="Resultados" value={String(resultCount)} detail="Capturas conservadas" icon="grades" tone="violet" />
@@ -208,6 +220,12 @@ function ExamsHome({ workspace }: { workspace: ExamWorkspace }) {
         />
       )}
 
+      <section className="assessment41-integrity" aria-label="Integridad académica">
+        <Icon name="check" />
+        <div><b>Integridad de la evaluación</b>
+          <p>Las versiones conservan la copia del reactivo aplicada. Antes de utilizar un examen, revisa la clave, los distractores y las preguntas sin respuesta automática.</p>
+        </div>
+      </section>
       <section className="exam-integration-note">
         <Icon name="bank" />
         <div><span className="eyebrow">BANCO DE PREGUNTAS → EVALUACIÓN</span><h2>El examen guarda una copia estable de cada reactivo.</h2><p>Editar después una pregunta del Banco no cambia una evaluación ya preparada. Los resultados históricos siguen apuntando a la versión exacta aplicada.</p></div>
