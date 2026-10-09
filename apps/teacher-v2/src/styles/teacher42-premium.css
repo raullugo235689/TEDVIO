@@ -1,0 +1,46 @@
+/* TEDVIO Teacher Experience 4.2 — shared presentation layer only */
+.teacher42-shell { --teacher42-ink:#12284d; --teacher42-blue:#386bf0; --teacher42-violet:#7961e4; --teacher42-cyan:#42c8c6; }
+.teacher42-shell .sidebar {background:radial-gradient(circle at 8% 0%,rgba(81,123,239,.22),transparent 42%),linear-gradient(165deg,#091832,#10284e 70%,#102d51);border-right:1px solid rgba(132,177,247,.16);}
+.teacher42-shell .sidebar-brand {padding-bottom:23px;border-bottom:1px solid rgba(181,211,255,.14);}
+.teacher42-shell .sidebar-brand img {width:153px;}
+.teacher42-shell .nav-section-label {font-size:10px;letter-spacing:.15em;color:#9db9e4;}
+.teacher42-shell .sidebar .nav-item {min-height:47px;border-radius:13px;transition:background .16s,border-color .16s,transform .16s;}
+.teacher42-shell .sidebar .nav-item:hover {background:rgba(124,160,239,.13);transform:translateX(2px);}
+.teacher42-shell .sidebar .nav-item.active {background:linear-gradient(95deg,rgba(84,125,230,.25),rgba(113,88,212,.12));box-shadow:inset 3px 0 #72b7ff,0 9px 21px rgba(0,0,0,.08);}
+.teacher42-shell .workspace-subnav {border-color:rgba(155,194,248,.23);}
+.teacher42-shell .teacher42-trust {background:rgba(114,151,231,.1);border:1px solid rgba(160,192,247,.15);padding:14px;border-radius:15px;}
+.teacher42-shell .teacher42-trust b {color:#f2f7ff;letter-spacing:.04em;}
+.teacher42-shell .teacher42-trust small {color:#b7c9e8;}
+.teacher42-shell .teacher42-topbar {min-height:78px;border-bottom:1px solid var(--border);background:color-mix(in srgb,var(--surface) 94%,transparent);box-shadow:0 7px 28px rgba(18,40,87,.04);}
+.teacher42-shell .topbar-title > span {font-size:10px;font-weight:850;letter-spacing:.11em;}
+.teacher42-shell .workspace-route-title {font-size:18px;font-weight:750;letter-spacing:-.025em;}
+.teacher42-shell .user-chip {border-radius:16px;padding:6px 11px 6px 6px;box-shadow:0 6px 20px rgba(12,33,74,.045);}
+.teacher42-shell .user-chip > span {width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#386bf0,#7663d9);}
+.teacher42-shell .teacher42-main {background:radial-gradient(circle at 93% 1%,color-mix(in srgb,var(--brand) 5%,transparent),transparent 36%),var(--bg);}
+.teacher42-shell .section-card {border-radius:22px;box-shadow:0 12px 30px rgba(17,39,84,.045);}
+.teacher42-shell .page-header h1 {font-weight:790;letter-spacing:-.045em;}
+.teacher42-shell .button {min-height:44px;border-radius:12px;}
+.teacher42-shell .button.primary {background:linear-gradient(115deg,var(--brand),var(--brand-strong));box-shadow:0 8px 22px color-mix(in srgb,var(--brand) 17%,transparent);}
+.teacher42-shell .icon-button {border-radius:13px;}
+.teacher42-shell .metric-card {border-radius:19px;}
+.teacher42-dashboard {gap:20px;}
+.teacher42-dashboard .teacher42-dashboard-hero {border-radius:29px;border:1px solid rgba(105,161,249,.24);background:radial-gradient(circle at 84% 12%,rgba(83,135,255,.26),transparent 40%),linear-gradient(125deg,#0d1f40,#173766 62%,#15415e);box-shadow:0 25px 60px rgba(14,40,82,.19);}
+.teacher42-dashboard .dashboard-hero-agenda {background:rgba(235,245,255,.085);border-color:rgba(189,216,255,.25);border-radius:21px;}
+.teacher42-dashboard .teacher42-quick-actions {gap:14px;}
+.teacher42-dashboard .teacher42-quick-actions > a {border-radius:19px;min-height:93px;padding:21px 18px;box-shadow:0 11px 28px rgba(17,39,82,.055);}
+.teacher42-dashboard .teacher42-quick-actions > a::before {width:4px;}
+.teacher42-dashboard .teacher42-quick-actions > a > svg:first-child {width:45px;height:45px;border-radius:14px;}
+.teacher42-dashboard .teacher42-quick-actions > a span {font-size:14px;}
+.teacher42-dashboard .teacher42-quick-actions > a small {font-size:12px;}
+.teacher42-dashboard .metrics-grid .metric-card {padding:21px;border-radius:19px;box-shadow:0 12px 30px rgba(17,39,82,.055);}
+.teacher42-dashboard .metric-card b {font-size:30px;}
+.teacher42-dashboard .teacher42-dashboard-columns {gap:22px;}
+.teacher42-dashboard .group-card-v2 {border-radius:21px;padding:23px;box-shadow:0 13px 30px rgba(15,40,85,.065);}
+.teacher42-dashboard .group-card-v2 h3 {font-size:23px;}
+.teacher42-dashboard .group-card-v2 .button {min-height:40px;}
+.teacher42-dashboard .side-column .section-card {border-radius:21px;}
+.teacher42-dashboard .workspace-next-action {border-radius:17px;padding:17px;}
+.teacher42-shell :is(button,a,input,select,textarea):focus-visible {outline:3px solid var(--brand);outline-offset:3px;}
+@media(max-width:900px){.teacher42-dashboard .teacher42-quick-actions {grid-template-columns:repeat(2,minmax(0,1fr));}.teacher42-dashboard .teacher42-dashboard-columns {grid-template-columns:minmax(0,1fr);}}
+@media(max-width:540px){.teacher42-shell .teacher42-topbar {min-height:65px;}.teacher42-shell .teacher42-main {padding:18px 13px 110px;}.teacher42-dashboard .teacher42-dashboard-hero {border-radius:21px;padding:23px 20px;}.teacher42-dashboard .teacher42-quick-actions > a {padding:16px 13px;min-height:84px;}.teacher42-dashboard .teacher42-quick-actions > a > svg:first-child {width:38px;height:38px;}.teacher42-dashboard .teacher42-quick-actions > a span {font-size:12px;}.teacher42-dashboard .teacher42-quick-actions > a small {font-size:11px;}}
+@media(prefers-reduced-motion:reduce){.teacher42-shell .sidebar .nav-item,.teacher42-dashboard .teacher42-quick-actions > a{transition:none!important;transform:none!important;}}
