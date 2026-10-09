@@ -224,7 +224,7 @@ export function GroupDetailPage() {
           ) : null}
 
           <div className="toolbar-v2 group43-students-toolbar">
-            <label className="search-field"><Icon name="search" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar nombre o matrícula" aria-label="Buscar alumnos" /></label>
+            <label className="search-field"><Icon name="search" /><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar nombre o matrícula" aria-label="Buscar alumnos" /></label>
             <label className="toggle-field"><input type="checkbox" checked={showInactive} onChange={(event) => setShowInactive(event.target.checked)} /> Mostrar inactivos</label>
             <StatusPill tone="blue">{visibleStudents.length} alumnos</StatusPill>
           </div>
