@@ -948,9 +948,18 @@ function enarmFixtureCases() {
 
 test('ENARM 2027: espacio separado, siete áreas, navegación privada y diseño adaptable', async ({page})=>{
   const state=await fixture(page,false,null,{enarmCatalog:enarmFixtureCases()});
-  const study=page.locator('.sidebar-bottom').getByRole('link',{name:/ENARM 2027/});
-  await expect(study).toBeVisible();
-  await study.click();
+  const isMobile = await page.evaluate(() => innerWidth <= 900);
+  if (isMobile) {
+    await page.getByRole('button', { name: 'Más', exact: true }).click();
+    const study = page.getByRole('dialog', { name: 'Todas las herramientas' }).getByRole('link', { name: /ENARM 2027/ });
+    await expect(study).toBeVisible();
+    await study.click();
+    await expect(page.getByRole('dialog', { name: 'Todas las herramientas' })).toHaveCount(0);
+  } else {
+    const study = page.locator('.sidebar-bottom').getByRole('link', { name: /ENARM 2027/ });
+    await expect(study).toBeVisible();
+    await study.click();
+  }
   await expect(page.locator('[data-enarm-app="2027"]')).toBeVisible();
   await expect(page.getByRole('heading',{name:/ENARM 2027/})).toBeVisible();
   await expect(page.locator('.enarm-area-row')).toHaveCount(7);
