@@ -8,6 +8,10 @@ ALTER TABLE public.v2_question_bank
 ALTER TABLE public.v2_questions
   ADD COLUMN IF NOT EXISTS visual_layout jsonb;
 
+-- Classroom 3.1 revokes table-level public reads and grants only safe columns.
+-- Make coordinates public explicitly while keeping keys and explanations private.
+GRANT SELECT (visual_layout) ON public.v2_questions TO anon, authenticated;
+
 COMMENT ON COLUMN public.v2_question_bank.visual_layout IS
   'Public image target coordinates only; never a label-to-zone answer key.';
 COMMENT ON COLUMN public.v2_questions.visual_layout IS
