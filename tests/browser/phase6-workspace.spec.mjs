@@ -796,3 +796,43 @@ test('Classroom 3.1: el control docente mantiene acciones y temporizador sincron
   await page.screenshot({ path: test.info().outputPath('classroom31-control-desktop.png'), fullPage: true });
   expect(state.errors).toEqual([]);
 });
+
+test('Teacher Experience 4.2: diseño premium conserva navegación, identidad, tema y tamaños móviles', async ({ page }) => {
+  const state = await fixture(page);
+  const shell = page.locator('.teacher42-shell');
+  await expect(shell).toBeVisible();
+  await expect(page.locator('.teacher42-topbar')).toBeVisible();
+  await expect(page.locator('.teacher42-dashboard-hero')).toBeVisible();
+  await expect(page.locator('.teacher42-quick-actions > a')).toHaveCount(4);
+  await expect(page.locator('.teacher42-dashboard-columns')).toBeVisible();
+  await expect(page.locator('.teacher42-trust')).toContainText('Espacio docente protegido');
+  await expect(page.locator('.dashboard-teacher-name')).toBeVisible();
+
+  for (const width of [320, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await noOverflow(page);
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.screenshot({ path: test.info().outputPath('teacher42-dashboard-desktop.png'), fullPage: true });
+
+  await page.getByRole('button', { name: 'Activar modo oscuro' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await noOverflow(page);
+  await expect(shell).toBeVisible();
+  await page.screenshot({ path: test.info().outputPath('teacher42-dashboard-iphone-dark.png'), fullPage: true });
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.locator('.sidebar-nav').getByRole('link', { name: 'Preguntas y exámenes', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'De la pregunta al resultado.', exact: true })).toBeVisible();
+  await expect(shell).toBeVisible();
+  await expect(page.locator('.teacher42-topbar')).toBeVisible();
+  await noOverflow(page);
+  await page.getByRole('button', { name: 'Activar modo claro' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await expect(shell).toBeVisible();
+  expect(state.errors).toEqual([]);
+  expect(state.writes).toEqual([]);
+});

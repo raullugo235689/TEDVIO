@@ -128,7 +128,7 @@ export function AppShell() {
   }
 
   return (
-    <div className="app-shell" data-area={area}>
+    <div className="app-shell teacher42-shell" data-area={area}>
       <a className="workspace-skip-link" href="#tedvio-main" onClick={(event) => { event.preventDefault(); document.getElementById('tedvio-main')?.focus(); }}>Saltar al contenido</a>
       <aside className="sidebar" aria-label="Navegación principal">
         <Link className="sidebar-brand" to="/" aria-label="TEDVIO Inicio">
@@ -136,7 +136,7 @@ export function AppShell() {
         </Link>
 
         <nav className="sidebar-nav">
-          <div className="nav-section-label">TU ESPACIO</div>
+          <div className="nav-section-label">TEACHER EXPERIENCE 4.2</div>
           {navigationGroups.map((group) => <SidebarGroup group={group} pathname={location.pathname} key={group.to} />)}
         </nav>
 
@@ -144,12 +144,12 @@ export function AppShell() {
           <NavLink to="/support" data-area="settings" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
             <Icon name="alert" /><span>Ayuda y soporte</span>
           </NavLink>
-          <div className="rebuild-badge"><Icon name="shield" /><span><b>TEDVIO</b><small>Espacio docente protegido</small></span></div>
+          <div className="rebuild-badge teacher42-trust"><Icon name="shield" /><span><b>TEDVIO TEACHER</b><small>Espacio docente protegido</small></span></div>
         </div>
       </aside>
 
       <div className="workspace">
-        <header className="topbar">
+        <header className="topbar teacher42-topbar">
           <div className="topbar-title">
             <span>ESPACIO DOCENTE <span aria-hidden="true">/</span> {navigationAreaLabel[area]}</span>
             <p className="workspace-route-title">{routeTitle}</p>
@@ -187,7 +187,7 @@ export function AppShell() {
           </div>
         </header>
 
-        <main className="route-container" id="tedvio-main" tabIndex={-1}>
+        <main className="route-container teacher42-main" id="tedvio-main" tabIndex={-1}>
           <RouteErrorBoundary resetKey={location.pathname}>
             <GroupWorkspace><Outlet /></GroupWorkspace>
           </RouteErrorBoundary>
