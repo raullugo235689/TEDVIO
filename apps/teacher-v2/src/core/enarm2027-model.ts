@@ -1,4 +1,5 @@
-import { ENARM_AREAS, type EnarmArea, type EnarmAttempt, type EnarmCase, type EnarmReview } from './enarm2027';
+import { ENARM_AREAS, type EnarmArea } from './enarm2027-areas.ts';
+import type { EnarmAttempt, EnarmCase, EnarmReview } from './enarm2027';
 
 export interface AreaPerformance {
   area: EnarmArea;
