@@ -23,6 +23,8 @@ import { AcademicDeleteButton } from '../../shared/AcademicDeleteButton';
 import { useAuth } from '../auth/AuthProvider';
 import { ExamImportPanel } from '../exams/ExamCreatorPanels';
 import { BankOrganization, downloadBankBackup } from './BankOrganization';
+import { defaultImageLabelingLayout, normalizeImageLabelingLayout } from '../../core/visual-question';
+import { VisualLabelingEditor } from './VisualLabelingEditor';
 
 const typeLabels: Record<BankQuestionType, string> = {
   multiple_choice: 'Opción múltiple',
@@ -50,18 +52,24 @@ function difficultyLabel(value?: string | null): string {
   return 'Sin nivel';
 }
 
-function normalizeTypeDraft(current: BankQuestionDraft, questionType: BankQuestionType): BankQuestionDraft {
+function normalizeTypeDraft(current: BankQuestionDraft, questionType: BankQuestionType | 'image_labeling'): BankQuestionDraft {
+  if (questionType === 'image_labeling') {
+    const layout = normalizeImageLabelingLayout(current.visualLayout) || defaultImageLabelingLayout();
+    return { ...current, questionType: 'ordering', visualLayout: layout,
+      mediaType: 'image', options: Array.from({ length: layout.targets.length }, (_, index) => current.options[index] || '') };
+  }
+  const plain = { ...current, visualLayout: null };
   if (questionType === 'true_false') {
-    return { ...current, questionType, options: ['Verdadero', 'Falso'], correctAnswers: [] };
+    return { ...plain, questionType, options: ['Verdadero', 'Falso'], correctAnswers: [] };
   }
   if (questionType === 'scale_5') {
-    return { ...current, questionType, options: ['1', '2', '3', '4', '5'], correctAnswers: [] };
+    return { ...plain, questionType, options: ['1', '2', '3', '4', '5'], correctAnswers: [] };
   }
   if (!optionTypes.has(questionType)) {
-    return { ...current, questionType, options: [], correctAnswers: [] };
+    return { ...plain, questionType, options: [], correctAnswers: [] };
   }
   const options = current.options.length >= 2 ? current.options : ['', '', '', ''];
-  return { ...current, questionType, options, correctAnswers: [] };
+  return { ...plain, questionType, options, correctAnswers: [] };
 }
 
 function QuestionEditor({
@@ -127,7 +135,7 @@ function QuestionEditor({
 
       <div className="form-grid two">
         <label>Título interno<input value={draft.title} onChange={(event) => onChange({ ...draft, title: event.target.value })} placeholder="Osteogénesis · pregunta 1" /></label>
-        <label>Tipo<select value={draft.questionType} onChange={(event) => onChange(normalizeTypeDraft(draft, event.target.value as BankQuestionType))}>{Object.entries(typeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+        <label>Tipo<select value={draft.visualLayout ? 'image_labeling' : draft.questionType} onChange={(event) => onChange(normalizeTypeDraft(draft, event.target.value as BankQuestionType | 'image_labeling'))}>{Object.entries(typeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}<option value="image_labeling">Etiquetado anatómico · Imagen interactiva</option></select></label>
         <label>Materia<input value={draft.subject} onChange={(event) => onChange({ ...draft, subject: event.target.value })} placeholder="Anatomía" /></label>
         <label>Tema<input value={draft.topic} onChange={(event) => onChange({ ...draft, topic: event.target.value })} placeholder="Osteogénesis" /></label>
         <label>Carpeta<input value={draft.folder} onChange={(event) => onChange({ ...draft, folder: event.target.value })} placeholder="Unidad 1" /></label>
@@ -138,7 +146,20 @@ function QuestionEditor({
 
       <label className="wide-field">Enunciado<textarea rows={4} value={draft.prompt} onChange={(event) => onChange({ ...draft, prompt: event.target.value })} placeholder="Escribe la pregunta que verá el alumno" required /></label>
 
-      {optionTypes.has(draft.questionType) ? (
+      {draft.visualLayout ? (
+        <>
+          <div className="form-grid two visual5-media-fields">
+            <label>Recurso multimedia<input readOnly value="Imagen anatómica" aria-label="Recurso: imagen anatómica" /></label>
+            <label>URL HTTPS de la imagen<input type="url" value={draft.mediaUrl}
+              onChange={(event) => onChange({ ...draft, mediaUrl: event.target.value, mediaType: 'image' })}
+              placeholder="https://…/craneo.png" required /></label>
+          </div>
+          <VisualLabelingEditor layout={draft.visualLayout} labels={draft.options} mediaUrl={draft.mediaUrl}
+            onChange={(visualLayout, options) => onChange({ ...draft, visualLayout, options, mediaType: 'image', correctAnswers: [] })} />
+        </>
+      ) : null}
+
+      {optionTypes.has(draft.questionType) && !draft.visualLayout ? (
         <section className="bank-options-editor">
           <div className="section-heading compact"><div><span className="eyebrow">OPCIONES</span><h3>{draft.questionType === 'ordering' ? 'Orden correcto' : 'Respuestas disponibles'}</h3><p>{draft.questionType === 'poll' || draft.questionType === 'scale_5' ? 'Esta actividad no tiene una respuesta correcta.' : draft.questionType === 'ordering' ? 'El orden visible será la solución esperada.' : 'Marca la opción o las opciones correctas.'}</p></div>{!['true_false', 'scale_5'].includes(draft.questionType) ? <button className="button ghost compact" type="button" onClick={() => onChange({ ...draft, options: [...draft.options, ''] })}>＋ Opción</button> : null}</div>
           <div className="bank-option-list">
@@ -154,14 +175,14 @@ function QuestionEditor({
         </section>
       ) : null}
 
-      {!optionTypes.has(draft.questionType) && !['poll', 'scale_5'].includes(draft.questionType) ? (
+      {!draft.visualLayout && !optionTypes.has(draft.questionType) && !['poll', 'scale_5'].includes(draft.questionType) ? (
         <label className="wide-field">{draft.questionType === 'hotspot' ? 'Descripción de la zona correcta' : 'Respuesta de referencia'}<input value={draft.correctAnswers[0] || ''} onChange={(event) => onChange({ ...draft, correctAnswers: event.target.value ? [event.target.value] : [] })} placeholder={draft.questionType === 'numeric' ? 'Ej. 7.5' : 'Opcional'} /></label>
       ) : null}
 
-      <div className="form-grid two">
+      {!draft.visualLayout ? <div className="form-grid two">
         <label>Recurso multimedia<select value={draft.mediaType} onChange={(event) => onChange({ ...draft, mediaType: event.target.value as BankQuestionDraft['mediaType'] })}><option value="">Sin recurso</option><option value="image">Imagen</option><option value="audio">Audio</option><option value="video">Video</option></select></label>
         <label>URL del recurso<input value={draft.mediaUrl} onChange={(event) => onChange({ ...draft, mediaUrl: event.target.value })} placeholder="https://…" disabled={!draft.mediaType} /></label>
-      </div>
+      </div> : null}
       <label className="wide-field">Explicación o retroalimentación<textarea rows={3} value={draft.explanation} onChange={(event) => onChange({ ...draft, explanation: event.target.value })} placeholder="Explica por qué la respuesta es correcta" /></label>
 
       <div className="editor-checks">
@@ -199,7 +220,7 @@ function QuestionCard({
     <article className={`bank-question-card${selected ? ' selected' : ''}${question.archived ? ' archived' : ''}`}>
       <header>
         <label className="question-selector"><input type="checkbox" checked={selected} onChange={onSelect} /><span /></label>
-        <div className="bank-question-heading"><div className="question-chips"><StatusPill tone="blue">{typeLabels[question.question_type]}</StatusPill><StatusPill>{difficultyLabel(question.difficulty)}</StatusPill>{question.favorite ? <StatusPill tone="amber">Favorita</StatusPill> : null}{question.archived ? <StatusPill>Archivada</StatusPill> : null}</div><h2>{question.prompt}</h2><p>{[question.subject, question.topic, question.folder].filter(Boolean).join(' · ') || 'Sin clasificación'}</p></div>
+        <div className="bank-question-heading"><div className="question-chips"><StatusPill tone="blue">{normalizeImageLabelingLayout(question.visual_layout) ? 'Etiquetado anatómico' : typeLabels[question.question_type]}</StatusPill><StatusPill>{difficultyLabel(question.difficulty)}</StatusPill>{question.favorite ? <StatusPill tone="amber">Favorita</StatusPill> : null}{question.archived ? <StatusPill>Archivada</StatusPill> : null}</div><h2>{question.prompt}</h2><p>{[question.subject, question.topic, question.folder].filter(Boolean).join(' · ') || 'Sin clasificación'}</p></div>
       </header>
       {question.media_url ? <div className="question-media-note"><Icon name="layout" />Incluye {question.media_type || 'recurso multimedia'}</div> : null}
       {options.length ? <div className="question-option-preview">{options.slice(0, 5).map((option, index) => <span key={`${option}-${index}`}><b>{String.fromCharCode(65 + index)}</b>{option}</span>)}</div> : null}
