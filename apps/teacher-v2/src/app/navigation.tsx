@@ -41,7 +41,7 @@ export const navigationGroups = [
 
 export type NavigationGroup = (typeof navigationGroups)[number];
 
-export type NavigationArea = 'home' | 'groups' | 'prepare' | 'reports' | 'settings';
+export type NavigationArea = 'home' | 'groups' | 'prepare' | 'reports' | 'settings' | 'enarm';
 
 const areaByRoute: Record<string, NavigationArea> = {
   '/': 'home',
@@ -52,6 +52,7 @@ const areaByRoute: Record<string, NavigationArea> = {
 };
 
 export function navigationArea(pathname: string): NavigationArea {
+  if (pathname.startsWith('/enarm-2027')) return 'enarm';
   if (pathname === '/support') return 'settings';
   const group = navigationGroups.find((entry) => isNavigationGroupActive(entry, pathname));
   return group ? areaByRoute[group.to] ?? 'home' : 'home';
@@ -63,6 +64,7 @@ export const navigationAreaLabel: Record<NavigationArea, string> = {
   prepare: 'Preguntas y exámenes',
   reports: 'Reportes',
   settings: 'Configuración',
+  enarm: 'ENARM 2027',
 };
 
 export function isNavigationGroupActive(group: NavigationGroup, pathname: string): boolean {
@@ -71,6 +73,7 @@ export function isNavigationGroupActive(group: NavigationGroup, pathname: string
 }
 
 export function navigationTitle(pathname: string): string {
+  if (pathname.startsWith('/enarm-2027')) return 'ENARM 2027 · Mi preparación';
   if (pathname === '/attendance-joint' || pathname.startsWith('/attendance-joint/')) return 'Asistencia conjunta';
   if (/^\/classroom\/[^/]+\/health$/.test(pathname)) return 'Salud del piloto';
   if (pathname.startsWith('/groups/')) return 'Centro de grupo';

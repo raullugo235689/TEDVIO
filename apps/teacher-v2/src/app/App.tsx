@@ -9,6 +9,7 @@ import { OnboardingExperience } from '../features/onboarding/OnboardingExperienc
 import { LoadingScreen } from '../shared/components';
 import {
   loadAgendaPage,
+  loadEnarm2027Page,
   loadAnalyticsPage,
   loadAttendancePage,
   loadBankPage,
@@ -31,6 +32,7 @@ import {
 } from './route-loaders';
 
 const DashboardPage = lazy(() => loadDashboardPage().then((module) => ({ default: module.DashboardPage })));
+const Enarm2027Page = lazy(() => loadEnarm2027Page().then((module) => ({ default: module.Enarm2027Page })));
 const PreparePage = lazy(() => loadPreparePage().then((module) => ({ default: module.PreparePage })));
 const AgendaPage = lazy(() => loadAgendaPage().then((module) => ({ default: module.AgendaPage })));
 const GroupsPage = lazy(() => loadGroupsPage().then((module) => ({ default: module.GroupsPage })));
@@ -83,6 +85,7 @@ export function App() {
       <Route element={<ProtectedShell />}>
         <Route index element={tool(<DashboardPage />, 'Preparando tu centro docente…')} />
         <Route path="prepare" element={tool(<PreparePage />, 'Abriendo preguntas y exámenes…')} />
+        <Route path="enarm-2027" element={tool(<Enarm2027Page />, 'Preparando tu estudio ENARM 2027…')} />
         <Route path="agenda" element={tool(<AgendaPage />, 'Abriendo Agenda…')} />
         <Route path="groups" element={tool(<GroupsPage />, 'Abriendo Grupos…')} />
         <Route path="groups/:groupId" element={tool(<GroupDetailPage />, 'Abriendo el grupo…')} />
