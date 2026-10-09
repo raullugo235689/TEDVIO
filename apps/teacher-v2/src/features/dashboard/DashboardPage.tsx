@@ -143,6 +143,16 @@ export function DashboardPage() {
 
       <JointAttendanceShortcut />
 
+      <section className="enarm2027-home-shortcut" aria-label="Mi preparación ENARM 2027">
+        <span className="enarm2027-home-symbol"><Icon name="exam" /></span>
+        <div>
+          <span className="enarm2027-home-eyebrow">MI FORMACIÓN PERSONAL</span>
+          <h2>ENARM 2027</h2>
+          <p>Casos clínicos, repaso inteligente y simulador en tu misma cuenta TEDVIO.</p>
+        </div>
+        <Link to="/enarm-2027" className="button secondary enarm2027-home-open">Abrir mi preparación <Icon name="arrow" /></Link>
+      </section>
+
       {data.warnings.length ? (
         <div className="warning-strip"><Icon name="alert" /><span>Algunos datos complementarios no pudieron cargarse: {data.warnings.join(' · ')}</span></div>
       ) : null}
