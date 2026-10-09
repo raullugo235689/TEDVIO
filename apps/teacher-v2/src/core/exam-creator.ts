@@ -1,5 +1,5 @@
 import type { BankQuestion, BankQuestionDraft, BloomLevel, QuestionDifficulty } from './bank';
-import { normalizeImageLabelingLayout, validateImageLabelingDraft } from './visual-question';
+import { normalizeImageLabelingLayout, validateImageLabelingDraft } from './visual-question.ts';
 import type { ExamDraft } from './exams';
 
 export interface ImportIssue {
