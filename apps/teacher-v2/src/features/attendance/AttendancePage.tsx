@@ -20,6 +20,7 @@ import type { AttendanceRecordStatus, AttendanceSessionState, DashboardGroup } f
 import { useTeacherHome } from '../../core/useTeacherHome';
 import { EmptyState, ErrorPanel, LoadingScreen, MetricCard, PageHeader, SectionCard, StatusPill } from '../../shared/components';
 import { Icon } from '../../shared/icons';
+import { studentInitials } from '../../core/student-display';
 import { useAuth } from '../auth/AuthProvider';
 
 const statuses: Array<{ key: AttendanceRecordStatus; label: string; short: string }> = [
@@ -259,7 +260,7 @@ function AttendanceEditor({ groupId, date }: { groupId: string; date: string }) 
   const needsSave = dirty || unsavedDefaults;
 
   return (
-    <div className="view-stack attendance-editor">
+    <div className="view-stack attendance-editor group43-attendance-editor">
       <PageHeader
         eyebrow={group.group_name || group.name}
         title="Asistencia"
@@ -306,7 +307,7 @@ function AttendanceEditor({ groupId, date }: { groupId: string; date: string }) 
             <MetricCard icon="shield" label="Justificadas" value={String(counts.justified || 0)} detail="Con justificación" tone="violet" />
           </section>
 
-          <SectionCard>
+          <SectionCard className="group43-attendance-panel">
             <div className="section-heading attendance-heading">
               <div><span className="eyebrow">CAPTURA</span><h2>{students.length} alumnos activos</h2><p>{locked ? 'La lista está cerrada. Reábrela para corregir registros.' : needsSave ? 'Hay cambios pendientes de guardar.' : 'La captura visible está guardada.'}</p></div>
               <div className="page-actions">
@@ -326,17 +327,27 @@ function AttendanceEditor({ groupId, date }: { groupId: string; date: string }) 
             </div>
 
             {filteredStudents.length ? (
-              <div className="attendance-roster">
+              <div className="attendance-roster group43-attendance-roster">
                 {filteredStudents.map((student) => {
                   const value = draft[student.id] || { status: 'present' as AttendanceRecordStatus, note: '' };
                   const withoutRecord = session.entry_mode === 'qr' && !dirty && !day.data!.records.some(r => r.student_id === student.id);
                   return (
-                    <article className={`attendance-student status-${value.status}`} key={student.id}>
-                      <div className="attendance-student-name"><strong>{student.full_name}</strong><span>{student.enrollment}</span>{withoutRecord ? <StatusPill>Sin registro</StatusPill> : null}</div>
-                      <div className="attendance-status-control" role="group" aria-label={`Estado de ${student.full_name}`}>
+                    <article className={`attendance-student group43-attendance-card status-${value.status}`} key={student.id}>
+                      <div className="attendance-student-name group43-attendance-person">
+                        <span className="group43-attendance-avatar" aria-hidden="true">{studentInitials(student.full_name)}</span>
+                        <div className="group43-attendance-identity">
+                          <strong>{student.full_name}</strong>
+                          <span>Matrícula {student.enrollment}</span>
+                          {withoutRecord ? <StatusPill>Sin registro</StatusPill> : null}
+                        </div>
+                      </div>
+                      <div className="attendance-status-control group43-status-picker" role="group" aria-label={`Estado de ${student.full_name}`}>
                         {statuses.map((status) => <button key={status.key} type="button" disabled={locked || busy} className={!withoutRecord && value.status === status.key ? `active ${status.key}` : ''} aria-pressed={!withoutRecord && value.status === status.key} title={status.label} onClick={() => { setDraft((current) => ({ ...current, [student.id]: { ...value, status: status.key } })); }}><b>{status.short}</b><span>{status.label}</span></button>)}
                       </div>
-                      <input aria-label={`Observación de ${student.full_name}`} className="attendance-note" disabled={locked || busy} value={value.note} onChange={(event) => { setDraft((current) => ({ ...current, [student.id]: { ...value, note: event.target.value } })); }} placeholder="Observación opcional" />
+                      <label className="group43-attendance-note-field">
+                        <span>Observación</span>
+                        <textarea rows={2} aria-label={`Observación de ${student.full_name}`} className="attendance-note" disabled={locked || busy} value={value.note} onChange={(event) => { setDraft((current) => ({ ...current, [student.id]: { ...value, note: event.target.value } })); }} placeholder="Agregar una observación…" />
+                      </label>
                     </article>
                   );
                 })}

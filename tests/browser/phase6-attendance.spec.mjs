@@ -146,3 +146,37 @@ test('asistencia detecta cambios remotos y pide confirmar antes de descartar o s
     const event = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(event); return event.defaultPrevented;
   })).toBe(false);
 });
+
+test('Group Detail 4.3: lista premium presenta nombres y observaciones completas sin modificar guardado', async ({ page }) => {
+  const state = await attendanceFixture(page);
+  await expect(page.locator('.group43-attendance-roster')).toBeVisible();
+  await expect(page.locator('.group43-attendance-card')).toHaveCount(2);
+  await expect(page.locator('.group43-attendance-identity strong').first()).toHaveText('Alumno A');
+  await expect(page.locator('.group43-attendance-avatar').first()).toHaveText('AA');
+  await expect(statusA(page, 'Presente')).toHaveAttribute('aria-pressed', 'true');
+
+  const note = page.getByLabel('Observación de Alumno A');
+  await expect(note).toHaveJSProperty('tagName', 'TEXTAREA');
+  const longNote = 'Registro por asistencia conjunta, participación confirmada durante la sesión clínica. Se requiere seguimiento académico posterior.';
+  await note.fill(longNote);
+  await expect(note).toHaveValue(longNote);
+  await statusA(page, 'Retardo').click();
+  await expect(statusA(page, 'Retardo')).toHaveAttribute('aria-pressed', 'true');
+  await expect(statusA(page, 'Presente')).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.locator('.group43-attendance-card').first()).toHaveClass(/status-late/);
+
+  for (const width of [320, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    const layout = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, viewport: innerWidth }));
+    expect(layout.width).toBeLessThanOrEqual(layout.viewport + 1);
+    const dimensions = await note.evaluate(element => ({ width: element.clientWidth, scrollWidth: element.scrollWidth, note: element.value }));
+    expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.width + 1);
+    expect(dimensions.note).toBe(longNote);
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.screenshot({ path: test.info().outputPath('group43-attendance-desktop.png'), fullPage: true });
+  await page.getByRole('button', { name: 'Activar modo oscuro' }).click();
+  await page.setViewportSize({ width: 768, height: 1024 });
+  await page.screenshot({ path: test.info().outputPath('group43-attendance-ipad-dark.png'), fullPage: true });
+  expect(state.writes).toBe(0);
+});

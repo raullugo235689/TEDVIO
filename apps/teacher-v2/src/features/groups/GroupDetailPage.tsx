@@ -15,6 +15,7 @@ import {
 import type { AttendanceRecordRow, AttendanceSessionRecord, StudentRecord } from '../../core/types';
 import { EmptyState, ErrorPanel, LoadingScreen, MetricCard, PageHeader, SectionCard, StatusPill } from '../../shared/components';
 import { Icon } from '../../shared/icons';
+import { studentInitials } from '../../core/student-display';
 
 function formatDate(value: string): string {
   return new Date(`${value}T12:00:00`).toLocaleDateString('es-MX', {
@@ -159,7 +160,7 @@ export function GroupDetailPage() {
   const groupTitle = data.group.group_name || data.group.name;
 
   return (
-    <div className="view-stack">
+    <div className="view-stack group43-detail">
       <PageHeader
         eyebrow={tab === 'summary' ? 'PANORAMA' : tab === 'students' ? 'PADRÓN' : 'ASISTENCIA'}
         title={tab === 'summary' ? 'Resumen del grupo' : tab === 'students' ? 'Alumnos del grupo' : 'Historial de asistencia'}
@@ -197,7 +198,7 @@ export function GroupDetailPage() {
       </div> : null}
 
       {tab === 'students' ? (
-        <SectionCard>
+        <SectionCard className="group43-students-panel">
           <div className="section-heading">
             <div><h2>Lista de alumnos</h2><p>Agrega, importa o actualiza los datos de tu grupo.</p></div>
             <div className="page-actions"><button className="button ghost" type="button" onClick={() => setBulkOpen((value) => !value)}>Importar lista</button><button className="button primary" type="button" onClick={() => setStudentDraft({ enrollment: '', fullName: '', active: true })}>＋ Alumno</button></div>
@@ -222,26 +223,39 @@ export function GroupDetailPage() {
             </div>
           ) : null}
 
-          <div className="toolbar-v2">
-            <label className="search-field"><Icon name="search" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar nombre o matrícula" aria-label="Buscar alumnos" /></label>
+          <div className="toolbar-v2 group43-students-toolbar">
+            <label className="search-field"><Icon name="search" /><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar nombre o matrícula" aria-label="Buscar alumnos" /></label>
             <label className="toggle-field"><input type="checkbox" checked={showInactive} onChange={(event) => setShowInactive(event.target.checked)} /> Mostrar inactivos</label>
             <StatusPill tone="blue">{visibleStudents.length} alumnos</StatusPill>
           </div>
 
           {visibleStudents.length ? (
-            <div className="data-table-wrap">
-              <table className="data-table roster-table">
+            <div className="data-table-wrap group43-roster-wrap">
+              <table className="data-table roster-table group43-roster-table">
                 <thead><tr><th>Matrícula</th><th>Alumno</th><th>Asistencia</th><th>Estado</th><th /></tr></thead>
                 <tbody>
                   {visibleStudents.map((student) => {
                     const rate = studentAttendanceRate(student.id, data.attendance_records);
                     return (
-                      <tr key={student.id} className={student.active ? '' : 'inactive-row'}>
-                        <td data-label="Matrícula"><strong>{student.enrollment}</strong></td>
-                        <td data-label="Alumno"><Link className="student-profile-link" to={`/students/${groupId}/${student.id}`}>{student.full_name}</Link></td>
-                        <td data-label="Asistencia">{rate === null ? '—' : `${rate}%`}</td>
-                        <td data-label="Estado"><StatusPill tone={student.active ? 'green' : 'neutral'}>{student.active ? 'Activo' : 'Inactivo'}</StatusPill></td>
-                        <td className="row-actions">
+                      <tr key={student.id} className={`group43-student-row${student.active ? '' : ' inactive-row'}`}>
+                        <td data-label="Matrícula" className="group43-enrollment"><strong>{student.enrollment}</strong></td>
+                        <td data-label="Alumno" className="group43-name-cell">
+                          <div className="group43-student-profile">
+                            <span className="group43-student-avatar" aria-hidden="true">{studentInitials(student.full_name)}</span>
+                            <div className="group43-student-copy">
+                              <Link className="student-profile-link group43-student-name" to={`/students/${groupId}/${student.id}`}>{student.full_name}</Link>
+                              <small>Ver expediente académico <Icon name="arrow" /></small>
+                            </div>
+                          </div>
+                        </td>
+                        <td data-label="Asistencia" className="group43-attendance-cell">
+                          <div className={`group43-attendance-rate ${rate === null ? 'unknown' : rate < 80 ? 'low' : 'normal'}`}>
+                            <strong>{rate === null ? 'Sin datos' : `${rate}%`}</strong>
+                            {rate !== null ? <span className="group43-rate-track" aria-hidden="true"><i style={{ width: `${rate}%` }} /></span> : null}
+                          </div>
+                        </td>
+                        <td data-label="Estado" className="group43-state-cell"><StatusPill tone={student.active ? 'green' : 'neutral'}>{student.active ? 'Activo' : 'Inactivo'}</StatusPill></td>
+                        <td className="row-actions group43-row-actions">
                           <button className="button ghost compact" type="button" onClick={() => setStudentDraft({ id: student.id, enrollment: student.enrollment, fullName: student.full_name, active: student.active })}>Editar</button>
                           <button className="button ghost compact" type="button" disabled={activeMutation.isPending} onClick={() => {
                             if (student.active && !window.confirm(`¿Retirar a ${student.full_name} de la lista activa?`)) return;
