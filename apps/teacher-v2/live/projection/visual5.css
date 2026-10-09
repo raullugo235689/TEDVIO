@@ -1,0 +1,11 @@
+/* TEDVIO Classroom Visual 5.0: projection reveals only after the protected RPC. */
+.visual5-projection{display:flex;align-items:center;flex-direction:column;gap:13px;max-width:100%;min-width:0;}
+.visual5-projection-image{position:relative;width:fit-content;max-width:100%;margin:0 auto;border-radius:18px;background:#edf2f9;}
+.visual5-projection-image>img{display:block;width:auto;max-width:100%;max-height:min(56vh,620px);height:auto;object-fit:contain;border-radius:18px;}
+.visual5-projection-zone{position:absolute;display:flex;align-items:center;gap:6px;left:0;top:0;transform:translate(-50%,-50%);pointer-events:none;}
+.visual5-projection-zone>b{display:grid;place-items:center;width:38px;height:38px;flex:0 0 38px;border:3px solid #eaf2ff;border-radius:50%;background:#316cdf;color:#fff;font-size:15px;font-weight:950;box-shadow:0 8px 25px rgba(7,18,41,.44);}
+.visual5-projection-zone.revealed>b{background:#0da879;border-color:#f0fff5;box-shadow:0 0 0 6px rgba(0,207,136,.18);}
+.visual5-projection-zone>span{max-width:min(235px,30vw);padding:7px 11px;border:1px solid #8ee7ba;border-radius:10px;background:#ebfff5;color:#064b36;font-size:clamp(13px,1.5vw,19px);font-weight:900;line-height:1.25;overflow-wrap:anywhere;box-shadow:0 5px 18px rgba(3,22,43,.19);}
+.visual5-projection-caption{margin:0;padding:8px 13px;border-radius:99px;color:#a8cbff;background:rgba(70,132,247,.1);font-size:12px;font-weight:850;text-align:center;}
+.visual5-projection-instruction{font-size:15px;line-height:1.6;}
+@media(max-width:650px){.visual5-projection-zone>b{width:28px;height:28px;flex-basis:28px;font-size:11px;}.visual5-projection-zone>span{font-size:12px;max-width:95px;padding:5px 6px;}.visual5-projection-image>img{max-height:43vh;}}
