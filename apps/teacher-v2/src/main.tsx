@@ -36,6 +36,7 @@ import './styles/agenda-premium.css';
 import './styles/agenda-timetable.css';
 import './styles/reports-premium.css';
 import './styles/classroom31-premium.css';
+import './styles/teacher42-premium.css';
 
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
