@@ -1,4 +1,5 @@
 import type { BankQuestion, BankQuestionDraft, BloomLevel, QuestionDifficulty } from './bank';
+import { normalizeImageLabelingLayout, validateImageLabelingDraft } from './visual-question';
 import type { ExamDraft } from './exams';
 
 export interface ImportIssue {
@@ -198,7 +199,7 @@ export function parseQuestionImport(text: string, existing: BankQuestion[] = [])
 }
 
 export function bankBackup(questions: BankQuestion[]): string {
-  return JSON.stringify({ format: 'tedvio-question-bank', version: 1, questions: questions.map(({ title, subject, topic, question_type, prompt, options, correct_answer, explanation, difficulty, folder, tags, bloom, media_url, media_type, favorite, archived }) => ({ title, subject, topic, question_type, prompt, options, correct_answer, explanation, difficulty, folder, tags, bloom, media_url, media_type, favorite, archived })) }, null, 2);
+  return JSON.stringify({ format: 'tedvio-question-bank', version: 1, questions: questions.map(({ title, subject, topic, question_type, prompt, options, correct_answer, visual_layout, explanation, difficulty, folder, tags, bloom, media_url, media_type, favorite, archived }) => ({ title, subject, topic, question_type, prompt, options, correct_answer, visual_layout, explanation, difficulty, folder, tags, bloom, media_url, media_type, favorite, archived })) }, null, 2);
 }
 
 function parseBankJson(source: string, existing: BankQuestion[]): ImportReport {
@@ -245,7 +246,10 @@ function parseBankJson(source: string, existing: BankQuestion[]): ImportReport {
         if (!['','baja','media','alta'].includes(level) || !['','recordar','comprender','aplicar','analizar','evaluar','crear'].includes(cognitive)) throw new Error('Dificultad o nivel Bloom no válido.');
         if (!['','image','audio','video'].includes(mediaType) || (mediaType && !mediaUrl)) throw new Error('Revisa el recurso multimedia.');
         for (const flag of ['favorite','archived']) if (value[flag] != null && typeof value[flag] !== 'boolean') throw new Error(`${flag} debe ser true o false.`);
-        const draft: BankQuestionDraft = { title: string('title', prompt.slice(0,110)), prompt, questionType, subject: string('subject'), topic: string('topic'), options, correctAnswers, explanation: string('explanation'), difficulty: level, bloom: cognitive, folder: string('folder'), tags: list(value.tags, 'Etiquetas'), mediaType, mediaUrl, favorite: value.favorite === true, archived: value.archived === true };
+        const visualLayout = normalizeImageLabelingLayout(value.visualLayout ?? value.visual_layout);
+        if ((value.visualLayout ?? value.visual_layout) && !visualLayout) throw new Error('Las zonas de la imagen no son válidas.');
+        const visualLabels = visualLayout ? validateImageLabelingDraft(visualLayout, correctAnswers, mediaUrl, mediaType).answer : options;
+        const draft: BankQuestionDraft = { title: string('title', prompt.slice(0,110)), prompt, questionType, subject: string('subject'), topic: string('topic'), options: visualLabels, correctAnswers, visualLayout, explanation: string('explanation'), difficulty: level, bloom: cognitive, folder: string('folder'), tags: list(value.tags, 'Etiquetas'), mediaType, mediaUrl, favorite: value.favorite === true, archived: value.archived === true };
         const fingerprint = questionFingerprint(draft);
         const duplicate = known.has(fingerprint);
         known.add(fingerprint);
