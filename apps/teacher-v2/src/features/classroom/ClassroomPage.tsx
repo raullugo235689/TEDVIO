@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { formatPercent, groupName, groupSubject } from '../../core/academic';
 import { classroomSecondsRemaining } from '../../core/classroom-clock';
+import { normalizeImageLabelingLayout } from '../../core/visual-question';
 import {
   classroomSessionKey,
   classroomSessionsKey,
@@ -274,6 +275,26 @@ function ClassroomLanding() {
 }
 
 function Distribution({ question, responses }: { question: ClassroomQuestion; responses: ClassroomResponse[] }) {
+  const visual = normalizeImageLabelingLayout(question.visual_layout);
+  if (visual) {
+    const key = question.status === 'revealed' && Array.isArray(question.correct_answer)
+      ? question.correct_answer.map(String) : null;
+    const correct = responses.filter((response) => response.is_correct === true).length;
+    return <div className="visual5-teacher-summary">
+      <div><b>{responses.length}</b><span>Etiquetados recibidos</span></div>
+      <div><b>{visual.targets.length}</b><span>Estructuras en la imagen</span></div>
+      {key ? <div><b>{correct}</b><span>Etiquetados correctos</span></div> : null}
+      {key ? <div className="visual5-teacher-analysis" aria-label="Aciertos por estructura">
+        {key.map((label, index) => {
+          const correctZone = responses.filter((response) => Array.isArray(response.answer)
+            && String(response.answer[index]) === label).length;
+          const rate = responses.length ? Math.round(100 * correctZone / responses.length) : 0;
+          return <div key={index}><span>{index + 1}. {label}</span><b>{rate}%</b>
+            <div className="result-bar"><i style={{ width: `${rate}%` }} /></div></div>;
+        })}
+      </div> : <p>El análisis por estructura aparecerá después de mostrar la respuesta.</p>}
+    </div>;
+  }
   const options = questionOptions(question);
   const correct = correctSet(question);
   if (question.question_type === 'open_text') {
@@ -642,8 +663,21 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
               <nav className="classroom-question-strip classroom31-strip" aria-label="Preguntas de la sesión">{questions.map((question) => <button type="button" key={question.id} className={`${question.status}${current.id === question.id ? ' current' : ''}`} disabled={question.status === 'queued' || actionMutation.isPending} onClick={() => question.status !== 'queued' && actionMutation.mutate({ type: 'launch', questionId: question.id })}>{question.position}</button>)}</nav>
               <section className="classroom-stage-grid premium-stage classroom31-stage" key={current.id}>
                 <article className={`classroom-question-stage classroom31-question-stage stage-${current.status}`}>
-                  <header><div><div className="question-chips"><StatusPill tone={current.status === 'live' ? 'green' : current.status === 'revealed' ? 'violet' : 'neutral'}>{questionLabel(current.status)}</StatusPill><StatusPill>Pregunta {current.position} de {questions.length}</StatusPill><StatusPill>{current.question_type.replaceAll('_', ' ')}</StatusPill></div><h2>{current.prompt}</h2></div><div className={`classroom-timer${remaining <= 5 && current.status === 'live' ? ' urgent' : ''}`}><b>{current.status === 'live' ? remaining : '—'}</b><span>{current.status === 'live' ? 'segundos' : 'cerrada'}</span></div></header>
-                  {current.media_url ? current.media_type === 'image' ? <img className="classroom-media" src={current.media_url} alt="Recurso de la pregunta" /> : current.media_type === 'audio' ? <audio controls src={current.media_url} /> : <video className="classroom-media" controls src={current.media_url} /> : null}
+                  <header><div><div className="question-chips"><StatusPill tone={current.status === 'live' ? 'green' : current.status === 'revealed' ? 'violet' : 'neutral'}>{questionLabel(current.status)}</StatusPill><StatusPill>Pregunta {current.position} de {questions.length}</StatusPill><StatusPill>{normalizeImageLabelingLayout(current.visual_layout) ? 'Etiquetado anatómico' : current.question_type.replaceAll('_', ' ')}</StatusPill></div><h2>{current.prompt}</h2></div><div className={`classroom-timer${remaining <= 5 && current.status === 'live' ? ' urgent' : ''}`}><b>{current.status === 'live' ? remaining : '—'}</b><span>{current.status === 'live' ? 'segundos' : 'cerrada'}</span></div></header>
+                  {normalizeImageLabelingLayout(current.visual_layout) && current.media_type === 'image' && current.media_url
+                    ? <div className="visual5-teacher-figure">
+                        <div className="visual5-teacher-picture">
+                          <img className="classroom-media" src={current.media_url} alt="Esquema de etiquetado anatómico" />
+                          {normalizeImageLabelingLayout(current.visual_layout)!.targets.map((target, index) =>
+                            <span key={target.id} className="visual5-teacher-pin"
+                              style={{ left: `${target.x}%`, top: `${target.y}%` }}>
+                              <b>{index + 1}</b>
+                              {current.status === 'revealed' && Array.isArray(current.correct_answer)
+                                ? <small>{String(current.correct_answer[index] || '')}</small> : null}
+                            </span>)}
+                        </div>
+                      </div>
+                    : current.media_url ? current.media_type === 'image' ? <img className="classroom-media" src={current.media_url} alt="Recurso de la pregunta" /> : current.media_type === 'audio' ? <audio controls src={current.media_url} /> : <video className="classroom-media" controls src={current.media_url} /> : null}
                   <Distribution question={current} responses={currentResponses} />
                   {current.status === 'revealed' && current.explanation ? <div className="question-explanation"><Icon name="check" /><div><b>Explicación</b><p>{current.explanation}</p></div></div> : null}
                 </article>
