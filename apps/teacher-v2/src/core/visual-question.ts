@@ -98,7 +98,9 @@ export function shuffledImageLabels(orderedLabels: string[], random: () => numbe
   for (let i = choices.length - 1; i > 0; i -= 1) {
     const sample = random();
     const j = Math.min(i, Math.max(0, Math.floor((Number.isFinite(sample) ? sample : .5) * (i + 1))));
-    [choices[i], choices[j]] = [choices[j], choices[i]];
+    const previous = choices[i]!;
+    choices[i] = choices[j]!;
+    choices[j] = previous;
   }
   if (choices.length > 1 && choices.every((label, i) => label === orderedLabels[i])) {
     choices.push(choices.shift()!);
