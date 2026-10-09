@@ -1,0 +1,1 @@
+function e(e){let t=e.trim().split(/\s+/).filter(Boolean);return t.length?t.slice(0,2).map(e=>e.charAt(0).toLocaleUpperCase(`es-MX`)).join(``):`AL`}export{e as t};
