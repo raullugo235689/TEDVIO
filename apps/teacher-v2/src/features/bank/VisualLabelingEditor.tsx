@@ -1,4 +1,6 @@
 import { useEffect, useState, type MouseEvent } from 'react';
+import { supabase } from '../../core/supabase';
+import { useAuth } from '../auth/AuthProvider';
 import {
   MAX_IMAGE_LABELS, MIN_IMAGE_LABELS, appendImageLabel, removeImageLabel,
   repositionImageLabel, type ImageLabelingLayout,
@@ -9,15 +11,50 @@ interface Props {
   labels: string[];
   mediaUrl: string;
   onChange: (layout: ImageLabelingLayout, labels: string[]) => void;
+  onMediaUrlChange: (url: string) => void;
 }
 
 /** Teacher authoring surface: coordinates are visible, but the key is private. */
-export function VisualLabelingEditor({ layout, labels, mediaUrl, onChange }: Props) {
+export function VisualLabelingEditor({ layout, labels, mediaUrl, onChange, onMediaUrlChange }: Props) {
+  const auth = useAuth();
   const [active, setActive] = useState(0);
   const [imageBroken, setImageBroken] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
   useEffect(() => { setImageBroken(false); }, [mediaUrl]);
   const url = mediaUrl.trim();
   const ready = /^https:\/\//i.test(url) && !imageBroken;
+
+  async function uploadImage(file?: File) {
+    if (!file || uploading) return;
+    setUploadError('');
+    const extensions: Record<string,string> = {
+      'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif',
+    };
+    const extension = extensions[file.type];
+    if (!extension) { setUploadError('Selecciona una imagen PNG, JPG, WebP o GIF.'); return; }
+    if (!file.size || file.size > 8 * 1024 * 1024) {
+      setUploadError('La imagen debe pesar entre 1 byte y 8 MB.');
+      return;
+    }
+    if (!auth.user) { setUploadError('Inicia sesión como docente para subir imágenes.'); return; }
+    setUploading(true);
+    try {
+      const path = `${auth.user.id}/visual5/${crypto.randomUUID()}.${extension}`;
+      const bucket = supabase.storage.from('tedvio-media-v2');
+      const { error } = await bucket.upload(path, file, {
+        contentType: file.type, upsert: false, cacheControl: '3600',
+      });
+      if (error) throw error;
+      const { data } = bucket.getPublicUrl(path);
+      if (!data.publicUrl.startsWith('https://')) throw new Error('La dirección de la imagen no es segura.');
+      onMediaUrlChange(data.publicUrl);
+    } catch (reason) {
+      setUploadError(reason instanceof Error ? reason.message : 'No se pudo subir la imagen.');
+    } finally {
+      setUploading(false);
+    }
+  }
 
   function reposition(event: MouseEvent<HTMLDivElement>) {
     const bounds = event.currentTarget.getBoundingClientRect();
@@ -42,6 +79,20 @@ export function VisualLabelingEditor({ layout, labels, mediaUrl, onChange }: Pro
         </div>
         <span className="visual5-editor-count">{layout.targets.length} zonas</span>
       </header>
+      <div className="visual5-upload-row">
+        <label className="visual5-upload-button">
+          {uploading ? 'Subiendo imagen…' : 'Subir dibujo desde mi dispositivo'}
+          <input type="file" accept="image/png,image/jpeg,image/webp,image/gif"
+            aria-label="Subir imagen anatómica" disabled={uploading}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = '';
+              void uploadImage(file);
+            }} />
+        </label>
+        <span>PNG, JPG, WebP o GIF · máximo 8 MB</span>
+        {uploadError ? <p role="alert" className="visual5-upload-error">{uploadError}</p> : null}
+      </div>
       <div className="visual5-editor-layout">
         <div className="visual5-editor-figure">
           {ready ? (
