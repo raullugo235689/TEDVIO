@@ -15,7 +15,9 @@ async function fixture(page) {
     else if (table === 'tedvio_onboarding_snapshot_v21') rows = { completed: true, score: 5, dismissed: true };
     else if (table === 'v2_question_bank') {
       if (request.method() === 'POST') {
-        const data = request.postDataJSON(); state.inserts.push(data);
+        const body = request.postDataJSON();
+        const data = Array.isArray(body) ? body : [body];
+        state.inserts.push(data);
         expect(data.every(row => row.teacher_id === userId && !row.id)).toBe(true);
         if (state.fail) return route.fulfill({ status: 400, json: { message: 'Error de prueba; corrige e intenta de nuevo.' } });
         rows = data.map((row, index) => ({ ...row, id: `bank-${state.bank.length + index}`, created_at: new Date().toISOString() }));
