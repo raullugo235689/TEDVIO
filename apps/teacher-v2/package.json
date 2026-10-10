@@ -29,7 +29,7 @@
     "test:joint-attendance": "node --experimental-strip-types --test scripts/joint-attendance.test.mjs",
     "test:classroom31": "node --experimental-strip-types --test scripts/classroom31-security.test.mjs",
     "test:visual5": "node --experimental-strip-types --test scripts/visual5.test.mjs",
-    "test:enarm2027": "node --experimental-strip-types --test scripts/enarm2027.test.mjs"
+    "test:enarm2027": "node --experimental-strip-types --test scripts/enarm2027.test.mjs scripts/enarm-flashcards.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.112.4",
