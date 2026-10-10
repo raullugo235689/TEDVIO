@@ -6,7 +6,7 @@ import { ENARM_AREAS, type EnarmArea } from './enarm2027-areas';
 export { ENARM_AREAS };
 export type { EnarmArea };
 export type EnarmMode = 'practica' | 'repaso' | 'simulador';
-export type EnarmTab = 'panorama' | 'practica' | 'repaso' | 'simulador' | 'plan';
+export type EnarmTab = 'panorama' | 'practica' | 'repaso' | 'simulador' | 'plan' | 'flashcards';
 
 export interface EnarmCase {
   id: string;

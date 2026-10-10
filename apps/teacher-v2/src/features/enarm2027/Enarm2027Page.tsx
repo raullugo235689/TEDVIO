@@ -10,6 +10,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { ErrorPanel, LoadingScreen } from '../../shared/components';
 import { Icon, type IconName } from '../../shared/icons';
 import { EnarmPractice } from './EnarmPractice';
+import { EnarmFlashcards } from './EnarmFlashcards';
 import { EnarmSimulator } from './EnarmSimulator';
 
 const TABS: Array<{ key:EnarmTab; label:string; description:string; icon:IconName }> = [
@@ -17,6 +18,7 @@ const TABS: Array<{ key:EnarmTab; label:string; description:string; icon:IconNam
   { key:'practica', label:'Entrenar',description:'Casos clínicos', icon:'bank' },
   { key:'repaso', label:'Repasar',description:'Memoria clínica', icon:'refresh' },
   { key:'simulador', label:'Simulador',description:'Tiempo y precisión', icon:'clock' },
+  { key:'flashcards', label:'Flashcards',description:'Mi colección privada', icon:'bank' },
   { key:'plan', label:'Mi plan',description:'Objetivos personales', icon:'calendar' },
 ];
 
@@ -226,6 +228,7 @@ export function Enarm2027Page() {
       {tab==='practica'?<EnarmPractice key="practice" workspace={data} mode="practica" onProgress={refresh}/>:null}
       {tab==='repaso'?<EnarmPractice key="review" workspace={data} mode="repaso" onProgress={refresh}/>:null}
       {tab==='simulador'?<EnarmSimulator workspace={data} onProgress={refresh}/>:null}
+      {tab==='flashcards'&&auth.user?<EnarmFlashcards key={auth.user.id} userId={auth.user.id}/>:null}
       {tab==='plan'?<PersonalPlan initial={data.settings} onSaved={refresh}/>:null}
     </section>
     <footer className="enarm2027-footer">
