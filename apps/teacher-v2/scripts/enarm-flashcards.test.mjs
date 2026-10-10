@@ -7,7 +7,7 @@ const db=new PGlite(),owner=randomUUID(),other=randomUUID(),card=randomUUID();
 before(async()=>{
  await db.exec(`create role anon;create role authenticated;create schema auth;grant usage on schema auth,public to authenticated,anon;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;`);
  await db.query('insert into auth.users values($1),($2)',[owner,other]);
- await db.exec(readFileSync(new URL('../../../supabase/migrations/20261010045049_enarm2027_private_flashcards.sql',import.meta.url),'utf8'));
+ await db.exec(readFileSync(new URL('../../../supabase/migrations/20261010045343_enarm2027_private_flashcards.sql',import.meta.url),'utf8'));
  await db.query(`insert into tedvio_enarm2027_flashcards(id,user_id,source_key,source_file,source_page,source_sha256,area,topic,subtopic,question,answer) values($1,$2,'test-card','test.pdf',1,$3,'cirugia','Angiología','Aorta','Pregunta privada de prueba','Respuesta privada')`,[card,owner,'a'.repeat(64)]);
 });
 after(()=>db.close());
