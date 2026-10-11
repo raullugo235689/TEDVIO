@@ -1,0 +1,2 @@
+-- Optional authored distractors; existing ownership policies and grants are unchanged.
+alter table public.tedvio_enarm2027_flashcards add column quiz_distractors jsonb; alter table public.tedvio_enarm2027_flashcards add constraint enarm_flashcard_quiz_four_choices check (quiz_distractors is null or (jsonb_typeof(quiz_distractors)='array' and jsonb_array_length(quiz_distractors)=3)); notify pgrst, 'reload schema';

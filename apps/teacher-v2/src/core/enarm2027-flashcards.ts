@@ -4,6 +4,7 @@ export type FlashcardRating = 'again' | 'hard' | 'good';
 export interface EnarmFlashcard {
  id: string; area: EnarmArea; topic: string; subtopic: string;
  question: string; answer: string; explanation: string;
+ quiz_distractors?: string[] | null;
  source_file: string; source_page: number;
  references_json: Array<{title:string;url:string}>;
 }
@@ -14,7 +15,7 @@ export async function fetchFlashcards(userId:string) {
  const cards:EnarmFlashcard[]=[]; const reviews:FlashcardReview[]=[];
  for(let offset=0;;offset+=500){
   const {data,error}=await supabase.from('tedvio_enarm2027_flashcards')
-   .select('id,area,topic,subtopic,question,answer,explanation,source_file,source_page,references_json')
+   .select('id,area,topic,subtopic,question,answer,explanation,source_file,source_page,references_json,quiz_distractors')
    .eq('user_id',userId).order('id').range(offset,offset+499);
   if(error)throw error; cards.push(...(data??[]) as EnarmFlashcard[]); if((data?.length??0)<500)break;
  }

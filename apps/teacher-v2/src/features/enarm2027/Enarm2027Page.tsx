@@ -10,7 +10,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { ErrorPanel, LoadingScreen } from '../../shared/components';
 import { Icon, type IconName } from '../../shared/icons';
 import { EnarmPractice } from './EnarmPractice';
-import { EnarmFlashcards } from './EnarmFlashcards';
+import { EnarmFlashcards } from './EnarmFlashcardGame';
 import { EnarmSimulator } from './EnarmSimulator';
 
 const TABS: Array<{ key:EnarmTab; label:string; description:string; icon:IconName }> = [
@@ -202,7 +202,7 @@ export function Enarm2027Page() {
   if(workspace.isError)return <div className="enarm2027-page"><ErrorPanel title="No pude abrir tu preparación ENARM" detail={workspace.error.message} onRetry={()=>workspace.refetch()}/></div>;
   if(!workspace.data)return null;
   const data=workspace.data;
-  return <div className="enarm2027-page" data-enarm-app="2027">
+  return <div className={`enarm2027-page${tab==='flashcards'?' enarm-play-page':''}`} data-enarm-app="2027">
     <header className="enarm-hero">
       <div className="enarm-hero-content">
         <span className="enarm-hero-eyebrow"><i/> MI ESPACIO PERSONAL DE PREPARACIÓN</span>
