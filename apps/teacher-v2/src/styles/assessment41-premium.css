@@ -1,0 +1,33 @@
+/* TEDVIO Assessment Studio 4.1 · visual extension of existing exam workflows */
+.assessment41-page {gap:21px;}
+.assessment41-hero {position:relative;display:grid;grid-template-columns:minmax(0,1.4fr) minmax(300px,.6fr);
+  align-items:center;gap:27px;padding:clamp(27px,4vw,43px);overflow:hidden;border-radius:28px;color:#fff;
+  background:radial-gradient(circle at 90% 0%,rgba(97,134,255,.28),transparent 42%),
+    linear-gradient(127deg,#101e3d,#193b78);border:1px solid rgba(83,131,230,.28);
+  box-shadow:0 22px 50px rgba(16,39,85,.16);}
+.assessment41-eyebrow {color:#a4dcf9;font-size:11px;letter-spacing:.15em;font-weight:850;}
+.assessment41-hero h2 {font-size:clamp(27px,3vw,42px);line-height:1.1;letter-spacing:-.045em;color:#fff;margin:13px 0;}
+.assessment41-hero p {font-size:14px;line-height:1.7;color:#d0ddf5;max-width:580px;margin:0;}
+.assessment41-hero-steps {display:grid;gap:10px;}
+.assessment41-hero-steps span {display:flex;align-items:center;gap:13px;padding:13px 16px;
+  border:1px solid rgba(190,212,255,.21);background:rgba(255,255,255,.075);border-radius:15px;}
+.assessment41-hero-steps b {font-size:22px;color:#8fe4e4;font-variant-numeric:tabular-nums;}
+.assessment41-hero-steps small {font-size:13px;font-weight:750;color:#e0ebff;}
+.assessment41-metrics {gap:14px;}
+.assessment41-metrics > * {border-radius:19px!important;box-shadow:0 10px 29px rgba(20,39,84,.06);}
+.assessment41-page .exam-toolbar {gap:11px;}
+.assessment41-page .exam-toolbar input,.assessment41-page .exam-toolbar select {min-height:44px;border-radius:12px;}
+.assessment41-page .exam-card {border-radius:21px;box-shadow:0 14px 32px rgba(20,40,83,.055);}
+.assessment41-page .exam-card h2 {font-size:clamp(18px,2vw,23px);line-height:1.35;}
+.assessment41-page .exam-card-metrics {gap:11px;}
+.assessment41-page .exam-card-metrics > span {border-radius:13px;}
+.assessment41-integrity {display:flex;align-items:flex-start;gap:14px;padding:21px 23px;
+  border:1px solid var(--border);border-radius:19px;background:var(--surface);}
+.assessment41-integrity > svg {width:25px;height:25px;flex-shrink:0;color:var(--brand);}
+.assessment41-integrity b {font-size:15px;color:var(--text);}
+.assessment41-integrity p {font-size:13px;color:var(--muted);line-height:1.6;margin:6px 0 0;}
+.assessment41-page button:focus-visible,.assessment41-page a:focus-visible,
+.assessment41-page input:focus-visible {outline:3px solid var(--brand);outline-offset:3px;}
+@media(max-width:850px){.assessment41-hero{grid-template-columns:minmax(0,1fr);}.assessment41-hero-steps{grid-template-columns:repeat(3,minmax(0,1fr));}.assessment41-hero-steps span{display:grid;}}
+@media(max-width:520px){.assessment41-hero{padding:25px 20px;border-radius:21px;}.assessment41-hero h2{font-size:30px;}.assessment41-hero-steps{grid-template-columns:minmax(0,1fr);}.assessment41-hero-steps span{display:flex;}.assessment41-integrity{padding:17px;}}
+@media(prefers-reduced-motion:reduce){.assessment41-page *{animation-duration:.01ms!important;transition-duration:.01ms!important;}}
