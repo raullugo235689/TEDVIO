@@ -1,0 +1,213 @@
+/* Live classroom controls: anchored to the viewport, never to the end of a question.
+   Presentation only. Existing commands, scoring, reveal permissions and refresh stay unchanged. */
+html:has(.classroom31-control .classroom31-toolbar) {
+  --classroom-dock-clearance: 148px;
+  scroll-padding-block-end: var(--classroom-dock-clearance);
+}
+
+.classroom31-control:has(.classroom31-toolbar) {
+  --classroom-dock-space: 140px;
+  gap: 14px;
+  padding-bottom: calc(var(--classroom-dock-space) + env(safe-area-inset-bottom, 0px));
+}
+
+/* Keep the existing live heading without a second oversized dashboard hero.
+   The lobby and saved-session summary retain their original presentation. */
+.classroom31-control:has(.classroom31-toolbar) .classroom31-hero {
+  display: block;
+  padding: 12px 16px;
+  border-radius: 16px;
+  box-shadow: none;
+}
+.classroom31-control:has(.classroom31-toolbar) .classroom31-hero-copy h2 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.3;
+  letter-spacing: -.02em;
+}
+.classroom31-control:has(.classroom31-toolbar) .classroom31-hero-eyebrow,
+.classroom31-control:has(.classroom31-toolbar) .classroom31-hero-copy p,
+.classroom31-control:has(.classroom31-toolbar) .classroom31-hero-facts {
+  display: none;
+}
+/* The onboarding launcher is not a live-class action. It otherwise overlays
+   Next on mobile. Keep it outside active questions; do not cover either control. */
+body:has(.classroom31-control .classroom31-toolbar) .onboarding-launcher {
+  display: none;
+}
+.classroom31-control:has(.classroom31-toolbar) .page-header h1 {
+  font-size: clamp(22px, 2.2vw, 30px);
+}
+.classroom31-control:has(.classroom31-toolbar) .classroom31-status-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 16px;
+}
+.classroom31-control:has(.classroom31-toolbar) .classroom31-status-bar > div {
+  flex: 1 1 110px;
+  min-width: 0;
+  min-height: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+}
+.classroom31-control:has(.classroom31-toolbar) .classroom31-status-bar b {
+  font-size: 18px;
+}
+.classroom31-control:has(.classroom31-toolbar) .classroom31-status-bar small {
+  display: block;
+  white-space: normal;
+}
+.classroom31-control:has(.classroom31-toolbar) .classroom31-status-bar .classroom-code {
+  flex-basis: 200px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+.classroom31-control:has(.classroom31-toolbar) .classroom-code small {
+  flex-basis: 100%;
+}
+.classroom31-control:has(.classroom31-toolbar) .classroom-code b {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.classroom31-control:has(.classroom31-toolbar) .classroom-code button {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.classroom31-control:has(.classroom31-toolbar) .classroom31-question-stage {
+  min-height: 0;
+  padding: clamp(20px, 2.4vw, 30px);
+}
+/* The tablet shell still has a sidebar. A two-column live stage can make its
+   cards wider than the available content area even while the dock fits. */
+.classroom31-control:has(.classroom31-toolbar) .classroom31-stage > * {
+  min-width: 0;
+  max-width: 100%;
+}
+@media (max-width: 1160px) {
+  .classroom31-control:has(.classroom31-toolbar) .classroom31-stage {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.classroom31-control:has(.classroom31-toolbar) .response-roster {
+  max-height: 280px;
+  max-height: clamp(140px, 32dvh, 280px);
+  overscroll-behavior: contain;
+}
+.classroom31-control:has(.classroom31-toolbar) .ranking-list {
+  max-height: 280px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* z-index stays below the mobile navigation (60), its menu (70), and dialogs.
+   Sidebar width is the existing responsive shell token, not a guessed offset. */
+.classroom31-control .classroom31-toolbar {
+  position: fixed;
+  z-index: 45;
+  inset: auto clamp(12px, 1.5vw, 24px) max(12px, env(safe-area-inset-bottom, 0px)) calc(var(--sidebar) + clamp(12px, 1.5vw, 24px));
+  width: auto;
+  max-width: 1540px;
+  margin-inline: auto;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: 0 -4px 28px rgba(7, 26, 59, .10), 0 12px 32px rgba(7, 26, 59, .12);
+}
+.classroom31-control .classroom31-toolbar > div {
+  display: flex;
+  align-items: stretch;
+  flex-wrap: nowrap;
+  min-width: 0;
+  width: auto;
+  gap: 8px;
+}
+.classroom31-control .classroom31-toolbar > div:last-child {
+  justify-content: flex-end;
+}
+.classroom31-control .classroom31-toolbar .button {
+  min-width: 0;
+  min-height: 48px;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.3;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  border-radius: 12px;
+}
+.classroom31-control .classroom31-toolbar > div:first-child .button {
+  white-space: nowrap;
+}
+.classroom31-control .classroom31-toolbar > div:last-child .button {
+  flex: 0 1 160px;
+}
+.classroom31-control .classroom31-toolbar .button.primary {
+  margin-left: auto;
+  box-shadow: none;
+}
+.classroom31-control .classroom31-toolbar .button:hover {
+  transform: none;
+}
+.classroom31-control .classroom31-toolbar .button:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 3px;
+}
+.classroom31-control:has(.classroom31-toolbar) :is(button, a, input, textarea, select) {
+  scroll-margin-block-start: calc(var(--topbar) + 12px);
+  scroll-margin-block-end: 12px;
+}
+
+/* Match the shell's 900px mobile breakpoint, not the older toolbar's 850px rule. */
+@media (max-width: 900px) {
+  html:has(.classroom31-control .classroom31-toolbar) {
+    --classroom-dock-clearance: calc(228px + env(safe-area-inset-bottom, 0px));
+  }
+  .classroom31-control .classroom31-toolbar {
+    position: fixed;
+    left: max(12px, env(safe-area-inset-left, 0px));
+    right: max(12px, env(safe-area-inset-right, 0px));
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (max-width: 680px) {
+  html:has(.classroom31-control .classroom31-toolbar) {
+    --classroom-dock-clearance: calc(270px + env(safe-area-inset-bottom, 0px));
+  }
+  .classroom31-control:has(.classroom31-toolbar) {
+    --classroom-dock-space: 190px;
+  }
+  .classroom31-control .classroom31-toolbar {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    padding: 10px;
+    border-radius: 16px;
+  }
+  .classroom31-control .classroom31-toolbar > div {
+    width: 100%;
+  }
+  .classroom31-control .classroom31-toolbar > div:first-child .button {
+    flex: 1 1 0;
+  }
+  .classroom31-control .classroom31-toolbar > div:last-child .button {
+    flex: 1 1 0;
+    padding-inline: 7px;
+  }
+  .classroom31-control .classroom31-toolbar .button.primary {
+    margin-left: 0;
+  }
+}
+
+@media print {
+  .classroom31-control .classroom31-toolbar { display: none; }
+  .classroom31-control:has(.classroom31-toolbar) { padding-bottom: 0; }
+}
