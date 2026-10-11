@@ -81,6 +81,17 @@ body:has(.classroom31-control .classroom31-toolbar) .onboarding-launcher {
   min-height: 0;
   padding: clamp(20px, 2.4vw, 30px);
 }
+/* The tablet shell still has a sidebar. A two-column live stage can make its
+   cards wider than the available content area even while the dock fits. */
+.classroom31-control:has(.classroom31-toolbar) .classroom31-stage > * {
+  min-width: 0;
+  max-width: 100%;
+}
+@media (max-width: 1160px) {
+  .classroom31-control:has(.classroom31-toolbar) .classroom31-stage {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 .classroom31-control:has(.classroom31-toolbar) .response-roster {
   max-height: 280px;
   max-height: clamp(140px, 32dvh, 280px);
