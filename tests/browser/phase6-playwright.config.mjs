@@ -7,7 +7,7 @@ export default defineConfig({
   expect: { timeout: 8_000 },
   fullyParallel: false,
   workers: 1,
-  reporter: 'line',
+  reporter: [['line'], ['json', { outputFile: 'test-results/phase6-results.json' }]],
   use: {
     baseURL: 'http://127.0.0.1:4174',
     trace: 'retain-on-failure',

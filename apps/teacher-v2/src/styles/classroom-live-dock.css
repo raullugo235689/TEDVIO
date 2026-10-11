@@ -11,9 +11,28 @@ html:has(.classroom31-control .classroom31-toolbar) {
   padding-bottom: calc(var(--classroom-dock-space) + env(safe-area-inset-bottom, 0px));
 }
 
-/* The hero repeats the projection action already available in PageHeader.
-   Keep the lobby and the saved session summary unchanged. */
+/* Keep the existing live heading without a second oversized dashboard hero.
+   The lobby and saved-session summary retain their original presentation. */
 .classroom31-control:has(.classroom31-toolbar) .classroom31-hero {
+  display: block;
+  padding: 12px 16px;
+  border-radius: 16px;
+  box-shadow: none;
+}
+.classroom31-control:has(.classroom31-toolbar) .classroom31-hero-copy h2 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.3;
+  letter-spacing: -.02em;
+}
+.classroom31-control:has(.classroom31-toolbar) .classroom31-hero-eyebrow,
+.classroom31-control:has(.classroom31-toolbar) .classroom31-hero-copy p,
+.classroom31-control:has(.classroom31-toolbar) .classroom31-hero-facts {
+  display: none;
+}
+/* The onboarding launcher is not a live-class action. It otherwise overlays
+   Next on mobile. Keep it outside active questions; do not cover either control. */
+body:has(.classroom31-control .classroom31-toolbar) .onboarding-launcher {
   display: none;
 }
 .classroom31-control:has(.classroom31-toolbar) .page-header h1 {
@@ -28,12 +47,35 @@ html:has(.classroom31-control .classroom31-toolbar) {
 }
 .classroom31-control:has(.classroom31-toolbar) .classroom31-status-bar > div {
   flex: 1 1 110px;
+  min-width: 0;
   min-height: 0;
   padding: 8px 12px;
   border-radius: 10px;
 }
 .classroom31-control:has(.classroom31-toolbar) .classroom31-status-bar b {
   font-size: 18px;
+}
+.classroom31-control:has(.classroom31-toolbar) .classroom31-status-bar small {
+  display: block;
+  white-space: normal;
+}
+.classroom31-control:has(.classroom31-toolbar) .classroom31-status-bar .classroom-code {
+  flex-basis: 200px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+.classroom31-control:has(.classroom31-toolbar) .classroom-code small {
+  flex-basis: 100%;
+}
+.classroom31-control:has(.classroom31-toolbar) .classroom-code b {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.classroom31-control:has(.classroom31-toolbar) .classroom-code button {
+  flex-shrink: 0;
+  margin-left: auto;
 }
 .classroom31-control:has(.classroom31-toolbar) .classroom31-question-stage {
   min-height: 0;
@@ -60,7 +102,7 @@ html:has(.classroom31-control .classroom31-toolbar) {
   max-width: 1540px;
   margin-inline: auto;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: max-content minmax(0, 1fr);
   align-items: center;
   gap: 12px;
   padding: 12px;
@@ -90,6 +132,9 @@ html:has(.classroom31-control .classroom31-toolbar) {
   white-space: normal;
   overflow-wrap: anywhere;
   border-radius: 12px;
+}
+.classroom31-control .classroom31-toolbar > div:first-child .button {
+  white-space: nowrap;
 }
 .classroom31-control .classroom31-toolbar > div:last-child .button {
   flex: 0 1 160px;
