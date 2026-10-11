@@ -10,16 +10,15 @@
 @media(max-width:600px){.group-catalog-filters,.dashboard-groups-section .group-catalog-filters{grid-template-columns:minmax(0,1fr);padding:13px}.group-catalog-filters input,.group-catalog-filters select{font-size:16px}.catalog-university-heading{align-items:flex-start}.catalog-university-heading h3{font-size:14px}}
 
 /* Compact catalog only: no changes to group details, dashboard or live controls.
-   Auto-fill retains useful card widths even when a university has one group.
-   A 260px minimum also fits three cards beside the sidebar at 1280px. */
+   Keep useful card widths; explicit desktop columns avoid oversized sparse rows. */
 .catalog-university .groups-catalog {
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
   gap: 12px;
   align-items: start;
 }
 .catalog-university .group-catalog-card {
-  gap: 10px;
-  padding: 14px;
+  gap: 8px;
+  padding: 12px;
   border-radius: 17px;
   align-content: start;
   box-shadow: 0 4px 14px rgba(17, 39, 84, .045);
@@ -124,4 +123,10 @@
 }
 @media (max-width: 600px) {
   .catalog-university .groups-catalog { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+}
+@media (min-width: 1280px) {
+  .catalog-university .groups-catalog { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 1800px) {
+  .catalog-university .groups-catalog { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
