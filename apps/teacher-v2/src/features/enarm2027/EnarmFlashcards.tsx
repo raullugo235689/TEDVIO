@@ -30,7 +30,7 @@ function Card({card,onSaved}:{card:EnarmFlashcard;onSaved:(due:string)=>void}){
   </>}
  </article>;
 }
-export function EnarmFlashcards({userId}:{userId:string}){
+export function EnarmFlashcardLibrary({userId}:{userId:string}){
  const client=useQueryClient();
  const query=useQuery({queryKey:flashcardsKey(userId),queryFn:()=>fetchFlashcards(userId),staleTime:20_000,retry:1});
  const [area,setArea]=useState(''); const [topic,setTopic]=useState(''); const [subtopic,setSubtopic]=useState('');

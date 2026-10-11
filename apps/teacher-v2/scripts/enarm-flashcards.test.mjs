@@ -8,9 +8,16 @@ before(async()=>{
  await db.exec(`create role anon;create role authenticated;create schema auth;grant usage on schema auth,public to authenticated,anon;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;`);
  await db.query('insert into auth.users values($1),($2)',[owner,other]);
  await db.exec(readFileSync(new URL('../../../supabase/migrations/20261010045343_enarm2027_private_flashcards.sql',import.meta.url),'utf8'));
+ await db.exec(readFileSync(new URL('../../../supabase/migrations/20261011200242_enarm_flashcard_quiz_options.sql',import.meta.url),'utf8'));
  await db.query(`insert into tedvio_enarm2027_flashcards(id,user_id,source_key,source_file,source_page,source_sha256,area,topic,subtopic,question,answer) values($1,$2,'test-card','test.pdf',1,$3,'cirugia','Angiología','Aorta','Pregunta privada de prueba','Respuesta privada')`,[card,owner,'a'.repeat(64)]);
 });
 after(()=>db.close());
+test('quiz options are optional and require exactly three distractors',async()=>{
+ await assert.rejects(()=>db.query('update tedvio_enarm2027_flashcards set quiz_distractors=$1 where id=$2',[JSON.stringify(['one']),card]),/check constraint/);
+ await db.query('update tedvio_enarm2027_flashcards set quiz_distractors=$1 where id=$2',[JSON.stringify(['one','two','three']),card]);
+ assert.equal((await as(owner,'select quiz_distractors from tedvio_enarm2027_flashcards')).rows[0].quiz_distractors.length,3);
+ assert.equal((await as(other,'select quiz_distractors from tedvio_enarm2027_flashcards')).rows.length,0);
+});
 async function as(actor,sql,args=[],role='authenticated'){
  await db.exec(`set role ${role}`);try{await db.query("select set_config('request.jwt.claim.sub',$1,false)",[actor||'']);return await db.query(sql,args);}finally{await db.exec('reset role');}
 }

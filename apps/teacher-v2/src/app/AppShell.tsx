@@ -155,7 +155,7 @@ export function AppShell() {
         <header className="topbar teacher42-topbar">
           <div className="topbar-title">
             <span>{area === 'enarm' ? 'FORMACIÓN PERSONAL' : 'ESPACIO DOCENTE'} <span aria-hidden="true">/</span> {navigationAreaLabel[area]}</span>
-            <p className="workspace-route-title">{routeTitle}</p>
+            <p className="workspace-route-title">{area==='enarm'?'ENARM 2027':routeTitle}</p>
           </div>
           <div className="topbar-actions">
             <div className={`reliability-pill ${connectionTone}`} role="status" aria-live="polite" title={connectionLabel}>
