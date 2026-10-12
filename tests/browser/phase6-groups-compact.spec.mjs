@@ -17,7 +17,8 @@ const groups = ['ANFITEATRO ANATOMÍA', 'PROPEDÉUTICA BÁSICA', 'SEMINARIO DE I
   last_activity: '2026-10-08T18:00:00Z',
 }));
 
-async function fixture(page) {
+async function fixture(page, fixtureGroups = groups) {
+  const groups = fixtureGroups;
   const state = { errors: [], writes: [] };
   page.on('pageerror', error => state.errors.push(error.message));
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -50,7 +51,7 @@ async function fixture(page) {
     await route.fulfill({ json: rows });
   });
   await page.goto('/teacher#/groups');
-  await expect(page.locator('.group-catalog-card')).toHaveCount(3);
+  await expect(page.locator('.group-catalog-card')).toHaveCount(groups.length);
   return state;
 }
 
@@ -73,7 +74,7 @@ for (const width of [320, 390, 768, 1024, 1280, 1440]) {
     expect(dimensions.pageWidth, JSON.stringify(dimensions)).toBeLessThanOrEqual(width + 1);
     expect(dimensions.height, JSON.stringify(dimensions)).toBeLessThanOrEqual(380);
     expect(new Set(dimensions.metrics.map(Math.round)).size).toBe(1);
-    expect(dimensions.buttons).toHaveLength(4);
+    expect(dimensions.buttons).toHaveLength(2);
     for (const button of dimensions.buttons) { expect(button.height).toBeGreaterThanOrEqual(44); expect(button.width).toBeGreaterThanOrEqual(44); }
     if (width <= 600) expect(dimensions.columns).toBe(1);
     if (width >= 1024) expect(dimensions.columns).toBeGreaterThanOrEqual(2);
@@ -96,6 +97,7 @@ test('Grupos compactos: edición, búsqueda, nombres largos y modo oscuro no pie
   await page.setViewportSize({ width: 390, height: 844 });
   const state = await fixture(page);
   const first = page.locator('.group-catalog-card').first();
+  await first.getByRole('button', { name: /Opciones del grupo/ }).click();
   await first.getByRole('button', { name: 'Editar', exact: true }).click();
   await expect(page.getByLabel('Asignatura', { exact: true })).toHaveValue(groups[0].subject);
   await expect(page.getByLabel('Grado y grupo', { exact: true })).toHaveValue('1-01');
@@ -112,3 +114,65 @@ test('Grupos compactos: edición, búsqueda, nombres largos y modo oscuro no pie
   expect(state.errors).toEqual([]);
   expect(state.writes).toEqual([]);
 });
+
+
+test('Grupos premium: menú accesible, Escape y clic fuera no modifican datos', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const state = await fixture(page);
+  const card = page.locator('.group-catalog-card').first();
+  const trigger = card.getByRole('button', { name: /Opciones del grupo/ });
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  await expect(card.getByRole('button', { name: 'Editar', exact: true })).toHaveCount(0);
+  await trigger.click();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+  await expect(card.getByRole('button', { name: 'Editar', exact: true })).toBeFocused();
+  await expect(card.getByRole('button', { name: /Eliminar grupo:/ })).toBeVisible();
+  await page.screenshot({ path: test.info().outputPath('groups-premium-menu.png') });
+  await page.keyboard.press('Escape');
+  await expect(trigger).toBeFocused();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  await trigger.click();
+  await page.getByRole('heading', { name: 'Mis grupos', exact: true }).click();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  expect(state.writes).toEqual([]);
+  expect(state.errors).toEqual([]);
+});
+
+test('Grupos premium: cero y sin datos son distintos; no inventa actividad', async ({ page }) => {
+  const state = await fixture(page, [
+    { ...groups[0], attendance_rate: 0, grade_avg: 0, risk_count: 0, students: 0 },
+    { ...groups[1], attendance_rate: null, grade_avg: null, today_attendance_status: 'paused' },
+    { ...groups[2], attendance_rate: null, grade_avg: null, today_attendance_status: 'closed' },
+  ]);
+  const cards = page.locator('.group-catalog-card');
+  await expect(cards.nth(0).locator('.group-catalog-metrics b')).toHaveText(['0', '0%', '0.0', '0']);
+  await expect(cards.nth(0).locator('.group-attendance-badge')).toHaveText('Sin lista hoy');
+  await expect(cards.nth(1).locator('.group-attendance-stat b')).toHaveText('—');
+  await expect(cards.nth(1).locator('.group-attendance-badge')).toHaveText('Asistencia pausada');
+  await expect(cards.nth(2).locator('.group-attendance-badge')).toHaveText('Lista de hoy cerrada');
+  expect(state.writes).toEqual([]);
+  expect(state.errors).toEqual([]);
+});
+
+for (const width of [390, 1280, 1440]) {
+  test(`Grupos premium: seis portadas y vista completa a ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
+    const subjects = ['ANATOMÍA HUMANA', 'FARMACOLOGÍA', 'EMBRIOLOGÍA', 'PROPEDÉUTICA BÁSICA', 'FARMACOCINÉTICA', 'FISIOPATOLOGÍA DEL ADULTO'];
+    const covers = ['anatomy', 'pharmacology', 'embryology', 'clinical', 'kinetics', 'physiology'];
+    const showcase = subjects.map((subject, i) => ({ ...groups[0], id: `44444444-4444-4444-8444-44444444444${i}`, subject, group_name: `1-0${i + 1}`, name: `1-0${i + 1}`, students: 28 + i * 2, grade_avg: i === 0 ? null : 8.6, attendance_rate: 90 + i, risk_count: i % 2, today_attendance_status: i === 0 ? 'open' : null }));
+    const state = await fixture(page, showcase);
+    const artwork = await page.request.get('/assets/groups/subject-covers-v1.webp');
+    expect(artwork.status()).toBe(200);
+    expect((await artwork.body()).length).toBeGreaterThan(1000);
+    for (let i = 0; i < showcase.length; i++) {
+      const card = page.locator(`[data-group-id="${showcase[i].id}"]`);
+      await expect(card).toHaveAttribute('data-cover', covers[i]);
+      await expect(card.locator('.group-card-cover')).toHaveCSS('background-image', /subject-covers-v1/);
+      await expect(card.locator('footer > a')).toHaveCount(2);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    await page.screenshot({ path: test.info().outputPath(`groups-premium-overview-${width}.png`), fullPage: true, animations: 'disabled' });
+    expect(state.writes).toEqual([]);
+    expect(state.errors).toEqual([]);
+  });
+}

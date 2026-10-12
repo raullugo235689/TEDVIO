@@ -1,7 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { attendanceLabel, formatActivity, formatGrade, formatPercent, groupName, groupSubject } from '../../core/academic';
 import {
   createProgram,
   createUniversity,
@@ -12,23 +10,16 @@ import {
   type GroupDraft,
 } from '../../core/groups';
 import { useTeacherHome } from '../../core/useTeacherHome';
-import type { DashboardGroup, GroupRecord } from '../../core/types';
+import type { GroupRecord } from '../../core/types';
 import { EmptyState, ErrorPanel, LoadingScreen, PageHeader, SectionCard, StatusPill } from '../../shared/components';
 import { Icon } from '../../shared/icons';
-import { InstitutionIdentity } from '../../shared/InstitutionIdentity';
 import { JointAttendanceShortcut } from '../../shared/JointAttendanceShortcut';
-import { groupAccent } from '../../core/group-identity';
 import { AcademicDeleteButton } from '../../shared/AcademicDeleteButton';
 import { useAuth } from '../auth/AuthProvider';
 import { GroupCatalogFilters, useGroupCatalog } from '../../shared/GroupCatalogFilters';
 import { universitySections } from '../../core/group-catalog';
 
-function tone(group?: DashboardGroup): string {
-  if (Number(group?.risk_count || 0) > 0) return 'red';
-  if (Number(group?.watch_count || 0) > 0) return 'amber';
-  if (group?.today_attendance_status === 'closed') return 'green';
-  return 'blue';
-}
+import { GroupCatalogCard } from './GroupCatalogCard';
 
 function emptyDraft(programId = ''): GroupDraft {
   return { programId, name: '', subject: '', term: '' };
@@ -139,15 +130,15 @@ export function GroupsPage() {
   const universities = workspace.data.universities;
 
   return (
-    <div className="view-stack">
+    <div className="view-stack groups-premium">
       <PageHeader
         eyebrow="GRUPOS"
-        title="Centro de grupos"
-        detail="Tus grupos organizados por universidad, materia y número de grupo."
-        actions={<div className="page-actions"><button className="button ghost" type="button" onClick={() => setStructureOpen((value) => !value)}>Estructura académica</button><button className="button primary" type="button" onClick={() => setEditor(emptyDraft(programs[0]?.id || ''))}>＋ Nuevo grupo</button></div>}
+        title="Mis grupos"
+        detail="Grupos, asistencia y resultados en un solo lugar."
+        actions={<div className="page-actions"><button className="button primary" type="button" onClick={() => setEditor(emptyDraft(programs[0]?.id || ''))}>＋ Nuevo grupo</button></div>}
       />
 
-      <JointAttendanceShortcut />
+      <div className="groups-catalog-tools"><JointAttendanceShortcut /><button className="button ghost compact" type="button" onClick={() => setStructureOpen((value) => !value)} aria-expanded={structureOpen}>Estructura académica</button></div>
 
       {notice ? <div className="success-strip"><Icon name="check" /><span>{notice}</span><button type="button" onClick={() => setNotice('')}>×</button></div> : null}
       {universityMutation.isError || universityLinkMutation.isError || programMutation.isError || groupMutation.isError ? <ErrorPanel title="No se pudo completar la operación" detail={(universityMutation.error || universityLinkMutation.error || programMutation.error || groupMutation.error)?.message || 'Intenta nuevamente.'} /> : null}
@@ -209,33 +200,10 @@ export function GroupsPage() {
           <div className="groups-catalog">
           {section.groups.map((group) => {
             const dashboard = dashboardById.get(group.id);
-            return (
-              <article className="group-catalog-card" key={group.id} data-group-id={group.id} data-group-color={groupAccent(group.id)}>
-                <header>
-                  <div><span className="eyebrow">{group.subject || 'Grupo'}</span><h2>{group.group_name || group.name}</h2><InstitutionIdentity name={group.university_name || group.university} logoUrl={dashboard?.institution_logo_url} detail={[group.program_name || group.program, group.term].filter(Boolean).join(' · ')} /></div>
-                  <StatusPill tone={tone(dashboard)}>{attendanceLabel(dashboard)}</StatusPill>
-                </header>
-                <div className="group-catalog-metrics">
-                  <span><small>Alumnos</small><b>{Number(dashboard?.students || 0).toLocaleString('es-MX')}</b></span>
-                  <span><small>Asistencia</small><b>{formatPercent(dashboard?.attendance_rate)}</b></span>
-                  <span><small>Promedio</small><b>{formatGrade(dashboard?.grade_avg)}</b></span>
-                  <span><small>Alertas</small><b>{Number(dashboard?.risk_count || 0) + Number(dashboard?.watch_count || 0)}</b></span>
-                </div>
-                <div className="group-catalog-context">
-                  <span><Icon name="clock" />{formatActivity(dashboard?.last_activity)}</span>
-                  <span>{Number(dashboard?.attendance_sessions_count || 0)} listas históricas</span>
-                </div>
-                <footer>
-                  <button className="button ghost compact" type="button" onClick={() => editGroup(group)}>Editar</button>
-                  <AcademicDeleteButton target={{ kind: 'group', id: group.id, label: group.group_name || group.name }} onDeleted={() => {
-                    setEditor((current) => current?.id === group.id ? null : current);
-                    setNotice(`Grupo «${group.group_name || group.name}» eliminado.`);
-                  }} />
-                  <Link className="button secondary" to={`/groups/${group.id}`}>Abrir grupo</Link>
-                  <Link className="button primary" to={`/attendance/${group.id}`}>Asistencia</Link>
-                </footer>
-              </article>
-            );
+            return <GroupCatalogCard key={group.id} group={group} dashboard={dashboard} onEdit={() => editGroup(group)} onDeleted={() => {
+              setEditor((current) => current?.id === group.id ? null : current);
+              setNotice(`Grupo «${group.group_name || group.name}» eliminado.`);
+            }} />;
           })}
           </div></section>)}
         </div>

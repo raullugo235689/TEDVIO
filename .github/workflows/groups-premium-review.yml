@@ -1,0 +1,49 @@
+name: Groups Premium Visual Review
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/teacher-v2/src/features/groups/**'
+      - 'apps/teacher-v2/src/styles/group-catalog.css'
+      - 'assets/groups/**'
+      - 'tests/browser/phase6-groups-compact.spec.mjs'
+      - 'tests/browser/phase6-deletion.spec.mjs'
+      - '.github/workflows/groups-premium-review.yml'
+permissions:
+  contents: read
+concurrency:
+  group: groups-premium-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  visual-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build actual frontend with pinned dependencies
+        working-directory: apps/teacher-v2
+        run: |
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm run build
+      - name: Install isolated browser runner
+        run: |
+          npm install --no-save --no-package-lock --no-audit --no-fund @playwright/test@1.55.0
+          npx playwright install --with-deps chromium webkit
+      - name: Check compact cards, real interactions and deletion safety
+        run: npx playwright test tests/browser/phase6-groups-compact.spec.mjs tests/browser/phase6-deletion.spec.mjs --config=tests/browser/phase6-playwright.config.mjs
+      - name: Save visual review evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: groups-premium-review
+          path: |
+            test-results/
+            tests/browser/test-results/
+          if-no-files-found: ignore
+          retention-days: 3
