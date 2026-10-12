@@ -12,7 +12,7 @@ function must(condition, message) {
 }
 
 must(
-  dashboard.includes('Iniciar clase') && dashboard.includes("'/classroom'"),
+  dashboard.includes('<ClassLauncher') && fs.readFileSync(path.join(root, 'src/shared/WorkflowNavigation.tsx'), 'utf8').includes('classShortcut'),
   'Inicio expone una acción primaria para entrar a Modo Clase',
 );
 must(

@@ -168,8 +168,7 @@ export function GroupDetailPage() {
         detail={tab === 'summary' ? `${groupTitle} · Tu grupo, su actividad y el siguiente paso.` : tab === 'students' ? 'Organiza tu lista y consulta el seguimiento de cada alumno.' : 'Consulta y vuelve a abrir las listas recientes del grupo.'}
       />
 
-      {tab === 'summary' ? <nav className="group-workflow group-summary-actions" aria-label="Trabajar con este grupo">
-        <Link to={`/classroom?group=${encodeURIComponent(groupId)}`}><Icon name="classroom" /><span>Iniciar clase</span></Link>
+      {tab === 'summary' ? <nav className="group-workflow group-summary-actions" aria-label="Acciones del resumen">
         <Link to={`/exams/new?group=${encodeURIComponent(groupId)}`}><Icon name="exam" /><span>Crear examen</span></Link>
         <Link to={`/analytics/${groupId}`}><Icon name="analytics" /><span>Analítica</span></Link>
         <Link to={`/periods/${groupId}`}><Icon name="periods" /><span>Periodos</span></Link>

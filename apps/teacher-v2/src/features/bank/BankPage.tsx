@@ -236,7 +236,7 @@ export function BankPage() {
   const home = useTeacherHome();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState('');
   const [subject, setSubject] = useState('');
   const [topic, setTopic] = useState('');
@@ -244,7 +244,8 @@ export function BankPage() {
   const [showArchived, setShowArchived] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [draft, setDraft] = useState<BankQuestionDraft | null>(null);
-  const [groupId, setGroupId] = useState(searchParams.get('group') || '');
+  const groupId = searchParams.get('group') || '';
+  const setGroupId = (value: string) => setSearchParams(previous => { const next = new URLSearchParams(previous); value ? next.set('group', value) : next.delete('group'); return next; });
   const [notice, setNotice] = useState('');
   const [competitive, setCompetitive] = useState(true);
   const [teamMode, setTeamMode] = useState(false);
@@ -340,7 +341,7 @@ export function BankPage() {
 
   return (
     <div className="view-stack bank-page">
-      <PageHeader eyebrow="PREGUNTAS Y EXÁMENES" title="Banco de preguntas" detail="Crea, importa y organiza tus preguntas para reutilizarlas en clase y en tus exámenes." actions={<button className="button primary" type="button" onClick={() => setDraft(emptyBankDraft())}>＋ Nueva pregunta</button>} />
+      <PageHeader eyebrow="BIBLIOTECA" title="Banco de preguntas" detail="Crea, importa y organiza tus preguntas para reutilizarlas en clase y en tus exámenes." actions={<button className="button primary" type="button" onClick={() => setDraft(emptyBankDraft())}>＋ Nueva pregunta</button>} />
 
       {notice ? <div className="success-strip"><Icon name="check" /><span>{notice}</span><button type="button" onClick={() => setNotice('')}>×</button></div> : null}
       {anyError ? <ErrorPanel title="No se pudo completar la operación" detail={(anyError as Error).message || 'Intenta nuevamente.'} /> : null}

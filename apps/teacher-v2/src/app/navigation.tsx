@@ -7,34 +7,37 @@ export interface NavigationItem {
   icon: IconName;
   section: 'primary' | 'operation' | 'close';
   migrated: boolean;
+  keywords?: string[];
 }
 
 export const navigation: NavigationItem[] = [
-  { to: '/', label: 'Inicio', shortLabel: 'Inicio', icon: 'home', section: 'primary', migrated: true },
+  { to: '/', label: 'Hoy', shortLabel: 'Hoy', icon: 'home', section: 'primary', migrated: true },
   { to: '/agenda', label: 'Agenda', shortLabel: 'Agenda', icon: 'calendar', section: 'primary', migrated: true },
   { to: '/groups', label: 'Mis grupos', shortLabel: 'Grupos', icon: 'groups', section: 'primary', migrated: true },
-  { to: '/attendance', label: 'Asistencia', shortLabel: 'Asistencia', icon: 'attendance', section: 'operation', migrated: true },
+  { to: '/attendance', keywords: ["lista", "faltas", "retardos"], label: 'Asistencia', shortLabel: 'Asistencia', icon: 'attendance', section: 'operation', migrated: true },
   { to: '/attendance-justifications', label: 'Justificar faltas', shortLabel: 'Justificaciones', icon: 'attendance', section: 'operation', migrated: true },
   { to: '/attendance-joint', label: 'Asistencia conjunta', shortLabel: 'Asistencia conjunta', icon: 'attendance', section: 'operation', migrated: true },
   { to: '/classroom', label: 'Modo Clase', shortLabel: 'Clase', icon: 'classroom', section: 'operation', migrated: true },
   { to: '/bank', label: 'Banco de preguntas', shortLabel: 'Preguntas', icon: 'bank', section: 'operation', migrated: true },
-  { to: '/exams', label: 'Evaluaciones', shortLabel: 'Evaluar', icon: 'exam', section: 'operation', migrated: true },
-  { to: '/omr', label: 'Calificar hojas', shortLabel: 'Calificar', icon: 'exam', section: 'operation', migrated: true },
+  { to: '/exams', keywords: ["examen", "exámenes", "imprimir", "prueba"], label: 'Evaluaciones', shortLabel: 'Evaluar', icon: 'exam', section: 'operation', migrated: true },
+  { to: '/omr', keywords: ["escanear", "escáner", "OMR"], label: 'Calificar hojas', shortLabel: 'Calificar', icon: 'exam', section: 'operation', migrated: true },
   { to: '/gradebook', label: 'Calificaciones', shortLabel: 'Libro', icon: 'grades', section: 'operation', migrated: true },
-  { to: '/students', label: 'Perfil del alumno', shortLabel: 'Alumnos', icon: 'groups', section: 'operation', migrated: true },
-  { to: '/analytics', label: 'Analítica', shortLabel: 'Analítica', icon: 'analytics', section: 'close', migrated: true },
+  { to: '/students', keywords: ["expediente", "estudiante"], label: 'Perfil del alumno', shortLabel: 'Alumnos', icon: 'groups', section: 'operation', migrated: true },
+  { to: '/analytics', keywords: ["estadísticas", "aprendizaje", "participación"], label: 'Analítica', shortLabel: 'Analítica', icon: 'analytics', section: 'close', migrated: true },
   { to: '/periods', label: 'Periodos', shortLabel: 'Periodos', icon: 'periods', section: 'close', migrated: true },
-  { to: '/reports', label: 'Reportes', shortLabel: 'Reportes', icon: 'reports', section: 'close', migrated: true },
-  { to: '/prepare', label: 'Preguntas y exámenes', shortLabel: 'Preparar', icon: 'bank', section: 'primary', migrated: true },
+  { to: '/reports', keywords: ["reportes", "documentos", "exportar"], label: 'Resultados', shortLabel: 'Resultados', icon: 'reports', section: 'close', migrated: true },
+  { to: '/prepare', label: 'Biblioteca', shortLabel: 'Biblioteca', icon: 'bank', section: 'primary', migrated: true },
+  { to: '/evaluate', label: 'Evaluar', shortLabel: 'Evaluar', icon: 'exam', section: 'primary', migrated: true },
   { to: '/settings', label: 'Configuración', shortLabel: 'Ajustes', icon: 'settings', section: 'close', migrated: true },
 ];
 
+/** One primary home for every tool. Existing URLs remain valid. */
 export const navigationGroups = [
-  { to: '/', children: ['/agenda'] },
-  { to: '/groups', children: ['/attendance', '/attendance-justifications', '/attendance-joint', '/classroom', '/gradebook', '/students', '/periods'] },
-  { to: '/prepare', children: ['/bank', '/exams', '/omr'] },
+  { to: '/', children: ['/agenda', '/classroom'] },
+  { to: '/groups', children: ['/attendance', '/attendance-justifications', '/attendance-joint', '/students'] },
+  { to: '/prepare', children: ['/bank'] },
+  { to: '/evaluate', children: ['/exams', '/omr', '/gradebook', '/periods'] },
   { to: '/reports', children: ['/analytics'] },
-  { to: '/settings', children: [] },
 ].map((group) => ({
   ...navigation.find((item) => item.to === group.to)!,
   children: group.children.map((path) => navigation.find((item) => item.to === path)!),
@@ -42,28 +45,30 @@ export const navigationGroups = [
 
 export type NavigationGroup = (typeof navigationGroups)[number];
 
-export type NavigationArea = 'home' | 'groups' | 'prepare' | 'reports' | 'settings' | 'enarm';
+export type NavigationArea = 'home' | 'groups' | 'prepare' | 'evaluate' | 'reports' | 'settings' | 'enarm';
 
 const areaByRoute: Record<string, NavigationArea> = {
   '/': 'home',
   '/groups': 'groups',
   '/prepare': 'prepare',
+  '/evaluate': 'evaluate',
   '/reports': 'reports',
   '/settings': 'settings',
 };
 
 export function navigationArea(pathname: string): NavigationArea {
   if (pathname.startsWith('/enarm-2027')) return 'enarm';
-  if (pathname === '/support') return 'settings';
+  if (pathname === '/support' || pathname === '/settings') return 'settings';
   const group = navigationGroups.find((entry) => isNavigationGroupActive(entry, pathname));
   return group ? areaByRoute[group.to] ?? 'home' : 'home';
 }
 
 export const navigationAreaLabel: Record<NavigationArea, string> = {
-  home: 'Inicio',
+  home: 'Hoy',
   groups: 'Mis grupos',
-  prepare: 'Preguntas y exámenes',
-  reports: 'Reportes',
+  prepare: 'Biblioteca',
+  evaluate: 'Evaluar',
+  reports: 'Resultados',
   settings: 'Configuración',
   enarm: 'ENARM 2027',
 };

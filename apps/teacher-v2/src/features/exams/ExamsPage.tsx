@@ -138,9 +138,11 @@ function ExamCard({
 }
 
 function ExamsHome({ workspace }: { workspace: ExamWorkspace }) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('');
-  const [groupId, setGroupId] = useState('');
+  const groupId = searchParams.get('group') || '';
+  const setGroupId = (value: string) => setSearchParams(previous => { const next = new URLSearchParams(previous); value ? next.set('group', value) : next.delete('group'); return next; });
   const [showArchived, setShowArchived] = useState(false);
 
   const filtered = useMemo(() => {

@@ -129,7 +129,8 @@ must(examsApi.includes("rpc('v2_save_paper_exam_v2'"), 'Evaluaciones guarda la c
 must(examsApi.includes("rpc('v2_set_paper_exam_status'"), 'Evaluaciones utiliza transiciones de estado protegidas');
 must(examsApi.includes("rpc('v2_duplicate_paper_exam'"), 'Evaluaciones duplica sin copiar resultados');
 must((examsApi.match(/\.eq\('teacher_id', user\.id\)/g) || []).length >= 10, 'lecturas de Evaluaciones se restringen al docente autenticado');
-must(!examsApi.includes('.delete(') && !examsPage.includes('.delete('), 'Fase 4A archiva evaluaciones y conserva evidencia histórica');
+// URLSearchParams.delete removes navigation filters, not academic records.
+must(!examsApi.includes('.delete(') && !/\.from\([^)]*\)\s*\.delete\(/.test(examsPage), 'Fase 4A archiva evaluaciones y conserva evidencia histórica');
 must(examsApi.includes("'multiple_choice', 'true_false'") && examsApi.includes('compatibleExamQuestion'), 'la composición objetiva solo acepta reactivos con clave OMR inequívoca');
 must(examCreatorApi.includes('parseQuestionImport') && examCreatorApi.includes('questionFingerprint') && bankApi.includes('saveBankQuestions'), 'Creador Premium importa reactivos con validación y control de duplicados');
 must(examCreatorApi.includes('assessExamQuality') && examsPage.includes('ExamQualityPanel'), 'Creador Premium revisa calidad antes de preparar la evaluación');

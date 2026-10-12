@@ -232,8 +232,9 @@ function ClassroomLanding() {
   const auth = useAuth();
   const [notice, setNotice] = useState('');
   const home = useTeacherHome();
-  const [searchParams] = useSearchParams();
-  const [groupId, setGroupId] = useState(searchParams.get('group') || '');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const groupId = searchParams.get('group') || '';
+  const setGroupId = (value: string) => setSearchParams(previous => { const next = new URLSearchParams(previous); value ? next.set('group', value) : next.delete('group'); return next; });
   const sessions = useQuery({
     queryKey: classroomSessionsKey(auth.user?.id),
     queryFn: () => {
@@ -249,12 +250,13 @@ function ClassroomLanding() {
 
   const groups = home.data?.dashboard.groups || [];
   const groupById = new Map(groups.map((group) => [group.id, group]));
-  const active = (sessions.data || []).filter((session) => session.status !== 'closed');
-  const closed = (sessions.data || []).filter((session) => session.status === 'closed');
+  const scopedSessions = (sessions.data || []).filter(session => !groupId || session.group_id === groupId);
+  const active = scopedSessions.filter((session) => session.status !== 'closed');
+  const closed = scopedSessions.filter((session) => session.status === 'closed');
 
   return (
     <div className="view-stack classroom-landing">
-      <PageHeader eyebrow="MODO CLASE" title="Cockpit docente" detail="Prepara preguntas, abre una sala, acompaña respuestas y cierra la sesión sin desmontar TEDVIO 2.0." />
+      <PageHeader eyebrow="MODO CLASE" title="Tus clases" detail="Prepara una actividad o retoma una sesión. Elige el grupo antes de empezar." />
       {notice ? <div className="success-strip" role="status"><Icon name="check" /><span>{notice}</span><button type="button" aria-label="Cerrar aviso" onClick={() => setNotice('')}>×</button></div> : null}
 
       <section className="classroom-start-panel">

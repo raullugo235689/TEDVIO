@@ -122,6 +122,16 @@ export function classroomSessionKey(userId?: string, sessionId?: string) {
   return ['teacher-classroom-session', userId || 'anonymous', sessionId || 'none'] as const;
 }
 
+/** Small read for navigation; the class workspace keeps its own complete data. */
+export async function fetchActiveClassroomSessions(user: User, groupId = ''): Promise<Pick<ClassroomSession, 'id' | 'status' | 'group_id' | 'is_demo'>[]> {
+  let query = supabase.from('v2_sessions').select('id,status,group_id,is_demo')
+    .eq('teacher_id', user.id).eq('is_demo', false).eq('status', 'live').order('started_at', { ascending: false }).limit(101);
+  if (groupId) query = query.eq('group_id', groupId);
+  const { data, error } = await query;
+  if (error) throw new Error('No se pudieron comprobar las clases activas: ' + errorMessage(error));
+  return data || [];
+}
+
 export async function fetchClassroomSessions(user: User): Promise<ClassroomSession[]> {
   const { data, error } = await supabase
     .from('v2_sessions')

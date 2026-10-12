@@ -4,6 +4,8 @@ import { groupName, groupSubject } from '../core/academic';
 import { groupAccent } from '../core/group-identity';
 import { useTeacherHome } from '../core/useTeacherHome';
 import { InstitutionIdentity } from './InstitutionIdentity';
+import { ClassLauncher, useWorkflowContext } from './WorkflowNavigation';
+import { workflowLink } from '../core/workflow-navigation';
 import { Icon, type IconName } from './icons';
 
 type Section = 'summary' | 'students' | 'attendance' | 'grades' | 'reports';
@@ -20,12 +22,14 @@ const groupRoutes: [string, Section][] = [
 function GroupNavigation({ groupId, active }: { groupId: string; active: Section }) {
   const ref = useRef<HTMLElement>(null);
   const id = encodeURIComponent(groupId);
+  const verified = useWorkflowContext();
+  const context = { groupId, periodId: verified.groupId === groupId ? verified.periodId : '' };
   const items: { section: Section; label: string; to: string; icon: IconName }[] = [
     { section: 'summary', label: 'Resumen', to: `/groups/${id}`, icon: 'layout' },
     { section: 'students', label: 'Alumnos', to: `/groups/${id}?tab=students`, icon: 'groups' },
     { section: 'attendance', label: 'Asistencia', to: `/attendance/${id}`, icon: 'attendance' },
-    { section: 'grades', label: 'Calificaciones', to: `/gradebook/${id}`, icon: 'grades' },
-    { section: 'reports', label: 'Reportes', to: `/reports/${id}`, icon: 'reports' },
+    { section: 'grades', label: 'Calificaciones', to: workflowLink('/gradebook', context), icon: 'grades' },
+    { section: 'reports', label: 'Reportes', to: workflowLink('/reports', context), icon: 'reports' },
   ];
 
   useEffect(() => {
@@ -43,6 +47,7 @@ function GroupNavigation({ groupId, active }: { groupId: string; active: Section
 
 function GroupWorkspaceFrame({ groupId, section, children }: { groupId: string; section: Section; children: ReactNode }) {
   const home = useTeacherHome();
+  const context = useWorkflowContext();
   const group = home.data?.dashboard.groups?.find((item) => item.id === groupId);
 
   return <div className="group-workspace" data-group-color={groupAccent(groupId)}>
@@ -52,6 +57,11 @@ function GroupWorkspaceFrame({ groupId, section, children }: { groupId: string; 
         <div className="group-identity-heading"><strong>{groupSubject(group)}</strong><span className="group-identity-name">{groupName(group)}</span></div>
         <InstitutionIdentity name={group.university} logoUrl={group.institution_logo_url} detail={[group.program, group.term].filter(Boolean).join(' · ')} />
       </section>
+      <nav className="product-group-actions" aria-label="Trabajar con este grupo">
+        <ClassLauncher groupId={groupId} />
+        <Link to={workflowLink('/prepare', context)}><Icon name="bank" />Biblioteca</Link>
+        <Link to={workflowLink('/evaluate', context)}><Icon name="exam" />Evaluar</Link>
+      </nav>
       <GroupNavigation groupId={groupId} active={section} />
     </> : null}
     <div className="group-workspace-content">{children}</div>

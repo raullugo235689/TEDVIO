@@ -3,6 +3,7 @@ type RouteLoader = () => RouteModule;
 
 export const loadDashboardPage = () => import('../features/dashboard/DashboardPage');
 export const loadEnarm2027Page = () => import('../features/enarm2027/Enarm2027Page');
+export const loadEvaluatePage = () => import('../features/evaluate/EvaluatePage');
 export const loadPreparePage = () => import('../features/prepare/PreparePage');
 export const loadAgendaPage = () => import('../features/agenda/AgendaPage');
 export const loadGroupsPage = () => import('../features/groups/GroupsPage');
@@ -28,11 +29,13 @@ const routeLoaders: Array<[test: (pathname: string) => boolean, loader: RouteLoa
   [(pathname) => pathname === '/', loadDashboardPage],
   [(pathname) => pathname.startsWith('/enarm-2027'), loadEnarm2027Page],
   [(pathname) => pathname === '/prepare', loadPreparePage],
+  [(pathname) => pathname === '/evaluate', loadEvaluatePage],
   [(pathname) => pathname.startsWith('/agenda'), loadAgendaPage],
   [(pathname) => pathname.startsWith('/groups/'), loadGroupDetailPage],
   [(pathname) => pathname.startsWith('/groups'), loadGroupsPage],
   [(pathname) => pathname === '/attendance-justifications', loadAttendanceJustificationsPage],
-  [(pathname) => pathname.startsWith('/attendance'), loadAttendancePage],
+  [(pathname) => pathname === '/attendance-joint' || pathname.startsWith('/attendance-joint/'), () => import('../features/attendance/JointAttendancePage')],
+  [(pathname) => pathname === '/attendance' || pathname.startsWith('/attendance/'), loadAttendancePage],
   [(pathname) => /^\/classroom\/[^/]+\/health$/.test(pathname), loadPilotHealthPage],
   [(pathname) => pathname.startsWith('/classroom'), loadClassroomPage],
   [(pathname) => pathname.startsWith('/bank'), loadBankPage],
@@ -52,7 +55,7 @@ const routeLoaders: Array<[test: (pathname: string) => boolean, loader: RouteLoa
 const warmedRoutes = new Set<RouteLoader>();
 
 export function prefetchTeacherRoute(pathname: string): void {
-  const loader = routeLoaders.find(([test]) => test(pathname))?.[1];
+  const loader = routeLoaders.find(([test]) => test(pathname.split('?')[0]!))?.[1];
   if (!loader || warmedRoutes.has(loader)) return;
   warmedRoutes.add(loader);
   void loader().catch(() => warmedRoutes.delete(loader));
