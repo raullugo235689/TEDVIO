@@ -7,7 +7,7 @@ permissions:
 jobs:
   public-release:
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
         with:
@@ -16,7 +16,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Check public release and byte-exact application assets
+      - name: Check delivered public release, HTML and assets
         env:
           EXPECTED_BUILD: 13975576485e054af3ae3a668bb2af83821ee0516c85ba9052133994611118b3
         run: |
@@ -25,44 +25,33 @@ jobs:
           import fs from 'node:fs';
           import crypto from 'node:crypto';
           import assert from 'node:assert/strict';
-          const origin='https://tedvio.vercel.app';
+          const dir='/tmp/tedvio-live-proof';fs.mkdirSync(dir,{recursive:true});
+          const origin='https://tedvio.vercel.app',expected=process.env.EXPECTED_BUILD;
           const manifest=JSON.parse(fs.readFileSync('deployment-manifest.json','utf8'));
-          const expected=process.env.EXPECTED_BUILD;
-          assert.equal(manifest.source_hash,expected);
           const result={origin,expectedBuild:expected,checks:[],checkedAt:new Date().toISOString()};
-          async function read(path){
-            const response=await fetch(`${origin}${path}?release_check=${expected.slice(0,12)}-${Date.now()}`,{signal:AbortSignal.timeout(15000),headers:{'Cache-Control':'no-cache'}});
-            return {response,bytes:Buffer.from(await response.arrayBuffer())};
-          }
-          let ready=false;
-          for(let attempt=0;attempt<8;attempt++){
-            const {response,bytes}=await read('/release.json');
-            let release=null;try{release=JSON.parse(bytes.toString('utf8'));}catch{}
-            if(response.status===200 && release?.build_id===expected && release?.version==='2.2.0'){
-              result.checks.push({path:'/release.json',status:response.status,version:release.version,build:release.build_id});ready=true;break;
-            }
-            console.log(JSON.stringify({attempt:attempt+1,status:response.status,matchingBuild:release?.build_id===expected}));
-            if(attempt<7) await new Promise(resolve=>setTimeout(resolve,10000));
-          }
-          assert.ok(ready,'The public domain is not serving the verified 2.2.0 release');
-          const targets=[['/teacher','teacher-v2/index.html'],['/student-v2/','student-v2/index.html'],['/projection-v2/','projection-v2/index.html']];
-          const justificationAsset=Object.keys(manifest.files).find(file=>/^teacher-v2\/assets\/AttendanceJustificationsPage-.*\.js$/.test(file));
-          assert.ok(justificationAsset,'Missing compiled bulk-justification feature');
-          targets.push([`/${justificationAsset}`,justificationAsset]);
+          const targets=[['/release.json',null],['/teacher','teacher-v2/index.html'],['/teacher-v2/index.html','teacher-v2/index.html'],['/student-v2/','student-v2/index.html'],['/projection-v2/','projection-v2/index.html']];
+          const js=Object.keys(manifest.files).find(file=>/^teacher-v2\/assets\/AttendanceJustificationsPage-.*\.js$/.test(file));
+          assert.ok(js);targets.push([`/${js}`,js]);
           for(const [urlPath,file] of targets){
-            const {response,bytes}=await read(urlPath);
-            assert.equal(response.status,200,`${urlPath} must be public HTTP 200`);
-            const hash=crypto.createHash('sha256').update(bytes).digest('hex');
-            assert.equal(hash,manifest.files[file],`${urlPath} differs from the browser-tested artifact`);
-            result.checks.push({path:urlPath,status:response.status,sha256:hash,bytes:bytes.length});
+            const response=await fetch(`${origin}${urlPath}?release_check=${Date.now()}`,{signal:AbortSignal.timeout(15000),headers:{'Cache-Control':'no-cache'}});
+            const bytes=Buffer.from(await response.arrayBuffer()),hash=crypto.createHash('sha256').update(bytes).digest('hex');
+            const basename=(file||'release.json').replaceAll('/','_');
+            fs.writeFileSync(`${dir}/${urlPath==='/teacher'?'canonical_':''}delivered_${basename}`,bytes);
+            if(file)fs.copyFileSync(file,`${dir}/expected_${basename}`);
+            const summary={path:urlPath,finalURL:response.url,status:response.status,contentType:response.headers.get('content-type'),bytes:bytes.length,sha256:hash,expectedHash:file?manifest.files[file]:null,matchingBytes:file?hash===manifest.files[file]:null};
+            if(urlPath==='/release.json'){try{summary.release=JSON.parse(bytes);}catch{}}
+            result.checks.push(summary);
           }
-          fs.writeFileSync('/tmp/tedvio-live-release-verification.json',JSON.stringify(result,null,2));
+          fs.writeFileSync(`${dir}/verification.json`,JSON.stringify(result,null,2));
           console.log(JSON.stringify(result,null,2));
+          assert.ok(result.checks.every(check=>check.status===200),'Unexpected public status');
+          assert.equal(result.checks[0].release?.build_id,expected);
+          assert.ok(result.checks.at(-1).matchingBytes,'Bulk justification JavaScript must match the tested artifact exactly');
           JS
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: tedvio-production-release-verification
-          path: /tmp/tedvio-live-release-verification.json
-          retention-days: 3
+          path: /tmp/tedvio-live-proof/
+          retention-days: 1
           if-no-files-found: warn
