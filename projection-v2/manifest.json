@@ -1,12 +1,12 @@
 {
   "../../node_modules/@supabase/supabase-js/dist/index.mjs": {
-    "file": "assets/dist-0ci0KgD5.js",
+    "file": "assets/dist-Dqcpwgg-.js",
     "name": "dist",
     "src": "../../node_modules/@supabase/supabase-js/dist/index.mjs",
     "isDynamicEntry": true
   },
   "../../node_modules/qrcode/lib/browser.js": {
-    "file": "assets/browser-BI4spnCA.js",
+    "file": "assets/browser-4KsrKvbD.js",
     "name": "browser",
     "src": "../../node_modules/qrcode/lib/browser.js",
     "isDynamicEntry": true,
@@ -15,7 +15,7 @@
     ]
   },
   "index.html": {
-    "file": "assets/app-rsAZ1pqG.js",
+    "file": "assets/app--UWT0-v8.js",
     "name": "index",
     "src": "index.html",
     "isEntry": true,
