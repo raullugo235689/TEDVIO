@@ -1,0 +1,1 @@
+import{l as e}from"./query-BGRwt7I2.js";import{t}from"./TaskWorkspace-DI7TJGUl.js";var n=e();function r(){return(0,n.jsx)(t,{area:`evaluation`})}export{r as EvaluatePage};
