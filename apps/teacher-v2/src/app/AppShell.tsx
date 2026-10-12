@@ -15,15 +15,18 @@ import { GroupWorkspace } from '../shared/GroupWorkspace';
 import { useTeacherIdentity } from '../core/useTeacherIdentity';
 
 import { ReleaseNotice } from '../shared/ReleaseNotice';
+import { ClassEntryShortcut, ProductTaskNavigation, useNavigationScope } from '../shared/ProductNavigation';
+import { scopedDestination } from '../core/navigation-context';
 
 const THEME_KEY = 'tedvio.teacher-v2.theme';
 
 type Theme = 'light' | 'dark';
 
 function NavItem({ item, mobile = false, groupActive = false }: { item: NavigationItem; mobile?: boolean; groupActive?: boolean }) {
+  const scope = useNavigationScope();
   return (
     <NavLink
-      to={item.to}
+      to={scopedDestination(item.to, scope.groupId, scope.periodId)}
       end={item.to === '/'}
       data-area={navigationArea(item.to)}
       className={({ isActive }) => `nav-item${isActive || groupActive ? ' active' : ''}${mobile ? ' mobile' : ''}`}
@@ -53,6 +56,11 @@ function SidebarGroup({ group, pathname }: { group: NavigationGroup; pathname: s
 
 function MobileTools({ onDismiss, onSupport }: { onDismiss: () => void; onSupport: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const [query, setQuery] = useState('');
+  const normalized = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es-MX');
+  const needle = normalized(query.trim());
+  const matches = (item: NavigationItem) => !needle || normalized(`${item.label} ${item.shortLabel}`).includes(needle);
+  const shown = navigationGroups.map(group => ({ ...group, children: group.children.filter(matches) })).filter(group => matches(group) || group.children.length > 0);
   useEffect(() => {
     const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const dialog = ref.current;
@@ -61,9 +69,11 @@ function MobileTools({ onDismiss, onSupport }: { onDismiss: () => void; onSuppor
   }, []);
   return <dialog className="workspace-tools-dialog" ref={ref} aria-labelledby="workspace-tools-title" onCancel={(event) => { event.preventDefault(); onDismiss(); }}>
     <header><div><span className="eyebrow">TU ESPACIO DOCENTE</span><h2 id="workspace-tools-title">Todas las herramientas</h2></div><button type="button" className="icon-button" onClick={onDismiss} aria-label="Cerrar herramientas">×</button></header>
+    <label className="product-tool-search">Buscar una herramienta<input type="search" placeholder="Asistencia, faltas, exámenes…" value={query} onChange={event => setQuery(event.target.value)} /></label>
+    {!shown.length ? <p className="product-tools-empty" role="status">No encontramos esa herramienta. Prueba con otra palabra.</p> : null}
     <nav aria-label="Todas las herramientas" onClick={(event) => { if ((event.target as HTMLElement).closest('a')) onDismiss(); }}>
-      {navigationGroups.map((group) => <section className="workspace-tools-section" data-area={navigationArea(group.to)} key={group.to}><h3>{group.label}</h3><div><NavItem item={group} />{group.children.map((item) => <NavItem item={item} key={item.to} />)}</div></section>)}
-      <div className="workspace-tools-footer"><NavLink to="/enarm-2027" data-area="enarm" className="nav-item enarm2027-access"><Icon name="exam"/><span>ENARM 2027 · Mi preparación</span></NavLink><NavLink to="/support" data-area="settings" className="nav-item"><Icon name="alert" /><span>Ayuda y soporte</span></NavLink><button className="button secondary" type="button" onClick={onSupport}>Reportar un problema</button></div>
+      {shown.map((group) => <section className="workspace-tools-section" data-area={navigationArea(group.to)} key={group.to}><h3>{group.label}</h3><div>{matches(group) ? <NavItem item={group} /> : null}{group.children.map((item) => <NavItem item={item} key={item.to} />)}</div></section>)}
+      <div className="workspace-tools-footer"><NavLink to="/settings" data-area="settings" className="nav-item"><Icon name="settings" /><span>Configuración</span></NavLink><NavLink to="/enarm-2027" data-area="enarm" className="nav-item enarm2027-access"><Icon name="exam"/><span>ENARM 2027 · Mi preparación</span></NavLink><NavLink to="/support" data-area="settings" className="nav-item"><Icon name="alert" /><span>Ayuda y soporte</span></NavLink><button className="button secondary" type="button" onClick={onSupport}>Reportar un problema</button></div>
     </nav>
   </dialog>;
 }
@@ -105,7 +115,7 @@ export function AppShell() {
 
   const routeTitle = useMemo(() => navigationTitle(location.pathname), [location.pathname]);
   const area = navigationArea(location.pathname);
-  const mobileItems = navigationGroups.slice(0, 4);
+  const mobileItems = navigationGroups;
   const connectionLabel = reliability.syncing
     ? 'Sincronizando'
     : reliability.online
@@ -138,11 +148,12 @@ export function AppShell() {
         </Link>
 
         <nav className="sidebar-nav">
-          <div className="nav-section-label">TEACHER EXPERIENCE 4.2</div>
+          <div className="nav-section-label">TU TRABAJO, EN ORDEN</div>
           {navigationGroups.map((group) => <SidebarGroup group={group} pathname={location.pathname} key={group.to} />)}
         </nav>
 
         <div className="sidebar-bottom">
+          <NavLink to="/settings" data-area="settings" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}><Icon name="settings" /><span>Configuración</span></NavLink>
           <NavLink to="/enarm-2027" data-area="enarm" className={({ isActive }) => `nav-item enarm2027-access${isActive?' active':''}`}>
             <Icon name="exam"/><span>ENARM 2027<small>Mi preparación médica</small></span>
           </NavLink>
@@ -156,7 +167,7 @@ export function AppShell() {
       <div className="workspace">
         <header className="topbar teacher42-topbar">
           <div className="topbar-title">
-            <span>{area === 'enarm' ? 'FORMACIÓN PERSONAL' : 'ESPACIO DOCENTE'} <span aria-hidden="true">/</span> {navigationAreaLabel[area]}</span>
+            <span>{area === 'enarm' ? 'FORMACIÓN PERSONAL' : 'ESPACIO DOCENTE'} <span aria-hidden="true">/</span> {location.pathname.startsWith('/classroom') ? 'En clase' : navigationAreaLabel[area]}</span>
             <p className="workspace-route-title">{area==='enarm'?'ENARM 2027':routeTitle}</p>
           </div>
           <div className="topbar-actions">
@@ -165,13 +176,15 @@ export function AppShell() {
               <span>{connectionLabel}</span>
             </div>
             <button
-              className="icon-button support-button"
+              className="icon-button product-tools-button"
               type="button"
-              onClick={() => reliability.openSupport()}
-              aria-label="Reportar un problema"
-              title="Reportar un problema"
+              onClick={() => setMoreOpen(true)}
+              aria-label="Más"
+              aria-haspopup="dialog"
+              aria-expanded={moreOpen}
+              title="Todas las herramientas"
             >
-              <Icon name="alert" />
+              <Icon name="more" />
             </button>
             <button
               className="icon-button"
@@ -192,19 +205,18 @@ export function AppShell() {
           </div>
         </header>
 
+        <ClassEntryShortcut />
         <ReleaseNotice />
         <main className="route-container teacher42-main" id="tedvio-main" tabIndex={-1}>
           <RouteErrorBoundary resetKey={location.pathname}>
-            <GroupWorkspace><Outlet /></GroupWorkspace>
+            <GroupWorkspace><ProductTaskNavigation /><Outlet /></GroupWorkspace>
           </RouteErrorBoundary>
         </main>
       </div>
 
       <nav className="mobile-nav" aria-label="Navegación móvil">
         {mobileItems.map((item) => <NavItem item={item} mobile groupActive={isNavigationGroupActive(item, location.pathname)} key={item.to} />)}
-        <button data-area="settings" className={moreOpen || location.pathname.startsWith('/enarm-2027') || location.pathname === '/settings' || location.pathname === '/support' ? 'nav-item mobile active' : 'nav-item mobile'} type="button" aria-haspopup="dialog" aria-expanded={moreOpen} onClick={() => setMoreOpen((value) => !value)}>
-          <Icon name="more" /><span>Más</span>
-        </button>
+
       </nav>
 
       {moreOpen ? <MobileTools onDismiss={() => setMoreOpen(false)} onSupport={() => { setMoreOpen(false); reliability.openSupport(); }} /> : null}

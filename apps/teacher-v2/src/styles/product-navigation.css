@@ -1,0 +1,57 @@
+/* Product navigation 2.3: five task areas; existing feature styles stay intact. */
+.app-shell[data-area='evaluate'] { --brand:#6545b9; --brand-strong:#50349a; --area-halo:#e9e1f9; }
+.app-shell [data-area='evaluate'] { --area-accent:#c0a9ff; --mobile-accent:#6545b9; }
+html[data-theme='dark'] .app-shell[data-area='evaluate'] { --brand:#b7a0ff; --brand-strong:#d0c0ff; --area-halo:#2c2353; }
+html[data-theme='dark'] .app-shell [data-area='evaluate'] { --mobile-accent:#b7a0ff; }
+.product-class-entry { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:12px clamp(18px,3vw,38px); border-bottom:1px solid var(--border); background:var(--surface); }
+.product-class-entry > div { min-width:0; display:grid; gap:3px; }
+.product-class-entry > div > span { font-size:9px; letter-spacing:.1em; font-weight:750; color:var(--muted); }
+.product-class-entry p,.product-class-entry > div > a { margin:0; font-size:12px; color:var(--text-strong); overflow-wrap:anywhere; }
+.product-class-entry > .button { flex:none; min-height:44px; }
+.product-task-nav { display:flex; align-items:center; gap:6px; overflow-x:auto; max-width:100%; min-width:0; padding:3px 2px 9px; margin-bottom:14px; scrollbar-width:thin; }
+.product-task-nav a { flex:none; min-height:44px; display:flex; align-items:center; padding:9px 13px; border:1px solid var(--border); border-radius:12px; color:var(--muted); background:var(--surface); font-size:12px; font-weight:650; text-decoration:none; }
+.product-task-nav a[aria-current='page'] { color:var(--brand-strong); background:var(--area-halo); border-color:var(--brand); }
+.product-task-nav a:focus-visible { outline:2px solid var(--brand); outline-offset:-3px; }
+.product-scope { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:18px 20px; background:var(--surface); border:1px solid var(--border); border-radius:18px; }
+.product-scope > div { min-width:0; }
+.product-scope b { color:var(--text-strong); font-size:15px; overflow-wrap:anywhere; }
+.product-scope p { margin:5px 0 0; color:var(--muted); font-size:12px; line-height:1.5; }
+.product-scope label { display:grid; flex:0 1 340px; min-width:0; gap:6px; font-size:11px; color:var(--muted); font-weight:650; }
+.product-scope select { width:100%; min-width:0; max-width:100%; min-height:44px; text-overflow:ellipsis; padding:10px 12px; border:1px solid var(--border); border-radius:12px; background:var(--surface); color:var(--text-strong); font:inherit; }
+.product-hub .product-tool-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.product-hub .prepare-tool { min-height:210px; padding:22px; }
+.product-hub .prepare-tool h2 { font-size:20px; }
+.product-hub .prepare-tool p { font-size:13px; line-height:1.6; }
+.product-scope-warning { padding:12px; border:1px solid var(--border); border-radius:12px; font-size:13px; }
+.product-tool-search { display:grid; gap:6px; margin:8px 0 18px; font-size:12px; color:var(--muted); }
+.product-tool-search input { min-height:44px; }
+.product-tools-empty { padding:16px; color:var(--muted); }
+.product-account-links { display:flex; flex-wrap:wrap; gap:6px; }
+.product-account-links .nav-item { min-height:44px; }
+@media(max-width:900px) {
+ .app-shell .mobile-nav .nav-item { min-width:0; font-size:10px; padding-inline:2px; }
+ .product-class-entry { padding:8px 16px; }
+ .product-class-entry > div > a { font-size:11px; }
+ .product-class-entry > .button { padding-inline:12px; font-size:12px; }
+ .product-hub .prepare-tool { min-height:180px; }
+}
+@media(max-width:600px) {
+ .product-hub .product-tool-grid { grid-template-columns:minmax(0,1fr); gap:12px; }
+ .product-hub .prepare-tool { min-height:0; padding:18px; }
+ .product-scope { flex-direction:column; align-items:stretch; gap:12px; padding:16px; }
+ .product-scope label { flex:auto; overflow-x:clip; }
+ .product-scope select:focus-visible { outline-offset:-3px; }
+ .product-class-entry > div { max-width:48%; }
+ .product-hub .product-next-step { flex-wrap:wrap; }
+ .product-hub .product-next-step > a { width:100%; }
+}
+@media(max-width:359px) {
+ .teacher42-shell .teacher42-topbar { gap:6px; padding-inline:9px; }
+ .teacher42-shell .topbar-actions { gap:4px; }
+ .product-class-entry { padding-inline:12px; }
+}
+
+/* Navigation is never part of an academic document or an optical answer sheet. */
+@media print {
+ .product-class-entry, .product-task-nav, .product-scope { display:none !important; }
+}

@@ -65,6 +65,13 @@ test('impresión separa cuadernillo y clave y conserva centros de burbujas en A4
   await expect(page.locator('.exam-paper-questions > li')).toHaveCount(8);
   await expect(page.getByText('EXPLICACIÓN SOLO DOCENTE')).toHaveCount(0);
   await expect(page.locator('.exam-answer-key')).toHaveCount(0);
+  await expect(page.locator('.product-class-entry')).toHaveCount(1);
+  await expect(page.locator('.product-task-nav')).toHaveCount(1);
+  await page.emulateMedia({ media: 'print' });
+  await expect(page.locator('.product-class-entry')).toBeHidden();
+  await expect(page.locator('.product-task-nav')).toBeHidden();
+  await expect(page.locator('.exam-paper-questions > li')).toHaveCount(8);
+  await page.emulateMedia({ media: 'screen' });
   await page.getByLabel('Documento', { exact: true }).selectOption('key');
   await expect(page.locator('.exam-answer-key > div')).toHaveCount(8);
   await expect(page.locator('.exam-paper-questions')).toHaveCount(0);
@@ -78,6 +85,8 @@ test('impresión separa cuadernillo y clave y conserva centros de burbujas en A4
     await page.emulateMedia({ media: 'print' });
     await expect(page.locator('.workspace-guide-footer')).toBeHidden();
     await expect(page.locator('.workspace-skip-link')).toBeHidden();
+    await expect(page.locator('.product-class-entry')).toBeHidden();
+    await expect(page.locator('.product-task-nav')).toBeHidden();
     const metrics = await page.locator('.omr-sheet-page').first().evaluate(sheet => {
       const box = sheet.getBoundingClientRect(), wrap = sheet.querySelector('.omr-bubble-wrap'), circle = wrap.querySelector('i').getBoundingClientRect();
       return { width: box.width * 25.4 / 96, height: box.height * 25.4 / 96, transform: getComputedStyle(sheet).transform, x: (circle.x + circle.width/2 - box.x)/box.width, y: (circle.y + circle.height/2 - box.y)/box.height, qrLoaded: sheet.querySelector('[data-omr-qr] img').naturalWidth > 0 };

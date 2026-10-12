@@ -44,7 +44,7 @@ function Landing({ workspace, groups, teacherName }: { workspace: ReportWorkspac
   const shown = workspace.groups.filter((group) => searchable(`${groupLabel(group)} ${group.university_name || group.university || ''}`).includes(searchable(query.trim())));
   return (
     <div className="view-stack reports-page reports-premium">
-      <PageHeader eyebrow="DOCUMENTACIÓN ACADÉMICA" title="Centro de reportes" detail="Tus grupos, sus resultados y los documentos que necesitas entregar." />
+      <PageHeader eyebrow="DOCUMENTACIÓN ACADÉMICA" title="Resultados" detail="Tus grupos, sus resultados y los documentos que necesitas entregar." />
       <section className="reports-intro" aria-label="Preparar un reporte">
         <div className="reports-intro-icon"><Icon name="reports" /></div>
         <div><span className="eyebrow">TU TRABAJO, LISTO PARA COMPARTIR</span><h2>Documentos con identidad propia</h2><p>Elige un grupo, revisa el periodo y prepara tu documento con el nombre del docente y la identidad de su institución.</p><span className="reports-teacher"><Icon name="groups" />{teacherName}</span></div>

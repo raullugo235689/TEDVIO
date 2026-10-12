@@ -10,9 +10,9 @@ export interface NavigationItem {
 }
 
 export const navigation: NavigationItem[] = [
-  { to: '/', label: 'Inicio', shortLabel: 'Inicio', icon: 'home', section: 'primary', migrated: true },
+  { to: '/', label: 'Hoy', shortLabel: 'Hoy', icon: 'home', section: 'primary', migrated: true },
   { to: '/agenda', label: 'Agenda', shortLabel: 'Agenda', icon: 'calendar', section: 'primary', migrated: true },
-  { to: '/groups', label: 'Mis grupos', shortLabel: 'Grupos', icon: 'groups', section: 'primary', migrated: true },
+  { to: '/groups', label: 'Grupos', shortLabel: 'Grupos', icon: 'groups', section: 'primary', migrated: true },
   { to: '/attendance', label: 'Asistencia', shortLabel: 'Asistencia', icon: 'attendance', section: 'operation', migrated: true },
   { to: '/attendance-justifications', label: 'Justificar faltas', shortLabel: 'Justificaciones', icon: 'attendance', section: 'operation', migrated: true },
   { to: '/attendance-joint', label: 'Asistencia conjunta', shortLabel: 'Asistencia conjunta', icon: 'attendance', section: 'operation', migrated: true },
@@ -24,17 +24,18 @@ export const navigation: NavigationItem[] = [
   { to: '/students', label: 'Perfil del alumno', shortLabel: 'Alumnos', icon: 'groups', section: 'operation', migrated: true },
   { to: '/analytics', label: 'Analítica', shortLabel: 'Analítica', icon: 'analytics', section: 'close', migrated: true },
   { to: '/periods', label: 'Periodos', shortLabel: 'Periodos', icon: 'periods', section: 'close', migrated: true },
-  { to: '/reports', label: 'Reportes', shortLabel: 'Reportes', icon: 'reports', section: 'close', migrated: true },
-  { to: '/prepare', label: 'Preguntas y exámenes', shortLabel: 'Preparar', icon: 'bank', section: 'primary', migrated: true },
+  { to: '/reports', label: 'Resultados', shortLabel: 'Resultados', icon: 'reports', section: 'close', migrated: true },
+  { to: '/prepare', label: 'Biblioteca', shortLabel: 'Biblioteca', icon: 'bank', section: 'primary', migrated: true },
+  { to: '/evaluate', label: 'Evaluar', shortLabel: 'Evaluar', icon: 'exam', section: 'primary', migrated: true },
   { to: '/settings', label: 'Configuración', shortLabel: 'Ajustes', icon: 'settings', section: 'close', migrated: true },
 ];
 
 export const navigationGroups = [
-  { to: '/', children: ['/agenda'] },
-  { to: '/groups', children: ['/attendance', '/attendance-justifications', '/attendance-joint', '/classroom', '/gradebook', '/students', '/periods'] },
-  { to: '/prepare', children: ['/bank', '/exams', '/omr'] },
+  { to: '/', children: ['/agenda', '/classroom'] },
+  { to: '/groups', children: ['/attendance', '/attendance-justifications', '/attendance-joint', '/students'] },
+  { to: '/prepare', children: ['/bank'] },
+  { to: '/evaluate', children: ['/exams', '/omr', '/gradebook', '/periods'] },
   { to: '/reports', children: ['/analytics'] },
-  { to: '/settings', children: [] },
 ].map((group) => ({
   ...navigation.find((item) => item.to === group.to)!,
   children: group.children.map((path) => navigation.find((item) => item.to === path)!),
@@ -42,7 +43,7 @@ export const navigationGroups = [
 
 export type NavigationGroup = (typeof navigationGroups)[number];
 
-export type NavigationArea = 'home' | 'groups' | 'prepare' | 'reports' | 'settings' | 'enarm';
+export type NavigationArea = 'home' | 'groups' | 'prepare' | 'reports' | 'settings' | 'enarm' | 'evaluate';
 
 const areaByRoute: Record<string, NavigationArea> = {
   '/': 'home',
@@ -50,22 +51,26 @@ const areaByRoute: Record<string, NavigationArea> = {
   '/prepare': 'prepare',
   '/reports': 'reports',
   '/settings': 'settings',
+  '/evaluate': 'evaluate',
 };
 
 export function navigationArea(pathname: string): NavigationArea {
   if (pathname.startsWith('/enarm-2027')) return 'enarm';
-  if (pathname === '/support') return 'settings';
+  if (pathname === '/support' || pathname === '/settings') return 'settings';
+  // Retain the established classroom color and layout contract.
+  if (pathname.startsWith('/classroom')) return 'groups';
   const group = navigationGroups.find((entry) => isNavigationGroupActive(entry, pathname));
   return group ? areaByRoute[group.to] ?? 'home' : 'home';
 }
 
 export const navigationAreaLabel: Record<NavigationArea, string> = {
-  home: 'Inicio',
-  groups: 'Mis grupos',
-  prepare: 'Preguntas y exámenes',
-  reports: 'Reportes',
+  home: 'Hoy',
+  groups: 'Grupos',
+  prepare: 'Biblioteca',
+  reports: 'Resultados',
   settings: 'Configuración',
   enarm: 'ENARM 2027',
+  evaluate: 'Evaluar',
 };
 
 export function isNavigationGroupActive(group: NavigationGroup, pathname: string): boolean {

@@ -3,6 +3,7 @@ type RouteLoader = () => RouteModule;
 
 export const loadDashboardPage = () => import('../features/dashboard/DashboardPage');
 export const loadEnarm2027Page = () => import('../features/enarm2027/Enarm2027Page');
+export const loadEvaluationWorkspacePage = () => import('../features/prepare/ProductWorkspacePage');
 export const loadPreparePage = () => import('../features/prepare/PreparePage');
 export const loadAgendaPage = () => import('../features/agenda/AgendaPage');
 export const loadGroupsPage = () => import('../features/groups/GroupsPage');
@@ -27,6 +28,7 @@ export const loadPilotHealthPage = () => import('../features/reliability/PilotHe
 const routeLoaders: Array<[test: (pathname: string) => boolean, loader: RouteLoader]> = [
   [(pathname) => pathname === '/', loadDashboardPage],
   [(pathname) => pathname.startsWith('/enarm-2027'), loadEnarm2027Page],
+  [(pathname) => pathname === '/evaluate', loadEvaluationWorkspacePage],
   [(pathname) => pathname === '/prepare', loadPreparePage],
   [(pathname) => pathname.startsWith('/agenda'), loadAgendaPage],
   [(pathname) => pathname.startsWith('/groups/'), loadGroupDetailPage],

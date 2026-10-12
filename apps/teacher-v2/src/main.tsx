@@ -83,3 +83,5 @@ createRoot(root).render(
 );
 
 import './styles/joint-attendance.css';
+
+import './styles/product-navigation.css';

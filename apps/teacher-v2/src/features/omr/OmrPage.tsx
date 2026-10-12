@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   exportOmrResultsCsv,
@@ -112,7 +112,10 @@ function OmrExamCard({ exam, workspace }: { exam: PaperExam; workspace: OmrWorks
 
 function OmrLanding({ workspace }: { workspace: OmrWorkspace }) {
   const [query, setQuery] = useState('');
-  const [groupId, setGroupId] = useState('');
+  const [scopeParams, setScopeParams] = useSearchParams();
+  const requestedGroup = scopeParams.get('group') || '';
+  const groupId = workspace.groups.some(group => group.id === requestedGroup) ? requestedGroup : '';
+  function setGroupId(id: string) { const next = new URLSearchParams([...scopeParams].filter(([key]) => key !== 'group' && key !== 'period')); if (id) next.set('group', id); setScopeParams(next); }
   const filtered = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase('es-MX');
     return workspace.exams.filter((exam) => {

@@ -232,8 +232,14 @@ function ClassroomLanding() {
   const auth = useAuth();
   const [notice, setNotice] = useState('');
   const home = useTeacherHome();
-  const [searchParams] = useSearchParams();
-  const [groupId, setGroupId] = useState(searchParams.get('group') || '');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedGroup = searchParams.get('group') || '';
+  const groupId = home.data?.dashboard.groups?.some(group => group.id === requestedGroup) ? requestedGroup : '';
+  function setGroupId(id: string) {
+    const next = new URLSearchParams([...searchParams].filter(([key]) => key !== 'group' && key !== 'period'));
+    if (id) next.set('group', id);
+    setSearchParams(next);
+  }
   const sessions = useQuery({
     queryKey: classroomSessionsKey(auth.user?.id),
     queryFn: () => {

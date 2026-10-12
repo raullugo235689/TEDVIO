@@ -4,7 +4,7 @@ test.use({ serviceWorkers: 'block' });
 const userId = '11111111-1111-4111-8111-111111111111';
 const groupId = '22222222-2222-4222-8222-222222222222';
 const group = { id: groupId, teacher_id: userId, name: 'Medicina · 3A', group_name: 'Medicina · 3A', subject: 'Fisiología', university: 'Institución de prueba', term: '2026', students: 28, attendance_rate: 94, grade_avg: 8.6, today_attendance_status: 'closed', last_activity: '2026-09-22T10:00:00Z' };
-const allRoutes = ['/', '/agenda', '/groups', '/attendance', '/classroom', '/gradebook', '/students', '/periods', '/prepare', '/bank', '/exams', '/omr', '/reports', '/analytics', '/settings'];
+const allRoutes = ['/', '/agenda', '/groups', '/attendance', '/classroom', '/gradebook', '/students', '/periods', '/prepare', '/evaluate', '/bank', '/exams', '/omr', '/reports', '/analytics', '/settings'];
 
 async function fixture(page, empty = false, dashboardGroups = null, workspace = {}) {
   const state = { errors: [], writes: [], enarmSubmits: [], enarmQuestionsRead: 0,
@@ -370,7 +370,7 @@ test('espacio docente: cinco áreas, rutas anteriores y menú accesible', async 
   await expect(page).toHaveURL(/#\/$/);
   const mobile = page.getByRole('navigation', { name: 'Navegación móvil' });
   if (await mobile.isVisible()) {
-    const trigger = mobile.getByRole('button', { name: 'Más', exact: true });
+    const trigger = page.getByRole('button', { name: 'Más', exact: true });
     await trigger.click();
     const dialog = page.getByRole('dialog', { name: 'Todas las herramientas' });
     await expect(dialog).toBeVisible();
@@ -389,13 +389,13 @@ test('espacio docente: cinco áreas, rutas anteriores y menú accesible', async 
     await dialog.getByRole('link', { name: 'Banco de preguntas', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Banco de preguntas', exact: true })).toBeVisible();
     await expect(dialog).toHaveCount(0);
-    await expect(mobile.getByRole('link', { name: 'Preparar', exact: true })).toHaveClass(/active/);
+    await expect(mobile.getByRole('link', { name: 'Biblioteca', exact: true })).toHaveClass(/active/);
   } else {
     await expect(page.locator('.workspace-nav-heading > a')).toHaveCount(5);
     for (const toggle of await page.locator('.nav-expand').all()) {
       if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click();
     }
-    for (const path of allRoutes) await expect(page.locator(`.sidebar-nav a[href="#${path}"]`)).toBeVisible();
+    for (const path of allRoutes) await expect(page.locator(`.sidebar .nav-item[href="#${path}"]`)).toBeVisible();
     await page.locator('.sidebar-nav').getByRole('link', { name: 'Banco de preguntas', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Banco de preguntas', exact: true })).toBeVisible();
     await expect(page.locator('.sidebar-nav a[href="#/prepare"]')).toHaveClass(/active/);
@@ -498,9 +498,9 @@ test('Inicio y preparación: móvil estrecho, escritorio, temas y estados vacío
   await expect(page.locator('.dashboard-workspace h1')).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.screenshot({ path: test.info().outputPath('dashboard-dark.png'), fullPage: true });
-  await page.locator('.sidebar-nav').getByRole('link', { name: 'Preguntas y exámenes', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'De la pregunta al resultado.', exact: true })).toBeVisible();
-  for (const path of ['/bank', '/exams/new', '/exams', '/omr']) await expect(page.locator(`.prepare-tools a[href="#${path}"]`)).toBeVisible();
+  await page.locator('.sidebar-nav').getByRole('link', { name: 'Biblioteca', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Biblioteca', exact: true })).toBeVisible();
+  for (const path of ['/bank', '/bank?launch=1']) await expect(page.locator(`.prepare-tools a[href="#${path}"]`)).toBeVisible();
   await page.getByRole('button', { name: 'Activar modo claro' }).click();
   for (const width of [320, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 });
@@ -587,7 +587,7 @@ test('reportes premium: identidad vinculada, búsqueda, documento completo e imp
   });
   const color = await page.locator(`.group-card-v2[data-group-id="${groupId}"]`).getAttribute('data-group-color');
   await page.goto('/teacher#/reports');
-  await expect(page.getByRole('heading', { name: 'Centro de reportes', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Resultados', exact: true })).toBeVisible();
   await expect(page.locator('.report-group-card')).toHaveAttribute('data-group-color', color);
   await expect(page.locator('.report-group-card img')).toHaveAttribute('src', /logo-a\.png$/);
   await expect(page.locator('.reports-teacher')).toHaveText(profileName);
@@ -872,8 +872,8 @@ test('Teacher Experience 4.2: diseño premium conserva navegación, identidad, t
   await page.screenshot({ path: test.info().outputPath('teacher42-dashboard-iphone-dark.png'), fullPage: true });
 
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.locator('.sidebar-nav').getByRole('link', { name: 'Preguntas y exámenes', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'De la pregunta al resultado.', exact: true })).toBeVisible();
+  await page.locator('.sidebar-nav').getByRole('link', { name: 'Biblioteca', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Biblioteca', exact: true })).toBeVisible();
   await expect(shell).toBeVisible();
   await expect(page.locator('.teacher42-topbar')).toBeVisible();
   await noOverflow(page);
@@ -1033,4 +1033,80 @@ test('ENARM 2027: objetivos del plan permanecen aislados de datos académicos',a
   expect(state.enarmSettings.target_date).toBe('2027-09-30');
   expect(state.writes).toEqual(['tedvio_enarm2027_settings']);
   expect(state.errors).toEqual([]);
+});
+
+test('Producto 2.3: cinco áreas visibles y hubs útiles en móvil, escritorio y oscuro', async ({page}) => {
+  const state = await fixture(page);
+  for (const width of [320,390,768,1280]) {
+    await page.setViewportSize({width,height:900});
+    await page.goto('/teacher#/evaluate');
+    await expect(page.getByRole('heading',{name:'Evaluar',exact:true})).toBeVisible();
+    const mobile=page.getByRole('navigation',{name:'Navegación móvil'});
+    if(await mobile.isVisible()) await expect(mobile.locator('a > span')).toHaveText(['Hoy','Grupos','Biblioteca','Evaluar','Resultados']);
+    else await expect(page.locator('.workspace-nav-heading > a > span')).toHaveText(['Hoy','Grupos','Biblioteca','Evaluar','Resultados']);
+    for(const path of ['/exams/new','/exams','/omr','/gradebook']) await expect(page.locator(`.product-tool-grid a[href="#${path}"]`)).toBeVisible();
+    await noOverflow(page);
+    await page.screenshot({path:test.info().outputPath(`product-evaluate-${width}.png`),fullPage:true});
+  }
+  await page.setViewportSize({width:390,height:844});
+  await page.getByRole('button',{name:'Activar modo oscuro'}).click();
+  await page.goto('/teacher#/prepare');
+  await expect(page.getByRole('heading',{name:'Biblioteca',exact:true})).toBeVisible();
+  await noOverflow(page);
+  await page.screenshot({path:test.info().outputPath('product-library-dark-390.png'),fullPage:true});
+  expect(state.errors).toEqual([]);expect(state.writes).toEqual([]);
+});
+
+test('Producto 2.3: grupo explícito entre biblioteca, evaluación y resultados; otro grupo limpia el periodo', async ({page}) => {
+  const state=await fixture(page);
+  await page.goto(`/teacher#/groups/${groupId}`);
+  await expect(page.locator('.group-identity-banner')).toContainText('Fisiología');
+  const navigation=await page.getByRole('navigation',{name:'Navegación móvil'}).isVisible() ? page.locator('.mobile-nav') : page.locator('.sidebar-nav');
+  await navigation.getByRole('link',{name:'Biblioteca',exact:true}).click();
+  await expect(page).toHaveURL(new RegExp(`prepare\\?group=${groupId}`));
+  await expect(page.getByLabel('Trabajar con un grupo')).toHaveValue(groupId);
+  await expect(page.locator('.product-tool-grid a').nth(1)).toHaveAttribute('href',`#/bank?launch=1&group=${groupId}`);
+  await navigation.getByRole('link',{name:'Evaluar',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Evaluar',exact:true})).toBeVisible();
+  await expect(page.locator('.product-tool-grid a').first()).toHaveAttribute('href',`#/exams/new?group=${groupId}`);
+  await expect(page.locator('.product-next-step a')).toHaveAttribute('href',`#/reports/${groupId}`);
+  await expect(page.locator('.product-class-entry > a')).toHaveAttribute('href',`#/classroom?group=${groupId}`);
+  await page.goto(`/teacher#/evaluate?group=${groupId}&period=old-period`);
+  await page.getByLabel('Trabajar con un grupo').selectOption('other-group');
+  await expect(page).not.toHaveURL(/old-period/);
+  await expect(page.locator('.product-next-step a')).toHaveAttribute('href','#/reports/other-group');
+  await page.getByLabel('Trabajar con un grupo').selectOption('');
+  await expect(page.locator('.product-next-step a')).toHaveAttribute('href','#/reports');
+  await noOverflow(page);expect(state.errors).toEqual([]);expect(state.writes).toEqual([]);
+});
+
+test('Producto 2.3: buscar justificaciones abre la función existente y no hace correcciones', async({page})=>{
+  const state=await fixture(page);
+  await page.getByRole('button',{name:'Más',exact:true}).click();
+  const dialog=page.getByRole('dialog',{name:'Todas las herramientas'});
+  await dialog.getByRole('searchbox').fill('justificar');
+  await expect(dialog.locator('.workspace-tools-section a')).toHaveCount(1);
+  await dialog.getByRole('link',{name:'Justificar faltas',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Justificar faltas',exact:true})).toBeVisible();
+  await expect(page.getByRole('navigation',{name:'Herramientas de asistencia'})).toBeVisible();
+  await expect(dialog).toHaveCount(0);
+  await page.getByRole('button',{name:'Más',exact:true}).click();
+  await dialog.getByRole('searchbox').fill('xxxxxxxx');
+  await expect(dialog.getByRole('status')).toContainText('No encontramos');
+  await page.keyboard.press('Escape');
+  expect(state.errors).toEqual([]);expect(state.writes).toEqual([]);
+});
+
+test('Producto 2.3: acceso a clase real activa y rechazo de contexto ajeno',async({page})=>{
+  const state=await fixture(page,false,null,{sessions:[{id:'active-session',status:'live',group_id:groupId,is_demo:false}]});
+  await expect(page.locator('.product-class-entry > a')).toHaveText('Volver a la clase');
+  await expect(page.locator('.product-class-entry > a')).toHaveAttribute('href','#/classroom/active-session');
+  await page.goto('/teacher#/evaluate?group=unknown-group');
+  await expect(page.getByRole('status').filter({hasText:'El grupo del enlace no está disponible'})).toBeVisible();
+  await expect(page.getByLabel('Trabajar con un grupo')).toHaveValue('');
+  await expect(page.locator('.product-tool-grid a').first()).toHaveAttribute('href','#/exams/new');
+  await page.getByLabel('Trabajar con un grupo').selectOption('other-group');
+  await expect(page.locator('.product-class-entry > a')).toHaveText('Iniciar clase');
+  await expect(page.locator('.product-class-entry > a')).toHaveAttribute('href','#/classroom?group=other-group');
+  expect(state.errors).toEqual([]);expect(state.writes).toEqual([]);
 });
