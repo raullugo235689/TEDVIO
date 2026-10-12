@@ -18,3 +18,14 @@
   font-size:13px; line-height:1; letter-spacing:.02em; font-weight:750;
   white-space:nowrap; overflow-wrap:normal; color:inherit;
 }
+
+/* A 320px iPhone viewport must fit the shared header without making the entire
+   document horizontally scrollable. Keep all controls available and tactile. */
+@media (max-width:359px) {
+  .teacher42-shell[data-area='groups'] .teacher42-topbar {
+    gap:6px;
+    padding-inline:9px;
+  }
+  .teacher42-shell[data-area='groups'] .topbar-actions { gap:4px; }
+  .teacher42-shell[data-area='groups'] .topbar-title { min-width:0; }
+}
