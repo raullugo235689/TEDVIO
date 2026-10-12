@@ -42,3 +42,36 @@ test('a misleading release identifier is rejected without touching real artifact
  try{fs.writeFileSync(target,JSON.stringify({...value,build_id:'not-the-verified-build'}));assert.notEqual(run('verify').status,0);}finally{fs.writeFileSync(target,bytes);}
  assert.equal(run('verify').status,0);
 });
+
+test('Vercel JSON formatting and object key order do not invalidate the tested package',()=>{
+ const target=path.join(temporary,'vercel.json'),bytes=fs.readFileSync(target);
+ const config=JSON.parse(bytes), original=sourceDigest(temporary);
+ const reverseKeys=value=>Array.isArray(value)?value.map(reverseKeys):value&&typeof value==='object'
+  ?Object.fromEntries(Object.keys(value).reverse().map(key=>[key,reverseKeys(value[key])])):value;
+ try{
+  assert.equal(run('manifest').status,0);
+  assert.equal(run('attest',{AUDIT_TESTS_VERIFIED:'1',GITHUB_RUN_ID:'synthetic-integrity-test'}).status,0);
+  for(const representation of [JSON.stringify(config),JSON.stringify(reverseKeys(config),null,4)+'\n']){
+   fs.writeFileSync(target,representation);
+   assert.equal(sourceDigest(temporary),original);
+   const verified=run('verify');assert.equal(verified.status,0,verified.stderr);
+  }
+ }finally{fs.writeFileSync(target,bytes);}
+});
+test('semantic configuration changes and array order still invalidate the release',()=>{
+ const target=path.join(temporary,'vercel.json'),bytes=fs.readFileSync(target);
+ const original=sourceDigest(temporary),config=JSON.parse(bytes);
+ const mutations=[
+  {...config,buildCommand:'echo unverified'},
+  {...config,rewrites:[...config.rewrites].reverse()},
+  {...config,headers:config.headers.map((entry,index)=>index?entry:{...entry,headers:entry.headers.map(h=>h.key==='Content-Security-Policy'?{...h,value:"default-src *"}:h)})},
+ ];
+ try{
+  for(const mutated of mutations){
+   fs.writeFileSync(target,JSON.stringify(mutated));
+   assert.notEqual(sourceDigest(temporary),original);
+   assert.notEqual(run('verify').status,0);
+  }
+ }finally{fs.writeFileSync(target,bytes);}
+ assert.equal(run('verify').status,0);
+});
