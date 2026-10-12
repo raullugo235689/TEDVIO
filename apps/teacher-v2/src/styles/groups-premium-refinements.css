@@ -1,0 +1,43 @@
+/* Isolate nested presentation elements from legacy catalogue span/tile styles. */
+.groups-premium-page .pg-catalog .group-catalog-metrics .pg-metric-value {
+  display:flex; flex-direction:row; align-items:center; justify-content:center;
+  padding:0; margin:0; gap:5px; border:0; background:transparent; border-radius:0;
+}
+.groups-premium-page .pg-catalog .group-catalog-metrics .pg-rate-ring {
+  display:grid; place-items:center; box-sizing:border-box; flex:0 0 43px;
+  width:43px; min-width:43px; height:43px; padding:0; margin:0; gap:0;
+  border:0; background:transparent; border-radius:50%;
+}
+.groups-premium-page .pg-catalog .group-catalog-metrics .pg-rate-ring > b {
+  display:block; width:auto; min-width:0; padding:0; margin:0;
+  font-size:11px; line-height:1; white-space:nowrap; overflow-wrap:normal;
+}
+.groups-premium-page .pg-catalog .pg-card .group-institution-mark > span {
+  display:block; position:static; width:auto; min-width:0; height:auto;
+  padding:0; margin:0; border:0; background:transparent;
+  font-size:13px; line-height:1; letter-spacing:.02em; font-weight:750;
+  white-space:nowrap; overflow-wrap:normal; color:inherit;
+}
+
+/* A 320px iPhone viewport must fit the shared header without making the entire
+   document horizontally scrollable. Keep all controls available and tactile. */
+@media (max-width:359px) {
+  .teacher42-shell[data-area='groups'] .teacher42-topbar {
+    gap:6px;
+    padding-inline:9px;
+  }
+  .teacher42-shell[data-area='groups'] .topbar-actions { gap:4px; }
+  .teacher42-shell[data-area='groups'] .topbar-title { min-width:0; }
+}
+
+/* Native WebKit select controls can report intrinsic text width beyond their
+   CSS grid track (208px in a 142px column), leaking 12px into document scroll.
+   Clip only the collapsed control; the native option popup remains available. */
+@media (max-width:600px) {
+  .groups-premium-page .pg-filters > label:not(.catalog-search) { min-width:0; overflow-x:clip; }
+  .groups-premium-page .pg-filters select {
+    display:block; width:100%; max-width:100%; min-width:0;
+    overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+  }
+  .groups-premium-page .pg-filters select:focus-visible { outline-offset:-3px; }
+}
