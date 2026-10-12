@@ -17,7 +17,7 @@ html[data-theme='dark'] .app-shell [data-area='evaluate'] { --mobile-accent:#b7a
 .product-scope b { color:var(--text-strong); font-size:15px; overflow-wrap:anywhere; }
 .product-scope p { margin:5px 0 0; color:var(--muted); font-size:12px; line-height:1.5; }
 .product-scope label { display:grid; flex:0 1 340px; min-width:0; gap:6px; font-size:11px; color:var(--muted); font-weight:650; }
-.product-scope select { width:100%; min-width:0; max-width:100%; min-height:44px; text-overflow:ellipsis; }
+.product-scope select { width:100%; min-width:0; max-width:100%; min-height:44px; text-overflow:ellipsis; padding:10px 12px; border:1px solid var(--border); border-radius:12px; background:var(--surface); color:var(--text-strong); font:inherit; }
 .product-hub .product-tool-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
 .product-hub .prepare-tool { min-height:210px; padding:22px; }
 .product-hub .prepare-tool h2 { font-size:20px; }
@@ -49,4 +49,9 @@ html[data-theme='dark'] .app-shell [data-area='evaluate'] { --mobile-accent:#b7a
  .teacher42-shell .teacher42-topbar { gap:6px; padding-inline:9px; }
  .teacher42-shell .topbar-actions { gap:4px; }
  .product-class-entry { padding-inline:12px; }
+}
+
+/* Navigation is never part of an academic document or an optical answer sheet. */
+@media print {
+ .product-class-entry, .product-task-nav, .product-scope { display:none !important; }
 }

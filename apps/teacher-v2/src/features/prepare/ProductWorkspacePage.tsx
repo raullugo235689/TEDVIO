@@ -39,7 +39,7 @@ export function ProductWorkspacePage({ kind }: { kind: WorkspaceKind }) {
       detail={library ? 'Tus preguntas y actividades, listas para la siguiente clase.' : 'Prepara, aplica, califica y revisa sin perder el contexto del grupo.'}
       actions={<Link className="button primary" to={path(library ? '/bank' : '/exams/new')}><Icon name={library ? 'bank' : 'exam'} />{library ? 'Abrir mi banco' : 'Crear examen'}</Link>} />
     <section className="product-scope" aria-label="Contexto de trabajo">
-      <div><b>{group ? `${groupSubject(group)} · ${groupName(group)}` : 'Vista general'}</b><p>{library ? 'El grupo se conserva al preparar la clase; tu banco no cambia de propietario.' : 'Los accesos llevan este grupo seleccionado. Siempre puedes cambiarlo.'}</p></div>
+      <div><b>{group ? `${groupSubject(group)} · ${groupName(group)}` : 'Vista general'}</b><p>{!group ? 'Elige un grupo para llevarlo seleccionado entre tareas, o continúa con la vista general.' : library ? 'El grupo se conserva al preparar la clase; tu banco sigue disponible para tus otros grupos.' : 'Los accesos llevan este grupo seleccionado. Siempre puedes cambiarlo.'}</p></div>
       <label>Trabajar con un grupo<select value={groupId} onChange={event => selectGroup(event.target.value)}><option value="">Todos mis grupos</option>{groups.map(item => <option key={item.id} value={item.id}>{groupSubject(item)} · {groupName(item)}</option>)}</select></label>
     </section>
     {params.get('group') && !group ? <p role="status" className="product-scope-warning">El grupo del enlace no está disponible en tu cuenta. Selecciona uno antes de continuar.</p> : null}

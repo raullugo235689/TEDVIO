@@ -395,7 +395,7 @@ test('espacio docente: cinco áreas, rutas anteriores y menú accesible', async 
     for (const toggle of await page.locator('.nav-expand').all()) {
       if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click();
     }
-    for (const path of allRoutes) await expect(page.locator(`.sidebar a[href="#${path}"]`)).toBeVisible();
+    for (const path of allRoutes) await expect(page.locator(`.sidebar .nav-item[href="#${path}"]`)).toBeVisible();
     await page.locator('.sidebar-nav').getByRole('link', { name: 'Banco de preguntas', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Banco de preguntas', exact: true })).toBeVisible();
     await expect(page.locator('.sidebar-nav a[href="#/prepare"]')).toHaveClass(/active/);
