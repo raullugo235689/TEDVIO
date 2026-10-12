@@ -1,0 +1,42 @@
+name: Release diagnostic snapshot
+on:
+  push:
+    branches: ['fix/release-diagnostics-20261012']
+permissions:
+  contents: read
+jobs:
+  reproduce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 098b9d98b20802a481e1a57c337d2a67847e1a69
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify exact production candidate and record non-secret diagnostics
+        shell: bash
+        run: |
+          node --version
+          node .github/scripts/release-integrity.mjs verify
+          git archive --format=tar.gz HEAD > /tmp/tedvio-source-098b9d9.tar.gz
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import crypto from 'node:crypto';
+          import {sourceFiles,sourceDigest} from './.github/scripts/release-integrity.mjs';
+          const files=sourceFiles();
+          const sourceManifest=Object.fromEntries(files.map(file=>[file,crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex')]));
+          fs.writeFileSync('/tmp/source-diagnostics.json',JSON.stringify({node:process.version,sourceHash:sourceDigest(),sources:sourceManifest},null,2));
+          console.log(JSON.stringify({sourceHash:sourceDigest(),fileCount:files.length,rootFiles:fs.readdirSync('.').filter(f=>!f.startsWith('.'))}));
+          JS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tedvio-release-source-diagnostic
+          path: |
+            /tmp/tedvio-source-098b9d9.tar.gz
+            /tmp/source-diagnostics.json
+          retention-days: 1
+          if-no-files-found: error
