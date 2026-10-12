@@ -1,5 +1,6 @@
 import type { RealtimeChannel, User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
+import { fetchAllPages } from './data-pages';
 import { estimateServerClockOffset } from './classroom-clock';
 import type { ImageLabelingLayout } from './visual-question';
 import type { GroupRecord, StudentRecord } from './types';
@@ -171,11 +172,12 @@ export async function fetchClassroomSession(user: User, sessionId: string): Prom
   const questions = (questionsResult.data || []) as ClassroomQuestion[];
   const questionIds = questions.map((question) => question.id);
   const responsePromise = questionIds.length
-    ? supabase
+    ? fetchAllPages<ClassroomResponse>((from, to) => supabase
         .from('v2_responses')
         .select('id,question_id,participant_id,answer,submitted_at,is_correct,points,streak')
         .in('question_id', questionIds)
-        .order('submitted_at')
+        .order('submitted_at').order('id').range(from, to))
+        .then(data => ({ data, error: null }))
     : Promise.resolve({ data: [], error: null });
 
   const rosterPromise = session.group_id
@@ -216,6 +218,18 @@ export async function fetchClassroomSession(user: User, sessionId: string): Prom
     roster: (rosterResult.data || []) as StudentRecord[],
     notes: (notesResult.data || []) as StudentNote[],
   };
+}
+
+/** Focused reads for realtime events; stable roster and notes are not reloaded. */
+export async function fetchLiveParticipants(sessionId: string): Promise<ClassroomParticipant[]> {
+  return fetchAllPages<ClassroomParticipant>((from, to) => supabase.from('v2_participants')
+    .select('id,session_id,display_name,team_name,joined_at,last_seen_at,roster_student_id,matricula')
+    .eq('session_id', sessionId).order('joined_at').order('id').range(from, to));
+}
+export async function fetchLiveResponses(questionId: string): Promise<ClassroomResponse[]> {
+  return fetchAllPages<ClassroomResponse>((from, to) => supabase.from('v2_responses')
+    .select('id,question_id,participant_id,answer,submitted_at,is_correct,points,streak')
+    .eq('question_id', questionId).order('submitted_at').order('id').range(from, to));
 }
 
 export async function launchClassroomQuestion(user: User, sessionId: string, questionId: string): Promise<void> {
@@ -275,25 +289,26 @@ export function subscribeClassroom(
   currentQuestionId: string | null | undefined,
   onChange: () => void,
   onStatus: (status: ClassroomConnectionState) => void = () => undefined,
+  onLiveChange?: (kind: 'participants' | 'responses') => void,
 ): () => void {
   const channelName = `teacher-classroom-${sessionId}-${currentQuestionId || 'lobby'}`;
   let channel: RealtimeChannel = supabase
     .channel(channelName)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'v2_sessions', filter: `id=eq.${sessionId}` }, onChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'v2_questions', filter: `session_id=eq.${sessionId}` }, onChange)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'v2_participants', filter: `session_id=eq.${sessionId}` }, onChange);
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'v2_participants', filter: `session_id=eq.${sessionId}` }, () => onLiveChange ? onLiveChange('participants') : onChange());
 
   if (currentQuestionId) {
     channel = channel.on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'v2_responses', filter: `question_id=eq.${currentQuestionId}` },
-      onChange,
+      () => onLiveChange ? onLiveChange('responses') : onChange(),
     );
   }
   onStatus(navigator.onLine ? 'connecting' : 'offline');
   channel.subscribe((status) => {
     if (!navigator.onLine) onStatus('offline');
-    else if (status === 'SUBSCRIBED') onStatus('connected');
+    else if (status === 'SUBSCRIBED') { onStatus('connected'); onChange(); }
     else onStatus('reconnecting');
   });
   return () => {

@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "buildCommand": "",
+  "buildCommand": "node .github/scripts/release-integrity.mjs verify",
   "installCommand": "",
   "outputDirectory": ".",
   "git": {

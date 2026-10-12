@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useIsMutating, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { attendanceLabel, groupName, groupSubject } from '../../core/academic';
@@ -7,12 +7,10 @@ import {
   createAttendanceSession,
   fetchAttendanceDay,
   localDateKey,
-  saveAttendanceRecords,
-  updateAttendanceOptions,
-  updateAttendanceState,
   type AttendanceSessionOptions,
 } from '../../core/attendance';
 import { attendanceDraftKey, attendanceWriteKey, attendanceSnapshot, sameAttendanceSnapshot, missingAttendanceRecords, editAttendanceDraft, finishAttendanceSave, validAttendanceDate, type AttendanceDraft, type AttendanceValues, type AttendanceSnapshot } from '../../core/attendance-draft';
+import { commitAttendance } from '../../core/attendance-justifications';
 import { ActionDialog } from '../../shared/ActionDialog';
 import { useReliability } from '../reliability/ReliabilityProvider';
 import { groupDetailKey, groupWorkspaceKey } from '../../core/groups';
@@ -75,7 +73,7 @@ function AttendanceLanding() {
 
   return (
     <div className="view-stack">
-      <PageHeader eyebrow="ASISTENCIA PRO" title="Selecciona un grupo" detail="Consulta tus listas, registra la asistencia y revisa las observaciones de cada grupo." actions={<Link className="button primary" to="/attendance-joint">Asistencia conjunta · QR</Link>} />
+      <PageHeader eyebrow="ASISTENCIA PRO" title="Selecciona un grupo" detail="Consulta tus listas, registra la asistencia y revisa las observaciones de cada grupo." actions={<><Link className="button secondary" to="/attendance-justifications">Justificar faltas</Link><Link className="button primary" to="/attendance-joint">Asistencia conjunta · QR</Link></>} />
       <SectionCard>
         <div className="attendance-landing-tools">
           <label className="search-field"><Icon name="search" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar grupo o materia" /></label>
@@ -111,6 +109,7 @@ function AttendanceEditor({ groupId, date }: { groupId: string; date: string }) 
   const draftKey = attendanceDraftKey(auth.user?.id, groupId, date);
   const writeKey = attendanceWriteKey(auth.user?.id, groupId, date);
   const busy = useIsMutating({ mutationKey: writeKey }) > 0;
+  const attempt = useRef<{ fingerprint: string; id: string } | null>(null);
   const [dialog, setDialog] = useState<'closed' | 'reopen' | 'discard' | 'absent' | null>(null);
   const draftQuery = useQuery<AttendanceDraft | null>({
     queryKey: draftKey, queryFn: async () => null, enabled: false,
@@ -183,28 +182,30 @@ function AttendanceEditor({ groupId, date }: { groupId: string; date: string }) 
     mutationKey: writeKey,
     mutationFn: async (submission: { action: 'save' | AttendanceSessionState; base: AttendanceSnapshot; values: AttendanceValues; revision: number }) => {
       if (!auth.user || !submission.base.sessionId) throw new Error('La lista todavía no existe.');
-      const latest = await fetchAttendanceDay(auth.user, groupId, date);
-      const remote = attendanceSnapshot(latest);
-      if (latest.session?.entry_mode === 'qr' && latest.session.checkin_event_id && latest.session.status !== 'closed') throw new Error('Finaliza el registro desde Asistencia conjunta antes de editar esta lista.');
       const reopening = submission.action === 'open' && submission.base.status === 'closed';
-      const unchanged = sameAttendanceSnapshot(submission.base, remote);
-      const alreadySaved = sameAttendanceSnapshot({ ...submission.base, ...submission.values }, remote);
-      if (remote.sessionId !== submission.base.sessionId || remote.status !== submission.base.status
-        || (!reopening && !unchanged && !alreadySaved)) {
-        if (queryClient.getQueryState(dayKey)) queryClient.setQueryData(dayKey, latest);
-        throw new Error('La lista guardada cambió. Tus cambios siguen visibles; revísalos antes de continuar.');
+      const input = {
+        sessionId: submission.base.sessionId, expectedRevision: submission.base.revision ?? 0,
+        action: submission.action,
+        records: Object.entries(submission.values.records).sort(([a], [b]) => a.localeCompare(b)).map(([studentId, row]) => ({ studentId, ...row })),
+        options: submission.values.options,
+      };
+      const fingerprint = JSON.stringify(input);
+      // Reuse the receipt after a timeout; changing the reviewed payload creates
+      // a different operation. The database compares and writes atomically.
+      if (attempt.current?.fingerprint !== fingerprint) attempt.current = { fingerprint, id: crypto.randomUUID() };
+      try { await commitAttendance({ ...input, requestId: attempt.current.id }); }
+      catch (error) {
+        if (error && typeof error === 'object' && 'code' in error && error.code === 'PT409') {
+          const latest = await fetchAttendanceDay(auth.user, groupId, date);
+          if (queryClient.getQueryState(dayKey)) queryClient.setQueryData(dayKey, latest);
+        }
+        throw error;
       }
-      if (remote.status === 'closed' && !reopening) throw new Error('Reabre la lista antes de guardar cambios.');
-      if (!reopening) {
-        const rows = Object.entries(submission.values.records).map(([studentId, row]) => ({ studentId, ...row }));
-        await saveAttendanceRecords(auth.user, submission.base.sessionId, rows);
-        await updateAttendanceOptions(auth.user, submission.base.sessionId, submission.values.options);
-      }
-      if (submission.action !== 'save') await updateAttendanceState(auth.user, submission.base.sessionId, submission.action);
       return { ...submission, reopening, saved: await fetchAttendanceDay(auth.user, groupId, date) };
     },
     onSuccess: async ({ action, saved, revision, reopening }) => {
       receiveSavedDay(saved, revision, !reopening);
+      attempt.current = null;
       const labels: Record<string, string> = { save: 'Lista guardada.', open: 'Lista abierta.', paused: 'Lista pausada.', closed: 'Lista cerrada.' };
       setNotice(labels[action] || 'Cambios guardados.');
       setDialog(null);
@@ -280,6 +281,7 @@ function AttendanceEditor({ groupId, date }: { groupId: string; date: string }) 
       </div>
 
       <SectionCard className="attendance-date-card">
+        <Link className="button secondary" to={`/attendance-justifications?group=${groupId}`}>Justificar varias faltas</Link>
         <div className="attendance-date-controls">
           <button className="icon-button" type="button" disabled={busy} onClick={() => changeDate(moveDate(date, -1))} aria-label="Día anterior">←</button>
           <label>Fecha<input type="date" disabled={busy} value={date} onChange={(event) => changeDate(event.target.value)} /></label>

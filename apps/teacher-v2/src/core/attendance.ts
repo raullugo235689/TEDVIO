@@ -57,7 +57,7 @@ export async function fetchAttendanceDay(user: User, groupId: string, date: stri
       .order('full_name'),
     supabase
       .from('v2_attendance_sessions')
-      .select('id,group_id,teacher_id,attendance_date,notes,created_at,status,opened_at,paused_at,closed_at,late_after_minutes,auto_mark_absent,updated_at,entry_mode,checkin_event_id')
+      .select('id,group_id,teacher_id,attendance_date,notes,created_at,status,opened_at,paused_at,closed_at,late_after_minutes,auto_mark_absent,updated_at,entry_mode,checkin_event_id,revision')
       .eq('group_id', groupId)
       .eq('teacher_id', user.id)
       .eq('attendance_date', date)
@@ -73,7 +73,7 @@ export async function fetchAttendanceDay(user: User, groupId: string, date: stri
   if (session) {
     const { data, error } = await supabase
       .from('v2_attendance_records')
-      .select('id,attendance_session_id,student_id,teacher_id,status,note,observation,updated_at')
+      .select('id,attendance_session_id,student_id,teacher_id,status,note,observation,updated_at,revision')
       .eq('attendance_session_id', session.id)
       .eq('teacher_id', user.id);
     if (error) throw new Error(`Registros: ${errorMessage(error)}`);
@@ -110,7 +110,7 @@ export async function createAttendanceSession(
   const { data, error } = await supabase
     .from('v2_attendance_sessions')
     .insert(payload)
-    .select('id,group_id,teacher_id,attendance_date,notes,created_at,status,opened_at,paused_at,closed_at,late_after_minutes,auto_mark_absent,updated_at,entry_mode,checkin_event_id')
+    .select('id,group_id,teacher_id,attendance_date,notes,created_at,status,opened_at,paused_at,closed_at,late_after_minutes,auto_mark_absent,updated_at,entry_mode,checkin_event_id,revision')
     .single();
 
   if (!error) return data as AttendanceSessionRecord;
@@ -118,7 +118,7 @@ export async function createAttendanceSession(
 
   const existing = await supabase
     .from('v2_attendance_sessions')
-    .select('id,group_id,teacher_id,attendance_date,notes,created_at,status,opened_at,paused_at,closed_at,late_after_minutes,auto_mark_absent,updated_at,entry_mode,checkin_event_id')
+    .select('id,group_id,teacher_id,attendance_date,notes,created_at,status,opened_at,paused_at,closed_at,late_after_minutes,auto_mark_absent,updated_at,entry_mode,checkin_event_id,revision')
     .eq('group_id', groupId)
     .eq('teacher_id', user.id)
     .eq('attendance_date', date)

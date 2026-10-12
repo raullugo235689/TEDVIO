@@ -75,6 +75,7 @@ export function GroupDetailPage() {
   const requestedTab = searchParams.get('tab');
   const tab = requestedTab === 'students' || requestedTab === 'attendance' ? requestedTab : 'summary';
   const [query, setQuery] = useState('');
+  const [historyLimit, setHistoryLimit] = useState(20);
   const [showInactive, setShowInactive] = useState(false);
   const [studentDraft, setStudentDraft] = useState<StudentDraft | null>(null);
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -273,7 +274,7 @@ export function GroupDetailPage() {
       ) : tab === 'attendance' ? (
         <SectionCard>
           <div className="section-heading"><div><span className="eyebrow">ASISTENCIA</span><h2>Últimas listas</h2><p>Consulta el estado y vuelve a abrir cualquier fecha dentro del módulo nuevo.</p></div><Link className="button primary" to={`/attendance/${groupId}`}>Nueva lista</Link></div>
-          {data.attendance_sessions.length ? <div className="attendance-history-grid">{data.attendance_sessions.map((session) => <SessionRow key={session.id} session={session} records={data.attendance_records} groupId={groupId} />)}</div> : <EmptyState icon="attendance" title="Sin listas todavía" detail="Crea la primera asistencia para comenzar el historial del grupo." action={<Link className="button primary" to={`/attendance/${groupId}`}>Tomar asistencia</Link>} />}
+          {data.attendance_sessions.length ? <><Link className="button secondary" to={`/attendance-justifications?group=${groupId}`}>Justificar faltas por periodo</Link><div className="attendance-history-grid">{data.attendance_sessions.slice(0, historyLimit).map((session) => <SessionRow key={session.id} session={session} records={data.attendance_records} groupId={groupId} />)}</div>{historyLimit < data.attendance_sessions.length ? <button type="button" className="button secondary" onClick={() => setHistoryLimit(value => value + 20)}>Mostrar más listas</button> : null}</> : <EmptyState icon="attendance" title="Sin listas todavía" detail="Crea la primera asistencia para comenzar el historial del grupo." action={<Link className="button primary" to={`/attendance/${groupId}`}>Tomar asistencia</Link>} />}
         </SectionCard>
       ) : null}
     </div>

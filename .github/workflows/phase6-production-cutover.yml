@@ -1,104 +1,183 @@
 name: TEDVIO 2.0 Phase 6 Production Cutover
-
 on:
   push:
-    branches: [main, 'rebuild/tedvio-2-phase6*']
+    branches: [main, 'rebuild/tedvio-2-phase6*', 'rebuild/tedvio-2-audit-foundations']
     paths:
       - 'apps/teacher-v2/**'
       - 'teacher-v2/**'
       - 'student-v2/**'
       - 'projection-v2/**'
-      - 'teacher.html'
+      - 'supabase/migrations/**'
+      - 'supabase/tests/**'
+      - 'tests/browser/**'
+      - '.github/scripts/**'
+      - '.github/workflows/**'
       - 'vercel.json'
-      - 'manifest.webmanifest'
       - 'sw.js'
-      - 'version.json'
-      - 'tests/browser/phase6-*'
-      - '.github/workflows/phase6-production-cutover.yml'
+      - 'assets/**'
   pull_request:
     branches: [main]
   workflow_dispatch:
-
+permissions:
+  contents: read
+concurrency:
+  group: verified-release-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
 jobs:
   static-cutover:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install and build TEDVIO 2.0
+          cache: npm
+          cache-dependency-path: apps/teacher-v2/package-lock.json
+      - name: Build and verify once
         working-directory: apps/teacher-v2
         run: |
           npm ci --no-audit --no-fund
           npm run quality
-      - name: Verify canonical and rollback shells
+          npm audit --audit-level=high
+      - name: Package exactly the tested build
         run: |
-          test -f teacher-v2/index.html
-          grep -q '/teacher-v2/assets/' teacher-v2/index.html
-          test -f student-v2/index.html
-          grep -q '/student-v2/assets/' student-v2/index.html
-          test -f projection-v2/index.html
-          grep -q '/projection-v2/assets/' projection-v2/index.html
-          grep -q 'teacher-core-v68-6.js' teacher.html
-          node --check tests/browser/phase6-server.mjs
-          node --check tests/browser/phase6-cutover.spec.mjs
-          node --check tests/browser/phase6-deletion.spec.mjs
-          node --check tests/browser/phase6-playwright.config.mjs
           git diff --check
-
+          tar -czf /tmp/tedvio-verified-candidate.tar.gz teacher-v2 student-v2 projection-v2 release.json deployment-manifest.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verified-candidate-${{ github.run_id }}
+          path: /tmp/tedvio-verified-candidate.tar.gz
+          if-no-files-found: error
+          retention-days: 7
   browser-cutover:
+    needs: static-cutover
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [desktop-chromium, iphone-webkit]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Build the unified frontend
-        working-directory: apps/teacher-v2
+      - uses: actions/download-artifact@v4
+        with:
+          name: verified-candidate-${{ github.run_id }}
+          path: /tmp/candidate
+      - name: Use candidate without rebuilding
         run: |
-          npm ci --no-audit --no-fund
-          npm run quality
+          rm -rf teacher-v2 student-v2 projection-v2
+          tar -xzf /tmp/candidate/tedvio-verified-candidate.tar.gz
       - name: Install browser runner
         run: |
           npm init -y >/dev/null 2>&1
           npm install --no-save --no-package-lock --no-audit --no-fund @playwright/test@1.55.0
-          npx playwright install --with-deps chromium webkit
-      - name: Student join and recovery — iPhone WebKit
-        run: npx playwright test tests/browser/phase6-student-join.spec.mjs --config=tests/browser/phase6-playwright.config.mjs --project=iphone-webkit
-      - name: Student 3.0 full journey — iPhone WebKit and Chromium
-        run: npx playwright test tests/browser/phase6-student-experience.spec.mjs --config=tests/browser/phase6-playwright.config.mjs --project=iphone-webkit --project=desktop-chromium
-      - name: Classroom 3.1 secure projection — WebKit and Chromium
-        run: npx playwright test tests/browser/phase6-classroom31-projection.spec.mjs --config=tests/browser/phase6-playwright.config.mjs --project=iphone-webkit --project=desktop-chromium
-      - name: ENARM quiz — mobile, scoring, retry and timer
-        run: npx playwright test tests/browser/phase6-enarm-game.spec.mjs --config=tests/browser/enarm-game-playwright.config.mjs
-      - name: Save ENARM screenshots
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: enarm-game-screenshots
-          path: test-results/**/enarm-game-mobile.png
-          if-no-files-found: ignore
-          retention-days: 3
+          if [ '${{ matrix.project }}' = 'iphone-webkit' ]; then npx playwright install --with-deps webkit; else npx playwright install --with-deps chromium; fi
       - name: Full canonical, mobile and rollback browser audit
-        run: npx playwright test --config=tests/browser/phase6-playwright.config.mjs
-      - name: Save structured browser results
+        run: |
+          npx playwright test --config=tests/browser/phase6-playwright.config.mjs --project=${{ matrix.project }}
+          npx playwright test --config=tests/browser/enarm-game-playwright.config.mjs --project=${{ matrix.project }}
+      - name: Save browser results and screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: phase6-browser-results
-          path: test-results/phase6-results.json
-          if-no-files-found: ignore
-          retention-days: 3
-      - name: Save workspace screenshots for design review
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: teacher-workspace-screenshots
+          name: browser-evidence-${{ matrix.project }}-${{ github.run_id }}
           path: |
-            test-results/**/*.png
-            test-results/**/*.pdf
-            tests/browser/test-results/**/*.png
-          if-no-files-found: ignore
-          retention-days: 3
+            test-results/
+            tests/browser/test-results/
+          if-no-files-found: error
+          retention-days: 7
+  database-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: isolated-review-only
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated database test client
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save --no-package-lock --no-audit --no-fund pg@8.16.3
+      - name: Real concurrent transactions and synthetic restore
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: 55432
+          PGUSER: postgres
+          PGPASSWORD: isolated-review-only
+          PGDATABASE: postgres
+        run: node --test .github/scripts/attendance-postgres-integration.mjs
+  verified-release:
+    needs: [static-cutover,browser-cutover,database-integration]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          name: verified-candidate-${{ github.run_id }}
+          path: /tmp/candidate
+      - name: Attest exact build after all checks pass
+        env:
+          AUDIT_TESTS_VERIFIED: '1'
+        run: |
+          rm -rf teacher-v2 student-v2 projection-v2
+          tar -xzf /tmp/candidate/tedvio-verified-candidate.tar.gz
+          node .github/scripts/release-integrity.mjs attest
+          node .github/scripts/release-integrity.mjs verify
+      - name: Store verified artifact on the unchanged source branch
+        if: github.actor != 'github-actions[bot]'
+        env:
+          RELEASE_BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          EXPECTED_SOURCE: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          git fetch origin "$RELEASE_BRANCH"
+          test "$(git rev-parse FETCH_HEAD)" = "$EXPECTED_SOURCE"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add teacher-v2 student-v2 projection-v2 release.json deployment-manifest.json release-attestation.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'release(verified): publish the validated source and browser-tested artifacts'
+            git push origin "HEAD:$RELEASE_BRANCH"
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-attestation-${{ github.run_id }}
+          path: |
+            release.json
+            deployment-manifest.json
+            release-attestation.json
+          if-no-files-found: error
+          retention-days: 30

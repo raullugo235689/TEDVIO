@@ -183,6 +183,7 @@ export interface StudentRecord {
 }
 
 export interface AttendanceSessionRecord {
+  revision?: number;
   entry_mode?: 'manual' | 'qr';
   checkin_event_id?: string | null;
   id: string;
@@ -201,6 +202,7 @@ export interface AttendanceSessionRecord {
 }
 
 export interface AttendanceRecordRow {
+  revision?: number;
   id: string;
   attendance_session_id: string;
   student_id: string;

@@ -14,10 +14,10 @@ async function attendanceFixture(page) {
   const students = ['a', 'b'].map((id) => ({ id, group_id: groupId, teacher_id: userId, enrollment: id.toUpperCase(), full_name: `Alumno ${id.toUpperCase()}`, active: true }));
   const sessions = Object.fromEntries(['2026-09-08', '2026-09-09'].map((date) => [date, {
     id: `list-${date}`, group_id: groupId, teacher_id: userId, attendance_date: date,
-    status: 'open', late_after_minutes: 10, auto_mark_absent: true, notes: '',
+    revision: 0, status: 'open', late_after_minutes: 10, auto_mark_absent: true, notes: '',
   }]));
   const state = {
-    sessions, failWrite: false, writes: 0,
+    sessions, failWrite: false, writes: 0, receipts: new Map(),
     records: {
       'list-2026-09-08': [{ id: 'record-a', student_id: 'a', status: 'present', note: '', observation: '' }],
       'list-2026-09-09': [{ id: 'record-b', student_id: 'a', status: 'late', note: '', observation: '' }],
@@ -42,6 +42,28 @@ async function attendanceFixture(page) {
     else if (table === 'v2_teacher_today_dashboard') rows = { groups: [{ id: groupId, name: 'Grupo de prueba', subject: 'Materia de prueba' }] };
     else if (table === 'v2_groups') rows = [{ id: groupId, teacher_id: userId, name: 'Grupo de prueba', subject: 'Materia de prueba' }];
     else if (table === 'v2_group_students') rows = students;
+    else if (table === 'v2_commit_attendance') {
+      const input = request.postDataJSON();
+      const session = Object.values(sessions).find(item => item.id === input.p_session_id);
+      if (state.receipts.has(input.p_request_id)) rows = state.receipts.get(input.p_request_id);
+      else if (!session || session.revision !== input.p_expected_revision) {
+        await route.fulfill({ status: 409, json: { code: 'PT409', message: 'La lista guardada cambió. Revisa los cambios de otro dispositivo.' } }); return;
+      } else if (state.failWrite) {
+        await route.fulfill({ status: 503, json: { message: 'Guardado simulado fallido' } }); return;
+      } else {
+        state.writes++;
+        if (!(input.p_action === 'open' && session.status === 'closed')) {
+          state.records[session.id] = input.p_records.map((row, i) => ({ id: `saved-${i}`, attendance_session_id: session.id, student_id: row.studentId, status: row.status, note: row.note, observation: row.note }));
+          session.notes = input.p_options.notes;
+          session.late_after_minutes = input.p_options.lateAfterMinutes;
+          session.auto_mark_absent = input.p_options.autoMarkAbsent;
+        }
+        if (input.p_action !== 'save') session.status = input.p_action;
+        session.revision++;
+        rows = { request_id: input.p_request_id, session_id: session.id, revision: session.revision, status: session.status };
+        state.receipts.set(input.p_request_id, rows);
+      }
+    }
     else if (table === 'v2_attendance_sessions') {
       if (request.method() === 'PATCH') {
         const session = Object.values(sessions).find((item) => item.id === eq('id'));
@@ -127,6 +149,7 @@ test('asistencia detecta cambios remotos y pide confirmar antes de descartar o s
   const state = await attendanceFixture(page);
   await statusA(page, 'Falta').click();
   state.records['list-2026-09-08'][0].status = 'justified';
+  state.sessions['2026-09-08'].revision++; // the database revision trigger increments on a remote write
   await page.getByRole('button', { name: 'Guardar', exact: true }).click();
   await expect(page.locator('.attendance-work-status')).toContainText('La lista guardada cambió');
   expect(state.writes).toBe(0);

@@ -7,6 +7,7 @@ export const loadPreparePage = () => import('../features/prepare/PreparePage');
 export const loadAgendaPage = () => import('../features/agenda/AgendaPage');
 export const loadGroupsPage = () => import('../features/groups/GroupsPage');
 export const loadGroupDetailPage = () => import('../features/groups/GroupDetailPage');
+export const loadAttendanceJustificationsPage = () => import('../features/attendance/AttendanceJustificationsPage');
 export const loadAttendancePage = () => import('../features/attendance/AttendancePage');
 export const loadClassroomPage = () => import('../features/classroom/ClassroomPage');
 export const loadBankPage = () => import('../features/bank/BankPage');
@@ -30,6 +31,7 @@ const routeLoaders: Array<[test: (pathname: string) => boolean, loader: RouteLoa
   [(pathname) => pathname.startsWith('/agenda'), loadAgendaPage],
   [(pathname) => pathname.startsWith('/groups/'), loadGroupDetailPage],
   [(pathname) => pathname.startsWith('/groups'), loadGroupsPage],
+  [(pathname) => pathname === '/attendance-justifications', loadAttendanceJustificationsPage],
   [(pathname) => pathname.startsWith('/attendance'), loadAttendancePage],
   [(pathname) => /^\/classroom\/[^/]+\/health$/.test(pathname), loadPilotHealthPage],
   [(pathname) => pathname.startsWith('/classroom'), loadClassroomPage],

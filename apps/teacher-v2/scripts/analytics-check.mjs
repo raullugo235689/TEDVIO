@@ -23,7 +23,7 @@ function must(condition, message) {
 
 must(app.includes('path="analytics"') && app.includes('path="analytics/:groupId"') && app.includes('<AnalyticsPage />'), 'Analytics 2.x tiene rutas React propias');
 must(navigation.includes("to: '/analytics'") && navigation.includes("label: 'Analítica'"), 'Analítica está disponible en la navegación docente');
-must(main.includes("import './styles/analytics.css'"), 'Analytics carga un único módulo visual');
+must(page.includes("import '../../styles/analytics.css'") && !main.includes("import './styles/analytics.css'"), 'Analytics carga su módulo visual únicamente con la ruta');
 must(api.includes("rpc('v2_teacher_classroom_analytics'") && api.includes('analyticsDataKey'), 'frontend consume el RPC agregado y filtra la caché');
 for (const filter of ['groupId', 'periodId', 'from', 'to', 'timezone', 'accuracyThreshold', 'participationThreshold']) {
   must(api.includes(`filters.${filter}`), `la clave y consulta incluyen ${filter}`);

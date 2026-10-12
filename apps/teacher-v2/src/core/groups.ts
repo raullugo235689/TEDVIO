@@ -1,5 +1,6 @@
 import type { User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
+import { fetchAllPages } from './data-pages';
 import type {
   AttendanceRecordRow,
   AttendanceSessionRecord,
@@ -247,13 +248,12 @@ export async function fetchGroupDetail(user: User, groupId: string): Promise<Gro
       .eq('teacher_id', user.id)
       .order('active', { ascending: false })
       .order('full_name'),
-    supabase
+    fetchAllPages<AttendanceSessionRecord>((from, to) => supabase
       .from('v2_attendance_sessions')
-      .select('id,group_id,teacher_id,attendance_date,notes,created_at,status,opened_at,paused_at,closed_at,late_after_minutes,auto_mark_absent,updated_at')
-      .eq('group_id', groupId)
-      .eq('teacher_id', user.id)
-      .order('attendance_date', { ascending: false })
-      .limit(20),
+      .select('id,group_id,teacher_id,attendance_date,notes,created_at,status,opened_at,paused_at,closed_at,late_after_minutes,auto_mark_absent,updated_at,revision')
+      .eq('group_id', groupId).eq('teacher_id', user.id)
+      .order('attendance_date', { ascending: false }).order('id').range(from, to))
+      .then(data => ({ data, error: null })),
   ]);
 
   if (groupResult.error) throw new Error(`Grupo: ${errorMessage(groupResult.error)}`);
@@ -263,13 +263,15 @@ export async function fetchGroupDetail(user: User, groupId: string): Promise<Gro
   const sessions = (sessionsResult.data || []) as AttendanceSessionRecord[];
   let records: AttendanceRecordRow[] = [];
   if (sessions.length) {
-    const { data, error } = await supabase
-      .from('v2_attendance_records')
-      .select('id,attendance_session_id,student_id,teacher_id,status,note,observation,updated_at')
-      .eq('teacher_id', user.id)
-      .in('attendance_session_id', sessions.map((item) => item.id));
-    if (error) throw new Error(`Registros de asistencia: ${errorMessage(error)}`);
-    records = (data || []) as AttendanceRecordRow[];
+    // Keep the IN filter bounded as semesters accumulate, and page every chunk.
+    for (let offset = 0; offset < sessions.length; offset += 100) {
+      records.push(...await fetchAllPages<AttendanceRecordRow>((from, to) => supabase
+        .from('v2_attendance_records')
+        .select('id,attendance_session_id,student_id,teacher_id,status,note,observation,updated_at,revision')
+        .eq('teacher_id', user.id)
+        .in('attendance_session_id', sessions.slice(offset, offset + 100).map(item => item.id))
+        .order('id').range(from, to)));
+    }
   }
 
   return {

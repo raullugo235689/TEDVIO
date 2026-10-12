@@ -1,3 +1,4 @@
+import { pagedResult, batchedPagedResult } from './data-pages';
 import type { User } from '@supabase/supabase-js';
 import { calculateGradebook, fetchGradebookDetail, type GradebookCalculation, type GradebookDetail, type GradebookOmrResult } from './gradebook';
 import { supabase } from './supabase';
@@ -225,9 +226,9 @@ export async function fetchReportData(user: User, groupId: string, periodId: str
 
   const [questionsResult, assignmentsResult, programResult, membershipsResult] = await Promise.all([
     sessionIds.length
-      ? supabase.from('v2_questions').select('id,session_id,prompt,status,question_type').in('session_id', sessionIds).range(0, 9999)
+      ? batchedPagedResult(sessionIds, batch => supabase.from('v2_questions').select('id,session_id,prompt,status,question_type').in('session_id', batch).order('id'))
       : Promise.resolve({ data: [], error: null }),
-    supabase.from('v2_assignments').select('id,teacher_id,group_id,period_id,title,status,opens_at,closes_at,created_at').eq('group_id', groupId).eq('teacher_id', user.id).order('created_at').range(0, 9999),
+    pagedResult(() => supabase.from('v2_assignments').select('id,teacher_id,group_id,period_id,title,status,opens_at,closes_at,created_at').eq('group_id', groupId).eq('teacher_id', user.id).order('created_at').order('id')),
     detail.group.program_id
       ? supabase.from('v2_programs').select('id,name,university_id').eq('id', detail.group.program_id).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
@@ -248,10 +249,10 @@ export async function fetchReportData(user: User, groupId: string, periodId: str
 
   const [responsesResult, attemptsResult, institutionResult, institutionsResult] = await Promise.all([
     questionIds.length
-      ? supabase.from('v2_responses').select('question_id,participant_id,is_correct,points').in('question_id', questionIds).range(0, 9999)
+      ? batchedPagedResult(questionIds, batch => supabase.from('v2_responses').select('question_id,participant_id,is_correct,points').in('question_id', batch).order('id'))
       : Promise.resolve({ data: [], error: null }),
     assignmentIds.length
-      ? supabase.from('v2_assignment_attempts').select('id,assignment_id,group_student_id,enrollment,status,submitted_at,score,max_score,percentage,late').in('assignment_id', assignmentIds).range(0, 9999)
+      ? batchedPagedResult(assignmentIds, batch => supabase.from('v2_assignment_attempts').select('id,assignment_id,group_student_id,enrollment,status,submitted_at,score,max_score,percentage,late').in('assignment_id', batch).order('id'))
       : Promise.resolve({ data: [], error: null }),
     program?.university_id
       ? supabase.from('v2_universities').select('id,name,institution_id').eq('id', program.university_id).maybeSingle()

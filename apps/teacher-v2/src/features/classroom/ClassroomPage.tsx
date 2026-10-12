@@ -1,3 +1,5 @@
+import { createRefreshQueue } from '../../core/data-pages';
+import { fetchLiveParticipants, fetchLiveResponses, type ClassroomWorkspace } from '../../core/classroom';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -420,9 +422,35 @@ function ClassroomControl({ sessionId }: { sessionId: string }) {
 
   useEffect(() => {
     if (!sessionId) return;
-    return subscribeClassroom(sessionId, current?.id, () => {
-      void queryClient.invalidateQueries({ queryKey: classroomSessionKey(auth.user?.id, sessionId) });
-    }, setConnection);
+    const key = classroomSessionKey(auth.user?.id, sessionId);
+    let disposed = false;
+    const pending = new Set<'full' | 'participants' | 'responses'>();
+    const refresh = createRefreshQueue(async () => {
+      const changes = new Set(pending); pending.clear();
+      if (changes.has('full') || !current?.id || !queryClient.getQueryData(key)) {
+        await queryClient.invalidateQueries({ queryKey: key }, { cancelRefetch: false });
+        return;
+      }
+      const [participants, responses] = await Promise.all([
+        changes.has('participants') ? fetchLiveParticipants(sessionId) : undefined,
+        changes.has('responses') ? fetchLiveResponses(current.id) : undefined,
+      ]).catch(async () => {
+        await queryClient.invalidateQueries({ queryKey: key }, { cancelRefetch: false });
+        return [undefined, undefined] as const;
+      });
+      if (disposed || !queryClient.getQueryState(key)) return;
+      queryClient.setQueryData<ClassroomWorkspace>(key, previous => {
+        if (!previous || previous.session.current_question_id !== current.id) return previous;
+        return { ...previous,
+          participants: participants ?? previous.participants,
+          responses: responses ? [...previous.responses.filter(row => row.question_id !== current.id), ...responses] : previous.responses,
+        };
+      });
+    });
+    const stop = subscribeClassroom(sessionId, current?.id, () => {
+      pending.add('full'); refresh.request();
+    }, setConnection, kind => { pending.add(kind); refresh.request(); });
+    return () => { disposed = true; refresh.dispose(); stop(); };
   }, [auth.user?.id, current?.id, queryClient, sessionId]);
 
   useEffect(() => {
