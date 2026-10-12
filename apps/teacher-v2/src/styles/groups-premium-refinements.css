@@ -1,0 +1,20 @@
+/* Isolate nested presentation elements from legacy catalogue span/tile styles. */
+.groups-premium-page .pg-catalog .group-catalog-metrics .pg-metric-value {
+  display:flex; flex-direction:row; align-items:center; justify-content:center;
+  padding:0; margin:0; gap:5px; border:0; background:transparent; border-radius:0;
+}
+.groups-premium-page .pg-catalog .group-catalog-metrics .pg-rate-ring {
+  display:grid; place-items:center; box-sizing:border-box; flex:0 0 43px;
+  width:43px; min-width:43px; height:43px; padding:0; margin:0; gap:0;
+  border:0; background:transparent; border-radius:50%;
+}
+.groups-premium-page .pg-catalog .group-catalog-metrics .pg-rate-ring > b {
+  display:block; width:auto; min-width:0; padding:0; margin:0;
+  font-size:11px; line-height:1; white-space:nowrap; overflow-wrap:normal;
+}
+.groups-premium-page .pg-catalog .pg-card .group-institution-mark > span {
+  display:block; position:static; width:auto; min-width:0; height:auto;
+  padding:0; margin:0; border:0; background:transparent;
+  font-size:13px; line-height:1; letter-spacing:.02em; font-weight:750;
+  white-space:nowrap; overflow-wrap:normal; color:inherit;
+}
