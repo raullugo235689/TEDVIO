@@ -93,6 +93,7 @@
 .groups-premium .group-options-panel .classroom-dialog > header { display: block; }
 .groups-premium .group-options-panel .classroom-dialog h2 { font-size: 23px; }
 .groups-premium .group-options-panel .classroom-dialog header p { font-size: 14px; line-height: 1.65; }
+html[data-theme='dark'] .groups-premium > .page-header .button.primary { color: #fff; }
 html[data-theme='dark'] .groups-premium .group-catalog-card { box-shadow: 0 5px 18px rgba(0,0,0,.15); }
 html[data-theme='dark'] .groups-premium .group-stat-value > svg { color: #a7b8ff; }
 html[data-theme='dark'] .groups-premium .group-ring-value { stroke: #61cfb2; }
