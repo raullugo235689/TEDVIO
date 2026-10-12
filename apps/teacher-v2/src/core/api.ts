@@ -18,14 +18,25 @@ function message(error: unknown): string {
   return String(error || 'Error desconocido');
 }
 
-export async function fetchTeacherHome(user: User): Promise<TeacherHomeData> {
-  const [profileResult, entitlementsResult, dashboardResult, scheduleResult, exceptionsResult] = await Promise.all([
-    supabase
-      .from('tedvio_user_profiles')
-      .select('status,plan,role')
-      .eq('user_id', user.id)
-      .maybeSingle(),
+export interface TeacherAccountSummary {
+  profile: TeacherProfile;
+  entitlements: Entitlements | null;
+  warnings: string[];
+}
+export async function fetchTeacherAccount(user: User): Promise<TeacherAccountSummary> {
+  const [profileResult, entitlementsResult] = await Promise.all([
+    supabase.from('tedvio_user_profiles').select('status,plan,role').eq('user_id', user.id).maybeSingle(),
     supabase.rpc('tedvio_current_entitlements'),
+  ]);
+  const warnings: string[] = [];
+  if (profileResult.error) warnings.push(`Perfil: ${message(profileResult.error)}`);
+  if (entitlementsResult.error) warnings.push(`Plan: ${message(entitlementsResult.error)}`);
+  return { profile: (profileResult.data || { role: 'teacher', plan: 'free' }) as TeacherProfile,
+    entitlements: (entitlementsResult.data || null) as Entitlements | null, warnings };
+}
+export async function fetchTeacherHome(user: User, accountLoader = () => fetchTeacherAccount(user)): Promise<TeacherHomeData> {
+  const [account, dashboardResult, scheduleResult, exceptionsResult] = await Promise.all([
+    accountLoader(),
     supabase.rpc('v2_teacher_today_dashboard'),
     supabase
       .from('v2_group_schedule_slots')
@@ -41,9 +52,7 @@ export async function fetchTeacherHome(user: User): Promise<TeacherHomeData> {
     throw new Error(`No se pudo cargar el centro docente: ${message(dashboardResult.error)}`);
   }
 
-  const warnings: string[] = [];
-  if (profileResult.error) warnings.push(`Perfil: ${message(profileResult.error)}`);
-  if (entitlementsResult.error) warnings.push(`Plan: ${message(entitlementsResult.error)}`);
+  const warnings = [...account.warnings];
   if (scheduleResult.error) warnings.push(`Agenda: ${message(scheduleResult.error)}`);
 
   if (exceptionsResult.error) warnings.push(`Agenda: ${message(exceptionsResult.error)}`);
@@ -60,8 +69,8 @@ export async function fetchTeacherHome(user: User): Promise<TeacherHomeData> {
 
   return {
     user,
-    profile: (profileResult.data || { role: 'teacher', plan: 'free' }) as TeacherProfile,
-    entitlements: (entitlementsResult.data || null) as Entitlements | null,
+    profile: account.profile,
+    entitlements: account.entitlements,
     dashboard,
     schedule: (scheduleResult.data || []) as ScheduleSlot[],
     scheduleExceptions: (exceptionsResult.data || []) as ScheduleException[],

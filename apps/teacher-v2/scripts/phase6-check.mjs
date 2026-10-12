@@ -20,6 +20,7 @@ const serviceWorker = fs.readFileSync(path.join(repositoryRoot, 'sw.js'), 'utf8'
 const version = JSON.parse(fs.readFileSync(path.join(repositoryRoot, 'version.json'), 'utf8'));
 const workflow = fs.readFileSync(path.join(repositoryRoot, '.github/workflows/phase6-production-cutover.yml'), 'utf8');
 const browserSpec = fs.readFileSync(path.join(repositoryRoot, 'tests/browser/phase6-cutover.spec.mjs'), 'utf8');
+const browserConfig = fs.readFileSync(path.join(repositoryRoot, 'tests/browser/phase6-playwright.config.mjs'), 'utf8');
 const failures = [];
 
 function must(condition, message) {
@@ -60,8 +61,11 @@ must(!app.includes('MigrationPage'), 'el router no contiene pantallas de migraci
 must(!/OPENAI|AI_GATEWAY|gpt-/i.test(`${main}\n${boundary}\n${swRegister}\n${login}\n${appShell}`), 'Fase 6 no introduce IA generativa ni costo por tokens');
 must(version.version === '2026.08.28.76' && version.revision === '76.2-quality-core' && version.audit === 'academic-periods', 'version.json conserva la compatibilidad académica v76');
 must(version.product_version === '2.0.0' && version.product_revision === 'phase6-production-cutover' && version.product_channel === 'production' && version.canonical_path === '/teacher', 'version.json registra el corte del producto 2.0');
-must(workflow.includes('phase6-cutover.spec.mjs') &&
-  /playwright install (?:--with-deps )?chromium webkit/.test(workflow),
+must(workflow.includes('project: [desktop-chromium, iphone-webkit]') &&
+  workflow.includes('playwright install --with-deps webkit') &&
+  workflow.includes('playwright install --with-deps chromium') &&
+  workflow.includes('--config=tests/browser/phase6-playwright.config.mjs --project=${{ matrix.project }}') &&
+  browserConfig.includes("'phase6-cutover.spec.mjs'"),
   'CI prueba el corte en Chromium y WebKit');
 must(browserSpec.includes("page.goto('/teacher'") && browserSpec.includes("page.goto('/teacher-legacy'"), 'navegador valida ruta principal y rollback');
 

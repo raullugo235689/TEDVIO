@@ -1,3 +1,4 @@
+import { pagedResult, batchedPagedResult } from './data-pages';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import type { AcademicPeriodRecord, PaperExam } from './exams';
@@ -296,7 +297,7 @@ export async function fetchGradebookWorkspace(user: User): Promise<GradebookWork
     supabase.from('v2_groups').select('*').eq('teacher_id', user.id).eq('is_demo', false).order('created_at', { ascending: false }),
     supabase.from('v2_academic_periods').select('*').eq('teacher_id', user.id).order('group_id').order('order_index'),
     supabase.from('v2_grade_categories').select('*').eq('teacher_id', user.id).order('created_at'),
-    supabase.from('v2_grade_items').select('*').eq('teacher_id', user.id).order('item_date', { ascending: false }).range(0, 9999),
+    pagedResult(() => supabase.from('v2_grade_items').select('*').eq('teacher_id', user.id).order('item_date', { ascending: false }).order('id')),
   ]);
   if (groupsResult.error) throw new Error(`No se pudieron cargar los grupos: ${errorMessage(groupsResult.error)}`);
   if (periodsResult.error) throw new Error(`No se pudieron cargar los periodos: ${errorMessage(periodsResult.error)}`);
@@ -316,10 +317,10 @@ export async function fetchGradebookDetail(user: User, groupId: string, periodId
     supabase.from('v2_academic_periods').select('*').eq('group_id', groupId).eq('teacher_id', user.id).order('order_index'),
     supabase.from('v2_group_students').select('*').eq('group_id', groupId).eq('teacher_id', user.id).eq('active', true).order('full_name'),
     supabase.from('v2_grade_categories').select('*').eq('group_id', groupId).eq('teacher_id', user.id).order('created_at'),
-    supabase.from('v2_grade_items').select('*').eq('group_id', groupId).eq('teacher_id', user.id).order('item_date').range(0, 9999),
-    supabase.from('v2_paper_exams').select('*').eq('group_id', groupId).eq('teacher_id', user.id).in('status', ['ready', 'closed']).order('exam_date').range(0, 9999),
-    supabase.from('v2_attendance_sessions').select('*').eq('group_id', groupId).eq('teacher_id', user.id).order('attendance_date').range(0, 9999),
-    supabase.from('v2_sessions').select('id,group_id,teacher_id,created_at,status').eq('group_id', groupId).eq('teacher_id', user.id).order('created_at').range(0, 9999),
+    pagedResult(() => supabase.from('v2_grade_items').select('*').eq('group_id', groupId).eq('teacher_id', user.id).order('item_date').order('id')),
+    pagedResult(() => supabase.from('v2_paper_exams').select('*').eq('group_id', groupId).eq('teacher_id', user.id).in('status', ['ready', 'closed']).order('exam_date').order('id')),
+    pagedResult(() => supabase.from('v2_attendance_sessions').select('*').eq('group_id', groupId).eq('teacher_id', user.id).order('attendance_date').order('id')),
+    pagedResult(() => supabase.from('v2_sessions').select('id,group_id,teacher_id,created_at,status').eq('group_id', groupId).eq('teacher_id', user.id).order('created_at').order('id')),
     supabase.from('v2_group_alert_settings').select('*').eq('group_id', groupId).eq('teacher_id', user.id).maybeSingle(),
     supabase.from('v2_gradebook_revisions').select('id,teacher_id,group_id,period_id,entity_type,entity_id,action,reason,created_at').eq('group_id', groupId).eq('teacher_id', user.id).order('created_at', { ascending: false }).limit(100),
   ]);
@@ -345,10 +346,10 @@ export async function fetchGradebookDetail(user: User, groupId: string, periodId
   const sessionIds = liveSessions.map((session) => session.id);
 
   const [scoresResult, omrResult, attendanceRecordsResult, participantsResult, summaryResult] = await Promise.all([
-    itemIds.length ? supabase.from('v2_grade_scores').select('*').eq('teacher_id', user.id).in('item_id', itemIds).range(0, 9999) : Promise.resolve({ data: [], error: null }),
-    examIds.length ? supabase.from('v2_paper_exam_results').select('*').eq('teacher_id', user.id).in('exam_id', examIds).range(0, 9999) : Promise.resolve({ data: [], error: null }),
-    attendanceIds.length ? supabase.from('v2_attendance_records').select('*').eq('teacher_id', user.id).in('attendance_session_id', attendanceIds).range(0, 9999) : Promise.resolve({ data: [], error: null }),
-    sessionIds.length ? supabase.from('v2_participants').select('id,session_id,roster_student_id,matricula').in('session_id', sessionIds).range(0, 9999) : Promise.resolve({ data: [], error: null }),
+    itemIds.length ? batchedPagedResult(itemIds, batch => supabase.from('v2_grade_scores').select('*').eq('teacher_id', user.id).in('item_id', batch).order('id')) : Promise.resolve({ data: [], error: null }),
+    examIds.length ? batchedPagedResult(examIds, batch => supabase.from('v2_paper_exam_results').select('*').eq('teacher_id', user.id).in('exam_id', batch).order('id')) : Promise.resolve({ data: [], error: null }),
+    attendanceIds.length ? batchedPagedResult(attendanceIds, batch => supabase.from('v2_attendance_records').select('*').eq('teacher_id', user.id).in('attendance_session_id', batch).order('id')) : Promise.resolve({ data: [], error: null }),
+    sessionIds.length ? batchedPagedResult(sessionIds, batch => supabase.from('v2_participants').select('id,session_id,roster_student_id,matricula').in('session_id', batch).order('id')) : Promise.resolve({ data: [], error: null }),
     periodId ? supabase.rpc('v2_teacher_academic_period_summary', { p_period_id: periodId }) : Promise.resolve({ data: null, error: null }),
   ]);
 

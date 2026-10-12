@@ -1,3 +1,4 @@
+import { pagedResult } from './data-pages';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import {
@@ -270,14 +271,13 @@ export async function fetchStudent360Directory(user: User): Promise<Student360Di
       .eq('teacher_id', user.id)
       .eq('is_demo', false)
       .order('created_at', { ascending: false }),
-    supabase
+    pagedResult(() => supabase
       .from('v2_group_students')
       .select('*')
       .eq('teacher_id', user.id)
       .eq('active', true)
       .order('group_id')
-      .order('full_name')
-      .range(0, 9999),
+      .order('full_name').order('id')),
   ]);
 
   if (groupsResult.error) throw new Error(`No se pudieron cargar los grupos: ${errorMessage(groupsResult.error)}`);
@@ -327,19 +327,17 @@ export async function fetchStudent360(user: User, groupId: string, studentId: st
       .eq('teacher_id', user.id)
       .order('created_at', { ascending: false })
       .limit(100),
-    supabase
+    pagedResult(() => supabase
       .from('v2_assignments')
       .select('id,teacher_id,group_id,period_id,title,status,opens_at,closes_at,created_at')
       .eq('group_id', groupId)
       .eq('teacher_id', user.id)
-      .order('created_at', { ascending: false })
-      .range(0, 9999),
-    supabase
+      .order('created_at', { ascending: false }).order('id')),
+    pagedResult(() => supabase
       .from('v2_assignment_attempts')
       .select('id,assignment_id,group_student_id,display_name,enrollment,attempt_no,status,started_at,submitted_at,late,score,max_score,percentage')
       .eq('group_student_id', studentId)
-      .order('started_at', { ascending: false })
-      .range(0, 9999),
+      .order('started_at', { ascending: false }).order('id')),
     supabase
       .from('v2_gradebook_revisions')
       .select('id,teacher_id,group_id,period_id,entity_type,entity_id,action,before_state,after_state,reason,created_at')

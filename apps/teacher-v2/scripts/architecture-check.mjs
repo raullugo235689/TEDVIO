@@ -73,7 +73,7 @@ must(app.includes('path="attendance"') && app.includes('path="attendance/:groupI
 must(!app.includes('module="attendance"'), 'Asistencia fue retirada de los placeholders heredados');
 must(groupsPage.includes('saveGroup') && groupsPage.includes('createUniversity') && groupsPage.includes('createProgram'), 'Grupos administra estructura y escritura de forma tipada');
 must(groupDetail.includes('saveStudent') && groupDetail.includes('importStudents') && groupDetail.includes('setStudentActive'), 'Centro de grupo administra el padrón sin eliminar historial');
-must(attendancePage.includes('createAttendanceSession') && attendancePage.includes('saveAttendanceRecords') && attendancePage.includes('updateAttendanceState'), 'Asistencia cubre apertura, captura, pausa y cierre');
+must(attendancePage.includes('createAttendanceSession') && attendancePage.includes('commitAttendance') && attendancePage.includes("submission.action"), 'Asistencia cubre apertura, captura, pausa y cierre');
 
 for (const table of ['v2_universities', 'v2_programs', 'v2_groups', 'v2_group_students']) {
   must(groupsApi.includes(`from('${table}')`), `capa de grupos utiliza ${table}`);

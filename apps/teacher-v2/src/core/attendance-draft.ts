@@ -7,6 +7,7 @@ export interface AttendanceValues {
 }
 
 export interface AttendanceSnapshot extends AttendanceValues {
+  revision?: number;
   sessionId: string | null;
   status: string | null;
 }
@@ -29,6 +30,7 @@ export function attendanceSnapshot(day: AttendanceDayData): AttendanceSnapshot {
   const existing = new Map(day.records.map((record) => [record.student_id, record]));
   return {
     sessionId: day.session?.id ?? null,
+    revision: day.session?.revision ?? 0,
     status: day.session?.status ?? null,
     records: Object.fromEntries(day.students.map((student) => {
       const record = existing.get(student.id);

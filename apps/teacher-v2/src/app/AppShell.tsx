@@ -14,6 +14,8 @@ import { prefetchTeacherRoute } from './route-loaders';
 import { GroupWorkspace } from '../shared/GroupWorkspace';
 import { useTeacherIdentity } from '../core/useTeacherIdentity';
 
+import { ReleaseNotice } from '../shared/ReleaseNotice';
+
 const THEME_KEY = 'tedvio.teacher-v2.theme';
 
 type Theme = 'light' | 'dark';
@@ -190,6 +192,7 @@ export function AppShell() {
           </div>
         </header>
 
+        <ReleaseNotice />
         <main className="route-container teacher42-main" id="tedvio-main" tabIndex={-1}>
           <RouteErrorBoundary resetKey={location.pathname}>
             <GroupWorkspace><Outlet /></GroupWorkspace>

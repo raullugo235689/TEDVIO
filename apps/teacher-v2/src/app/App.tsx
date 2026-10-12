@@ -53,6 +53,7 @@ const SettingsPage = lazy(() => loadSettingsPage().then((module) => ({ default: 
 const SupportPage = lazy(() => loadSupportPage().then((module) => ({ default: module.SupportPage })));
 const PilotHealthPage = lazy(() => loadPilotHealthPage().then((module) => ({ default: module.PilotHealthPage })));
 
+const AttendanceJustificationsPage = lazy(() => import('../features/attendance/AttendanceJustificationsPage').then(module => ({ default: module.AttendanceJustificationsPage })));
 const JointAttendancePage = lazy(() => import('../features/attendance/JointAttendancePage').then(module => ({ default: module.JointAttendancePage })));
 const AttendanceJoinPage = lazy(() => import('../features/attendance/AttendanceJoinPage').then(module => ({ default: module.AttendanceJoinPage })));
 
@@ -87,6 +88,7 @@ export function App() {
         <Route path="prepare" element={tool(<PreparePage />, 'Abriendo preguntas y exámenes…')} />
         <Route path="enarm-2027" element={tool(<Enarm2027Page />, 'Preparando tu estudio ENARM 2027…')} />
         <Route path="agenda" element={tool(<AgendaPage />, 'Abriendo Agenda…')} />
+        <Route path="attendance-justifications" element={tool(<AttendanceJustificationsPage />, 'Consultando justificaciones…')} />
         <Route path="groups" element={tool(<GroupsPage />, 'Abriendo Grupos…')} />
         <Route path="groups/:groupId" element={tool(<GroupDetailPage />, 'Abriendo el grupo…')} />
         <Route path="attendance-joint" element={tool(<JointAttendancePage />, 'Abriendo asistencia conjunta…')} />

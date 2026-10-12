@@ -26,7 +26,6 @@ import './styles/phase-six.css';
 import './styles/reliability.css';
 import './styles/security.css';
 import './styles/onboarding.css';
-import './styles/analytics.css';
 import './styles/pilot-health.css';
 import './styles/session-preflight.css';
 import './styles/workspace-premium.css';
@@ -39,7 +38,6 @@ import './styles/classroom31-premium.css';
 import './styles/teacher42-premium.css';
 import './styles/group43-premium.css';
 import './styles/visual5-premium.css';
-import './styles/enarm2027-premium.css';
 import './styles/classroom-live-dock.css';
 
 const queryClient = new QueryClient({

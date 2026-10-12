@@ -1,9 +1,11 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { sourceDigest } from '../../.github/scripts/release-integrity.mjs';
 
 export default defineConfig({
   base: '/teacher-v2/',
   plugins: [react()],
+  define: { __TEDVIO_BUILD_ID__: JSON.stringify(sourceDigest()) },
   server: {
     host: '0.0.0.0',
     port: 4174,
