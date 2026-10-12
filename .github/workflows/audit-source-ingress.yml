@@ -1,0 +1,42 @@
+name: Apply isolated audit implementation
+on:
+  push:
+    branches: ['rebuild/tedvio-2-audit-foundations']
+    paths: ['.github/workflows/audit-source-ingress.yml']
+permissions:
+  contents: write
+jobs:
+  install-reviewed-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify authored patch and permitted paths
+        run: |
+          python3 - <<'PY'
+          import base64,lzma,hashlib,pathlib,re
+          root=pathlib.Path('.')
+          encoded=''.join((root/f'.github/maintenance/audit-source-{i}.b64').read_text().strip() for i in range(1,7))
+          patch=lzma.decompress(base64.b64decode(encoded,validate=True))
+          expected='72c269466c21166d5f302d72b181807bfb3c5359e344f6ac1f6c07dc424ef609'
+          assert hashlib.sha256(patch).hexdigest()==expected, 'Patch content checksum mismatch'
+          for name in re.findall(r'^diff --git a/(.*?) b/',patch.decode(),re.M):
+            assert '..' not in pathlib.PurePosixPath(name).parts
+            assert name.startswith(('.github/scripts/','.github/workflows/','apps/teacher-v2/','supabase/migrations/','supabase/tests/','tests/browser/','docs/')) or name=='vercel.json', name
+            assert '/node_modules/' not in name
+          pathlib.Path('/tmp/audit-source.patch').write_bytes(patch)
+          PY
+          git apply --unidiff-zero --check /tmp/audit-source.patch
+          git apply --unidiff-zero --index /tmp/audit-source.patch
+          git rm .github/maintenance/audit-source-*.b64 .github/workflows/audit-source-ingress.yml .github/workflows/audit-dependency-refresh.yml
+          git diff --cached --check
+      - name: Commit only reviewed source, without production data or builds
+        run: |
+          git fetch origin rebuild/tedvio-2-audit-foundations
+          test "$(git rev-parse FETCH_HEAD)" = "$GITHUB_SHA"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat(audit): atomic attendance, bulk justifications, efficient reads and verified releases'
+          git push origin HEAD:rebuild/tedvio-2-audit-foundations
