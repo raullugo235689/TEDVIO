@@ -75,6 +75,7 @@ for (const width of [320, 390, 768, 1024, 1280, 1440]) {
       buttons: [...card.querySelectorAll('footer > .button')].map(e => ({ width: e.getBoundingClientRect().width, height: e.getBoundingClientRect().height })),
       pageWidth: document.documentElement.scrollWidth, viewport: innerWidth,
       overflowAudit: document.documentElement.scrollWidth > innerWidth + 1 ? {
+        internal: [...document.querySelectorAll('*')].filter(el => el.scrollWidth > el.clientWidth + 1 && el.clientWidth > 0).slice(0, 30).map(el => ({ tag: el.tagName, className: typeof el.className === 'string' ? el.className.slice(0, 100) : '', scroll: el.scrollWidth, client: el.clientWidth })),
         candidates: [...document.querySelectorAll('*')].filter(el => { const box = el.getBoundingClientRect(); return box.right > innerWidth + 1 || box.left < -1; }).slice(0, 20).map(el => {
           const box = el.getBoundingClientRect(); return { tag: el.tagName, className: typeof el.className === 'string' ? el.className.slice(0, 100) : '', left: Math.round(box.left), right: Math.round(box.right), width: Math.round(box.width), scroll: el.scrollWidth };
         }),
