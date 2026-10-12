@@ -29,3 +29,15 @@
   .teacher42-shell[data-area='groups'] .topbar-actions { gap:4px; }
   .teacher42-shell[data-area='groups'] .topbar-title { min-width:0; }
 }
+
+/* Native WebKit select controls can report intrinsic text width beyond their
+   CSS grid track (208px in a 142px column), leaking 12px into document scroll.
+   Clip only the collapsed control; the native option popup remains available. */
+@media (max-width:600px) {
+  .groups-premium-page .pg-filters > label:not(.catalog-search) { min-width:0; overflow-x:clip; }
+  .groups-premium-page .pg-filters select {
+    display:block; width:100%; max-width:100%; min-width:0;
+    overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+  }
+  .groups-premium-page .pg-filters select:focus-visible { outline-offset:-3px; }
+}
