@@ -74,6 +74,12 @@ for (const width of [320, 390, 768, 1024, 1280, 1440]) {
       metrics: [...card.querySelectorAll('.group-catalog-metrics > span')].map(e => e.getBoundingClientRect().top),
       buttons: [...card.querySelectorAll('footer > .button')].map(e => ({ width: e.getBoundingClientRect().width, height: e.getBoundingClientRect().height })),
       pageWidth: document.documentElement.scrollWidth, viewport: innerWidth,
+      overflowAudit: document.documentElement.scrollWidth > innerWidth + 1 ? {
+        candidates: [...document.querySelectorAll('*')].filter(el => { const box = el.getBoundingClientRect(); return box.right > innerWidth + 1 || box.left < -1; }).slice(0, 20).map(el => {
+          const box = el.getBoundingClientRect(); return { tag: el.tagName, className: typeof el.className === 'string' ? el.className.slice(0, 100) : '', left: Math.round(box.left), right: Math.round(box.right), width: Math.round(box.width), scroll: el.scrollWidth };
+        }),
+        sections: ['html','body','.app-shell','.topbar','.topbar-actions','.mobile-nav','.route-container'].map(sel => { const el = document.querySelector(sel); const b = el?.getBoundingClientRect(); return { sel, left: b && Math.round(b.left), right: b && Math.round(b.right), scroll: el?.scrollWidth, client: el?.clientWidth }; })
+      } : null,
     }));
     expect(dimensions.pageWidth, JSON.stringify(dimensions)).toBeLessThanOrEqual(width + 1);
     expect(dimensions.height, JSON.stringify(dimensions)).toBeLessThanOrEqual(380);
