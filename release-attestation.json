@@ -1,0 +1,13 @@
+{
+  "source_hash": "eef0cd1093b673b00793b75f4335bf165aa39b7ad0c16d673acc4ce6d3e9cce6",
+  "outputs_hash": "797aa53fa6f2fc889f2c0c732485d2adc62210916f4e1a7773f21ddef1d6d510",
+  "checks": [
+    "typecheck",
+    "domain-tests",
+    "database-atomicity-and-isolation",
+    "desktop-chromium",
+    "iphone-webkit"
+  ],
+  "workflow_run": "38208852605",
+  "source_commit": "f0dec8ebed5d4e69d4062e1fea10402788f4fe29"
+}
