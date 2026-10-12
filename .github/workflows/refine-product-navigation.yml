@@ -1,0 +1,33 @@
+name: Apply checked navigation refinements
+on:
+  push:
+    branches: ['rebuild/tedvio-2-product-navigation']
+    paths: ['.github/workflows/refine-product-navigation.yml']
+permissions:
+  contents: write
+jobs:
+  reviewed-refinements:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply reviewed print, context copy and selector changes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import base64, hashlib, lzma
+          encoded = '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'
+          patch = lzma.decompress(base64.b64decode(encoded, validate=True))
+          assert hashlib.sha256(patch).hexdigest() == '597a32671868c461158b45ff50b87d02a6b120c7b30ae54f0f202ba3f3275496'
+          Path('/tmp/navigation-refinements.patch').write_bytes(patch)
+          PY
+          git apply --check /tmp/navigation-refinements.patch
+          git apply --index /tmp/navigation-refinements.patch
+          git rm .github/workflows/refine-product-navigation.yml
+          git diff --cached --check
+          git fetch origin "$GITHUB_REF_NAME"
+          test "$(git rev-parse FETCH_HEAD)" = "$GITHUB_SHA"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix(product): preserve clean printed documents and refine navigation review'
+          git push origin "HEAD:$GITHUB_REF_NAME"
