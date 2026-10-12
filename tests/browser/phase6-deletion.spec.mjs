@@ -41,13 +41,14 @@ async function fixture(page, section = 'bank') {
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify(rows) });
   });
   await page.goto(`/teacher#/${section}`);
-  await expect(page.getByRole('heading', { name: section === 'bank' ? 'Banco de preguntas' : section === 'groups' ? 'Centro de grupos' : 'Cockpit docente', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: section === 'bank' ? 'Banco de preguntas' : section === 'groups' ? 'Mis grupos' : 'Cockpit docente', exact: true })).toBeVisible();
   return state;
 }
 const trigger = (page, kind) => page.getByRole('button', { name: `Eliminar ${kind === 'question' ? 'pregunta' : kind === 'group' ? 'grupo' : kind === 'session' ? 'sesión' : kind === 'program' ? 'programa' : 'institución'}: ${labels[kind]}`, exact: true });
 const confirm = page => page.getByRole('dialog').getByRole('button', { name: 'Eliminar definitivamente', exact: true });
 const typeConfirmation = page => page.getByRole('textbox', { name: 'Escribe ELIMINAR para confirmar' }).fill('ELIMINAR');
 async function remove(page, kind) {
+  if (kind === 'group') await page.getByRole('button', { name: `Opciones del grupo ${labels.group}`, exact: true }).click();
   await trigger(page, kind).click(); await typeConfirmation(page); await confirm(page).click();
   await expect(page.getByRole('dialog')).toHaveCount(0); await expect(trigger(page, kind)).toHaveCount(0);
 }
