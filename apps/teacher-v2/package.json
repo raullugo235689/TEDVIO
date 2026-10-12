@@ -1,6 +1,6 @@
 {
   "name": "@tedvio/teacher-v2",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -30,7 +30,7 @@
     "test:classroom31": "node --experimental-strip-types --test scripts/classroom31-security.test.mjs",
     "test:visual5": "node --experimental-strip-types --test scripts/visual5.test.mjs",
     "test:enarm2027": "node --experimental-strip-types --test scripts/enarm2027.test.mjs scripts/enarm-flashcards.test.mjs scripts/enarm-game.test.mjs",
-    "test:foundations": "node --experimental-strip-types --test scripts/attendance-atomic.test.mjs scripts/data-pages.test.mjs",
+    "test:foundations": "node --experimental-strip-types --test scripts/attendance-atomic.test.mjs scripts/data-pages.test.mjs scripts/product-navigation.test.mjs",
     "test:release": "node --test scripts/release-integrity.test.mjs"
   },
   "dependencies": {

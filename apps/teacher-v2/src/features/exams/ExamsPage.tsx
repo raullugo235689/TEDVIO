@@ -140,7 +140,10 @@ function ExamCard({
 function ExamsHome({ workspace }: { workspace: ExamWorkspace }) {
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('');
-  const [groupId, setGroupId] = useState('');
+  const [scopeParams, setScopeParams] = useSearchParams();
+  const requestedGroup = scopeParams.get('group') || '';
+  const groupId = workspace.groups.some(group => group.id === requestedGroup) ? requestedGroup : '';
+  function setGroupId(id: string) { const next = new URLSearchParams([...scopeParams].filter(([key]) => key !== 'group' && key !== 'period')); if (id) next.set('group', id); setScopeParams(next); }
   const [showArchived, setShowArchived] = useState(false);
 
   const filtered = useMemo(() => {
@@ -172,10 +175,10 @@ function ExamsHome({ workspace }: { workspace: ExamWorkspace }) {
   return (
     <div className="view-stack exams-page">
       <PageHeader
-        eyebrow="ETAPA 4A · EVALUACIÓN"
+        eyebrow="EVALUAR · EXÁMENES"
         title="Evaluaciones"
         detail="Construye exámenes desde tu banco de preguntas, prepara versiones e imprime el material para tus alumnos."
-        actions={<Link className="button primary" to="/exams/new">＋ Nueva evaluación</Link>}
+        actions={<Link className="button primary" to={groupId ? `/exams/new?group=${encodeURIComponent(groupId)}` : '/exams/new'}>＋ Nueva evaluación</Link>}
       />
 
       <section className="metric-grid four">
@@ -763,7 +766,7 @@ export function ExamsPage({ create = false }: { create?: boolean }) {
   if (examId === 'new') {
     const requestedGroup = searchParams.get('group') || '';
     const group = workspace.data.groups.find((item) => item.id === requestedGroup);
-    return <ExamEditor key={`new-${requestedGroup}`} workspace={workspace.data} initialDraft={emptyExamDraft(requestedGroup, group?.subject || '')} />;
+    return <ExamEditor key={`new-${requestedGroup}`} workspace={workspace.data} initialDraft={emptyExamDraft(group?.id || '', group?.subject || '')} />;
   }
 
   if (detail.isLoading) return <LoadingScreen label="Abriendo la evaluación…" />;

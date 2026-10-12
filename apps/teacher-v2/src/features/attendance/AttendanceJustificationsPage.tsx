@@ -16,9 +16,15 @@ export function AttendanceJustificationsPage() {
   const { online } = useReliability();
   const home = useTeacherHome();
   const client = useQueryClient();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const today = localDateKey();
-  const [groupIds, setGroupIds] = useState<string[]>(params.get('group') ? [params.get('group')!] : []);
+  const groupIds = params.getAll('group').filter(Boolean);
+  function setGroupIds(update: string[] | ((previous: string[]) => string[])) {
+    const ids = typeof update === 'function' ? update(groupIds) : update;
+    const next = new URLSearchParams([...params].filter(([key]) => key !== 'group' && key !== 'period'));
+    for (const id of [...new Set(ids)]) next.append('group', id);
+    setParams(next);
+  }
   const [from, setFrom] = useState(`${today.slice(0, 7)}-01`);
   const [to, setTo] = useState(today);
   const [search, setSearch] = useState(params.get('search') || '');

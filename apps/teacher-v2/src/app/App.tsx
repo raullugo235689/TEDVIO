@@ -16,6 +16,7 @@ import {
   loadClassroomPage,
   loadDashboardPage,
   loadPreparePage,
+  loadEvaluationWorkspacePage,
   loadExamsPage,
   loadExamPrintPage,
   loadGradebookPage,
@@ -33,6 +34,7 @@ import {
 
 const DashboardPage = lazy(() => loadDashboardPage().then((module) => ({ default: module.DashboardPage })));
 const Enarm2027Page = lazy(() => loadEnarm2027Page().then((module) => ({ default: module.Enarm2027Page })));
+const EvaluationWorkspacePage = lazy(() => loadEvaluationWorkspacePage().then(module => ({ default: module.EvaluationWorkspacePage })));
 const PreparePage = lazy(() => loadPreparePage().then((module) => ({ default: module.PreparePage })));
 const AgendaPage = lazy(() => loadAgendaPage().then((module) => ({ default: module.AgendaPage })));
 const GroupsPage = lazy(() => loadGroupsPage().then((module) => ({ default: module.GroupsPage })));
@@ -85,6 +87,7 @@ export function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route element={<ProtectedShell />}>
         <Route index element={tool(<DashboardPage />, 'Preparando tu centro docente…')} />
+        <Route path="evaluate" element={tool(<EvaluationWorkspacePage />, 'Abriendo Evaluar…')} />
         <Route path="prepare" element={tool(<PreparePage />, 'Abriendo preguntas y exámenes…')} />
         <Route path="enarm-2027" element={tool(<Enarm2027Page />, 'Preparando tu estudio ENARM 2027…')} />
         <Route path="agenda" element={tool(<AgendaPage />, 'Abriendo Agenda…')} />
