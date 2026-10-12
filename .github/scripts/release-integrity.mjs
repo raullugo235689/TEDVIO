@@ -20,8 +20,23 @@ export function sourceFiles(workspace=root) {
  const shared=fs.readdirSync(workspace).filter(file=>/\.(?:html|js|css|webmanifest)$/.test(file)&&fs.statSync(path.join(workspace,file)).isFile());
  return [...new Set([...directories.flatMap(dir=>filesIn(dir,workspace)),...singles,...shared,...filesIn('tests/browser',workspace).filter(file=>file.endsWith('.mjs'))])].sort();
 }
+/** JSON configuration is interpreted by value, not indentation or key order.
+ * Vercel can serialize vercel.json again before the build command runs.
+ * Preserve every key/value and array order; all other inputs remain byte-exact.
+ */
+export function canonicalJson(value) {
+ if(Array.isArray(value)) return value.map(canonicalJson);
+ if(value !== null && typeof value === 'object') {
+  return Object.fromEntries(Object.keys(value).sort().map(key=>[key,canonicalJson(value[key])]));
+ }
+ return value;
+}
+function sourceBytes(file,workspace) {
+ const bytes=fs.readFileSync(path.join(workspace,file));
+ return file === 'vercel.json' ? JSON.stringify(canonicalJson(JSON.parse(bytes.toString('utf8')))) : bytes;
+}
 export function sourceDigest(workspace=root) {
- return digest(sourceFiles(workspace).map(file=>`${file}\0${digest(fs.readFileSync(path.join(workspace,file)))}`).join('\n'));
+ return digest(sourceFiles(workspace).map(file=>`${file}\0${digest(sourceBytes(file,workspace))}`).join('\n'));
 }
 function outputManifest() {
  return Object.fromEntries(['teacher-v2','student-v2','projection-v2'].flatMap(dir=>filesIn(dir)).sort().map(file=>[file,digest(fs.readFileSync(path.join(root,file)))]));
