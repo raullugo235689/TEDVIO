@@ -28,15 +28,15 @@ jobs:
             assert '/node_modules/' not in name
           pathlib.Path('/tmp/audit-source.patch').write_bytes(patch)
           PY
-          git apply --unidiff-zero --check /tmp/audit-source.patch
-          git apply --unidiff-zero --index /tmp/audit-source.patch
-          git rm .github/maintenance/audit-source-*.b64 .github/workflows/audit-source-ingress.yml .github/workflows/audit-dependency-refresh.yml
+          git apply --unidiff-zero --exclude='.github/workflows/*' --check /tmp/audit-source.patch
+          git apply --unidiff-zero --exclude='.github/workflows/*' --index /tmp/audit-source.patch
+          git rm .github/maintenance/audit-source-*.b64
           git diff --cached --check
-      - name: Commit only reviewed source, without production data or builds
+      - name: Commit only reviewed source, without workflow changes or production data
         run: |
           git fetch origin rebuild/tedvio-2-audit-foundations
           test "$(git rev-parse FETCH_HEAD)" = "$GITHUB_SHA"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'feat(audit): atomic attendance, bulk justifications, efficient reads and verified releases'
+          git commit -m 'feat(audit): atomic attendance, bulk justifications and efficient reads'
           git push origin HEAD:rebuild/tedvio-2-audit-foundations
