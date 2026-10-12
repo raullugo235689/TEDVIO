@@ -11,6 +11,7 @@ import { InstitutionIdentity } from '../../shared/InstitutionIdentity';
 import { Icon } from '../../shared/icons';
 import coversUrl from './group-covers.webp';
 import '../../styles/groups-premium.css';
+import '../../styles/groups-premium-refinements.css';
 
 type Bucket = 'all' | 'today' | 'pending' | 'alerts';
 type Sort = 'academic' | 'activity' | 'attendance' | 'alerts';
@@ -60,8 +61,7 @@ function GroupActions({ group, onEdit, onDeleted }: {
     if (!open) return;
     panel.current?.querySelector<HTMLButtonElement>('button')?.focus({ preventScroll: true });
     const outside = (event: PointerEvent) => {
-      // Never unmount/hide the existing destructive confirmation while it is open.
-      if (root.current?.querySelector('dialog[open]')) return;
+      if (root.current?.querySelector('dialog')) return;
       if (event.target instanceof Node && !root.current?.contains(event.target)) setOpen(false);
     };
     document.addEventListener('pointerdown', outside);
@@ -70,11 +70,14 @@ function GroupActions({ group, onEdit, onDeleted }: {
 
   return <div className={`pg-card-more${open ? ' is-open' : ''}`} ref={root}
     onBlur={event => {
-      if (root.current?.querySelector('dialog[open]')) return;
+      // Native close clears [open] before restoring focus. Do not hide its
+      // return-focus button during that transient blur.
+      if (event.target instanceof Element && event.target.closest('dialog')) return;
+      if (root.current?.querySelector('dialog')) return;
       if (event.relatedTarget instanceof Node && !event.currentTarget.contains(event.relatedTarget)) setOpen(false);
     }}
     onKeyDown={event => {
-      if ((event.target as HTMLElement).closest('dialog')) return;
+      if (event.defaultPrevented || (event.target as HTMLElement).closest('dialog')) return;
       if (event.key === 'Escape' && open) {
         event.preventDefault(); event.stopPropagation(); setOpen(false); trigger.current?.focus();
       }
@@ -146,7 +149,7 @@ export function GroupCatalogExperience({ catalog, dashboardById, onEdit, onDelet
       if (sort === 'attendance') return (finite(right?.attendance_rate) ?? -1) - (finite(left?.attendance_rate) ?? -1);
       if (sort === 'alerts') return (alertCount(right) ?? -1) - (alertCount(left) ?? -1);
       if (sort === 'activity') return (Date.parse(right?.last_activity || '') || 0) - (Date.parse(left?.last_activity || '') || 0);
-      return 0; // The shared catalogue already provides stable, natural academic order.
+      return 0;
     }) }));
   }, [catalog.filtered, dashboardById, bucket, sort]);
   const visibleCount = sections.reduce((total, section) => total + section.groups.length, 0);
