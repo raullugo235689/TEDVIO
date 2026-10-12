@@ -33,7 +33,9 @@ async function fixture(page, { records = groups, dashboard = records } = {}) {
     const request = route.request();
     const url = new URL(request.url());
     const table = url.pathname.split('/').at(-1);
-    if (['PATCH', 'DELETE', 'PUT'].includes(request.method()) || (request.method() === 'POST' && !url.pathname.includes('/rpc/'))) state.writes.push(table);
+    // Technical diagnostics may be written when cancelling a protected dialog;
+    // guard against academic mutations, not permitted error telemetry.
+    if ((['PATCH', 'DELETE', 'PUT'].includes(request.method()) || (request.method() === 'POST' && !url.pathname.includes('/rpc/'))) && table !== 'tedvio_client_events') state.writes.push(table);
     let rows = [];
     if (table === 'user') rows = { id: userId, email: 'docente@example.test', aud: 'authenticated', role: 'authenticated', user_metadata: {} };
     else if (table === 'tedvio_required_legal_documents_v21') rows = [{ document_key: 'terms', version: 'test', required: true, title: 'Prueba', content_html: '<p>Prueba.</p>' }];
