@@ -26,6 +26,7 @@ import {
 } from '../../shared/components';
 import { Icon } from '../../shared/icons';
 import { InstitutionIdentity } from '../../shared/InstitutionIdentity';
+import { ClassLauncher } from '../../shared/WorkflowNavigation';
 import { JointAttendanceShortcut } from '../../shared/JointAttendanceShortcut';
 import { groupAccent } from '../../core/group-identity';
 import { GroupCatalogFilters, useGroupCatalog } from '../../shared/GroupCatalogFilters';
@@ -121,12 +122,10 @@ export function DashboardPage() {
         <PageHeader
           eyebrow={new Intl.DateTimeFormat('es-MX', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()).toUpperCase()}
           title={<><span className="dashboard-greeting">{greeting()}, </span><span className="dashboard-teacher-name">{identity.displayName}</span></>}
-          detail="Tu jornada, tus grupos y lo que sigue. Todo en su lugar."
+          detail="Hoy: tu próxima clase, tus grupos y lo que necesita atención."
           actions={
             <div className="hero-actions">
-              <button className="button primary" type="button" onClick={() => navigate(currentOrNext ? `/classroom?group=${encodeURIComponent(currentOrNext.slot.group_id)}` : '/classroom')}>
-                <Icon name="classroom" />Iniciar clase
-              </button>
+              <ClassLauncher suggestedGroupId={currentOrNext?.slot.group_id || ''} />
               <button className="button secondary" type="button" aria-label="Actualizar" onClick={() => queryClient.invalidateQueries({ queryKey: ['teacher-home'] })}>
                 <Icon name="refresh" /><span>Actualizar</span>
               </button>
@@ -142,16 +141,6 @@ export function DashboardPage() {
       </section>
 
       <JointAttendanceShortcut />
-
-      <section className="enarm2027-home-shortcut" aria-label="Mi preparación ENARM 2027">
-        <span className="enarm2027-home-symbol"><Icon name="exam" /></span>
-        <div>
-          <span className="enarm2027-home-eyebrow">MI FORMACIÓN PERSONAL</span>
-          <h2>ENARM 2027</h2>
-          <p>Casos clínicos, repaso inteligente y simulador en tu misma cuenta TEDVIO.</p>
-        </div>
-        <Link to="/enarm-2027" className="button secondary enarm2027-home-open">Abrir mi preparación <Icon name="arrow" /></Link>
-      </section>
 
       {data.warnings.length ? (
         <div className="warning-strip"><Icon name="alert" /><span>Algunos datos complementarios no pudieron cargarse: {data.warnings.join(' · ')}</span></div>

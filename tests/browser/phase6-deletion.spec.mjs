@@ -41,7 +41,7 @@ async function fixture(page, section = 'bank') {
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify(rows) });
   });
   await page.goto(`/teacher#/${section}`);
-  await expect(page.getByRole('heading', { name: section === 'bank' ? 'Banco de preguntas' : section === 'groups' ? 'Mis grupos' : 'Cockpit docente', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: section === 'bank' ? 'Banco de preguntas' : section === 'groups' ? 'Mis grupos' : 'Tus clases', exact: true })).toBeVisible();
   return state;
 }
 const trigger = (page, kind) => page.getByRole('button', { name: `Eliminar ${kind === 'question' ? 'pregunta' : kind === 'group' ? 'grupo' : kind === 'session' ? 'sesión' : kind === 'program' ? 'programa' : 'institución'}: ${labels[kind]}`, exact: true });
