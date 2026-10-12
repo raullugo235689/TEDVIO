@@ -1,0 +1,36 @@
+name: Navigation isolated workspace
+on:
+  push:
+    branches: ['chore/navigation-workspace-snapshot']
+    paths: ['.github/workflows/navigation-workspace-snapshot.yml']
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare pinned local dependencies
+        run: |
+          cd apps/teacher-v2
+          npm ci --no-audit --no-fund
+          cd ../..
+          npm install --prefix /tmp/tedvio-runner --no-audit --no-fund @playwright/test@1.55.0
+          /tmp/tedvio-runner/node_modules/.bin/playwright install chromium --only-shell
+      - name: Archive isolated workspace
+        run: |
+          tar --exclude='./.git' -czf /tmp/tedvio-navigation-source.tgz .
+          tar -czf /tmp/tedvio-navigation-runner.tgz -C /tmp/tedvio-runner node_modules
+          tar -czf /tmp/tedvio-navigation-browser.tgz -C "$HOME/.cache" ms-playwright
+      - uses: actions/upload-artifact@v4
+        with:
+          name: navigation-isolated-workspace
+          path: /tmp/tedvio-navigation-*.tgz
+          retention-days: 1
+          compression-level: 0
