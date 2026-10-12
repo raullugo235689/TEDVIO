@@ -1,0 +1,1 @@
+import{l as e}from"./query-BGRwt7I2.js";import{ProductWorkspacePage as t}from"./ProductWorkspacePage-tbpthb3p.js";var n=e();function r(){return(0,n.jsx)(t,{kind:`library`})}export{r as PreparePage};
