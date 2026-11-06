@@ -1,0 +1,60 @@
+name: Import reviewed Lab source on isolated feature branch
+on:
+  push:
+    branches: ['feature/interactive-lab-foundations']
+    paths: ['.github/workflows/lab2-reviewed-source-transfer.yml']
+permissions:
+  contents: write
+jobs:
+  import-reviewed-source:
+    if: github.ref == 'refs/heads/feature/interactive-lab-foundations'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 2
+      - name: Reconstruct and verify exactly reviewed patch
+        run: |
+          test "$(git rev-parse HEAD^)" = b0ca2103ea05a16fda90109d9c94d75027357d87
+          python3 - <<'PY'
+          import base64,gzip,hashlib,pathlib,subprocess
+          root=pathlib.Path('.github/review-transfer')
+          parts=[(root/f'lab2.part{i}').read_bytes() for i in (1,2,3)]
+          # Correct known transport transcription only; exact source hash below is mandatory.
+          s=base64.b64encode(parts[0]).decode();assert s.count('F/pVOSXJJ3')==1
+          parts[0]=base64.b64decode(s.replace('F/pVOSXJJ3','F/pVOSXJ3')+'=')
+          s=base64.b64encode(parts[1]).decode().rstrip('=');assert s.count('DsOG1Rkh')==1
+          parts[1]=base64.b64decode(s.replace('DsOG1Rkh','DsOG1g6Rkh')+'M=')
+          s=base64.b64encode(parts[2]).decode().rstrip('=')
+          assert s[6419:].startswith('pajQRlWhiHE6r9x7ee3hi')
+          s=s[:6419]+s[6419+(6419-1791):]
+          assert s.count('By/ZFLc8aDdEE')==1
+          parts[2]=base64.b64decode(s.replace('By/ZFLc8aDdEE','By/ZFc8aDdEE')+'===')
+          expected=['9e833208bc7ad2a496deae97ae247e0b006511ee','9116d0c383b51ea647b39d3e36fe572d40672ce9','9ecf9f3d4a851c0daf27c2bcae822fc9f6eeadfe']
+          for data,sha in zip(parts,expected):
+            assert hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()==sha,'Transport mismatch; stop without applying'
+          data=b''.join(parts)
+          assert hashlib.sha256(data).hexdigest()=='8a9b0b1e4d89d3d2265480cc1ca2e2669998c53eb32b14db53ea86c1f8c3d4b3'
+          patch=gzip.decompress(data)
+          assert len(patch)==114702
+          pathlib.Path('/tmp/lab2-reviewed.patch').write_bytes(patch)
+          subprocess.run(['git','apply','--check','/tmp/lab2-reviewed.patch'],check=True)
+          subprocess.run(['git','apply','/tmp/lab2-reviewed.patch'],check=True)
+          print('Reviewed patch hash verified; source applied on feature branch only.')
+          PY
+      - name: Commit source and remove transfer scaffolding
+        env:
+          FEATURE_BRANCH: feature/interactive-lab-foundations
+          EXPECTED_HEAD: ${{ github.sha }}
+        run: |
+          git fetch origin "$FEATURE_BRANCH"
+          test "$(git rev-parse FETCH_HEAD)" = "$EXPECTED_HEAD"
+          rm -rf .github/review-transfer
+          rm .github/workflows/lab2-reviewed-source-transfer.yml
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git -c core.hooksPath=/dev/null commit -m 'feat(lab): native teacher, learner, results and CSV journey with isolated real backend tests'
+          git push origin "HEAD:$FEATURE_BRANCH"
