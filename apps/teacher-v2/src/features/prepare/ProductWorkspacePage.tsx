@@ -8,6 +8,7 @@ import { useNavigationScope } from '../../shared/ProductNavigation';
 
 type WorkspaceKind = 'library' | 'evaluate';
 const libraryTools: { to: string; icon: IconName; label: string; detail: string; action: string }[] = [
+  { to: '/interactive-lab', icon: 'exam', label: 'Interactive Lab', detail: 'Crea actividades, asígnalas a tus grupos y consulta las entregas verificadas.', action: 'Abrir actividades' },
   { to: '/bank', icon: 'bank', label: 'Banco de preguntas', detail: 'Crea, importa y organiza tus preguntas por materia y tema. Tu banco se puede reutilizar entre grupos.', action: 'Abrir banco' },
   { to: '/bank?launch=1', icon: 'classroom', label: 'Preparar una clase', detail: 'Selecciona preguntas revisadas y prepara una sesión. Nada se proyecta hasta que tú lo decidas.', action: 'Elegir preguntas' },
 ];

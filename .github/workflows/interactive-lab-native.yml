@@ -1,0 +1,63 @@
+name: Interactive Lab native journey (isolated Supabase)
+on:
+  pull_request:
+    paths:
+      - 'apps/teacher-v2/src/features/interactive-lab/**'
+      - 'apps/teacher-v2/src/core/interactive-lab*'
+      - 'supabase/migrations/*interactive_lab*'
+      - 'tests/browser/lab-native*'
+      - '.github/workflows/interactive-lab-native.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: lab-native-${{ github.event.pull_request.head.ref || github.ref }}
+  cancel-in-progress: true
+jobs:
+  native-journey:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.116.0
+      - name: Build native app and validate domain
+        working-directory: apps/teacher-v2
+        run: |
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm run test:lab
+          npm run build
+      - name: Restore ephemeral local Supabase, never link a project
+        run: |
+          supabase start
+          supabase db reset --local
+          node tests/browser/lab-native-seed.mjs
+      - name: Install pinned browsers
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save --no-package-lock --no-audit --no-fund @playwright/test@1.55.0
+          npx playwright install --with-deps chromium webkit
+      - name: Real UI to PostgREST to PostgreSQL to results and CSV
+        run: npx playwright test --config=tests/browser/lab-native-playwright.config.mjs
+      - name: Evidence without credentials or browser traces
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: lab-native-evidence-${{ github.run_id }}
+          path: |
+            test-results/lab-native-results.json
+            test-results/**/lab-*.png
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Destroy isolated stack and ephemeral credentials
+        if: always()
+        run: |
+          rm -rf .lab-test-local
+          supabase stop --no-backup

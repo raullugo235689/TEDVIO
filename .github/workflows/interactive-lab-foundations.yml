@@ -1,0 +1,62 @@
+name: Interactive Lab foundations (isolated)
+on:
+  push:
+    branches: ['feature/interactive-lab-foundations']
+  pull_request:
+    paths:
+      - 'packages/interactive-lab-sdk/**'
+      - 'apps/teacher-v2/src/core/interactive-lab-api.ts'
+      - 'apps/teacher-v2/scripts/interactive-lab*.mjs'
+      - 'supabase/migrations/*interactive_lab*'
+      - 'tests/browser/interactive-lab*'
+      - '.github/workflows/interactive-lab-foundations.yml'
+permissions:
+  contents: read
+concurrency:
+  group: lab-foundations-${{ github.event.pull_request.head.ref || github.ref }}
+  cancel-in-progress: true
+jobs:
+  database-and-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Install locked dependencies and test locally isolated SQL and SDK
+        working-directory: apps/teacher-v2
+        run: |
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm run test:lab
+  browser-channel:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [desktop-chromium, iphone-webkit]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Install the pinned isolated browser runner
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save --no-package-lock --no-audit --no-fund @playwright/test@1.55.0
+          if [ '${{ matrix.project }}' = 'iphone-webkit' ]; then npx playwright install --with-deps webkit; else npx playwright install --with-deps chromium; fi
+      - name: Check opaque iframe and dedicated channel (synthetic callback, not production E2E)
+        run: npx playwright test --config=tests/browser/interactive-lab-playwright.config.mjs --project=${{ matrix.project }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: failure()
+        with:
+          name: lab-channel-${{ matrix.project }}
+          path: test-results/
+          retention-days: 3
+          if-no-files-found: ignore
