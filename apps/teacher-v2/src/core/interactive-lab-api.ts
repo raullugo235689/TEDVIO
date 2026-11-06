@@ -1,4 +1,4 @@
-/** Native adapter for the unapplied Interactive Lab migration. No route is enabled yet.
+/** Native adapter for the unapplied Interactive Lab migration. Native routes remain in the review branch until deployment approval.
  * Never pass this client, its credential or a teacher session into imported HTML.
  */
 import { supabase, createIsolatedSupabaseClient } from './supabase';
@@ -86,6 +86,14 @@ export function createLabLearnerAccess(credential: string) {
     return data;
   }
   return Object.freeze({
+    context: async (): Promise<LabAccessContext> => {
+      if (!token) throw new Error('El acceso está cerrado.');
+      const { data, error } = await client.rpc('v2_lab_access_context', { p_token: token });
+      if (error) failure(error);
+      if (!data?.assignment_id || !Number.isInteger(data.question_count)) throw new Error('No se confirmó el acceso.');
+      return data as LabAccessContext;
+    },
+    resume: (attemptId: string) => call('v2_lab_resume', { p_attempt_id: attemptId }) as Promise<LabAttempt>,
     begin: (requestId: string) => call('v2_lab_begin', { p_request_id: requestId }) as Promise<LabAttempt>,
     submit: (attemptId: string, requestId: string, answers: Record<string, unknown>) => call('v2_lab_submit', {
       p_attempt_id: attemptId, p_request_id: requestId, p_answers: answers,
@@ -93,4 +101,44 @@ export function createLabLearnerAccess(credential: string) {
     receipt: (attemptId: string) => call('v2_lab_receipt', { p_attempt_id: attemptId }) as Promise<LabReceipt>,
     close: () => { token = ''; },
   });
+}
+
+export interface LabActivityRow { id: string; title: string; subject: string; status: 'draft' | 'published' | 'archived'; revision: number; assignment_count: number; latest_version: { id: string; version: number; evaluator: LabEvaluator; question_count: number } | null }
+export interface LabAssignmentRow { id: string; title: string; status: 'draft' | 'published' | 'withdrawn'; version_id: string; opens_at: string; closes_at: string; max_attempts: number; mode: 'practice' | 'evaluation'; selection_rule: 'first' | 'last' | 'best'; duration_seconds: number | null; feedback_enabled: boolean }
+export interface LabCatalog<T> { rows: T[]; total: number; offset: number; limit: number; has_more: boolean }
+export interface LabAccessContext { assignment_id: string; title: string; instructions: string; question_count: number; opens_at: string; closes_at: string; server_time: string; duration_seconds: number | null; max_attempts: number; attempts_used: number; selection_rule: 'first' | 'last' | 'best'; mode: 'practice' | 'evaluation'; status: string; last_attempt: LabReceipt | null }
+export interface LabAttemptDetail { attempt_id: string; assignment_id: string; manifest: LabManifest; score_percent: number | null; status: string; responses: Array<{ question_id: string; answer: unknown; correct: boolean | null; awarded: number | null }> }
+export async function fetchLabCatalog<T>(kind: 'activities' | 'assignments', offset = 0): Promise<LabCatalog<T>> {
+  const { data, error } = await supabase.rpc('v2_lab_catalog', { p_kind: kind, p_offset: offset, p_limit: 24 });
+  if (error) failure(error);
+  if (!Array.isArray(data?.rows) || !Number.isInteger(data.total) || data.total < 0 || typeof data.has_more !== 'boolean') throw new Error('No se pudo verificar el catálogo.');
+  return data as LabCatalog<T>;
+}
+export async function createLabOnce<T>(requestId: string, operation: 'create_activity' | 'create_assignment', payload: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.rpc('v2_lab_write_once', { p_request_id: requestId, p_operation: operation, p_payload: payload });
+  if (error) failure(error);
+  if (!data || (operation === 'create_activity' ? !data.version_id : !data.assignment_id)) throw new Error('El servidor no confirmó la operación. Reintenta sin cambiar los datos.');
+  return data as T;
+}
+export async function fetchLabAssignment(id: string, teacherId: string): Promise<LabAssignmentRow> {
+  const { data, error } = await supabase.from('v2_lab_assignments').select('id,title,status,version_id,opens_at,closes_at,max_attempts,mode,selection_rule,duration_seconds,feedback_enabled').eq('id', id).eq('teacher_id', teacherId).single();
+  if (error) failure(error);
+  return data as LabAssignmentRow;
+}
+export async function fetchLabAttemptDetail(attemptId: string): Promise<LabAttemptDetail> {
+  const { data, error } = await supabase.rpc('v2_lab_attempt_detail', { p_attempt_id: attemptId });
+  if (error) failure(error);
+  if (data?.attempt_id !== attemptId || !Array.isArray(data.responses)) throw new Error('El servidor no confirmó el detalle.');
+  return data as LabAttemptDetail;
+}
+export async function fetchLabExport(assignmentId: string): Promise<LabResultRow[]> {
+  const rows: LabResultRow[] = []; const seen = new Set<string>(); let expected = -1;
+  for (let offset = 0; offset < 5000; offset += 500) {
+    const page = await fetchLabResults(assignmentId, offset, 500);
+    if (expected < 0) expected = page.summary.assigned;
+    if (page.summary.assigned !== expected) throw new Error('La asignación cambió durante la exportación. Vuelve a intentarlo.');
+    for (const row of page.rows) { if (seen.has(row.recipient_id)) throw new Error('El reporte contiene registros repetidos.'); seen.add(row.recipient_id); rows.push(row); }
+    if (!page.has_more) { if (rows.length !== expected) throw new Error('El reporte no está completo. No se descargó un archivo parcial.'); return rows; }
+  }
+  throw new Error('La exportación supera el límite de esta entrega.');
 }

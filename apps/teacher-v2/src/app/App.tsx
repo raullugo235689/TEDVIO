@@ -55,6 +55,9 @@ const SettingsPage = lazy(() => loadSettingsPage().then((module) => ({ default: 
 const SupportPage = lazy(() => loadSupportPage().then((module) => ({ default: module.SupportPage })));
 const PilotHealthPage = lazy(() => loadPilotHealthPage().then((module) => ({ default: module.PilotHealthPage })));
 
+const InteractiveLabPage = lazy(() => import('../features/interactive-lab/InteractiveLabPage').then(module => ({ default: module.InteractiveLabPage })));
+const LabStudentPage = lazy(() => import('../features/interactive-lab/LabStudentPage').then(module => ({ default: module.LabStudentPage })));
+
 const AttendanceJustificationsPage = lazy(() => import('../features/attendance/AttendanceJustificationsPage').then(module => ({ default: module.AttendanceJustificationsPage })));
 const JointAttendancePage = lazy(() => import('../features/attendance/JointAttendancePage').then(module => ({ default: module.JointAttendancePage })));
 const AttendanceJoinPage = lazy(() => import('../features/attendance/AttendanceJoinPage').then(module => ({ default: module.AttendanceJoinPage })));
@@ -84,9 +87,13 @@ export function App() {
   return (
     <Routes>
       <Route path="/attendance-join" element={tool(<AttendanceJoinPage />, 'Abriendo registro de asistencia…')} />
+      <Route path="/lab-access" element={tool(<LabStudentPage />, 'Abriendo actividad…')} />
       <Route path="/login" element={<LoginPage />} />
       <Route element={<ProtectedShell />}>
         <Route index element={tool(<DashboardPage />, 'Preparando tu centro docente…')} />
+        <Route path="interactive-lab" element={tool(<InteractiveLabPage />, 'Abriendo Interactive Lab…')} />
+        <Route path="interactive-lab/new" element={tool(<InteractiveLabPage create />, 'Preparando actividad…')} />
+        <Route path="interactive-lab/assignments/:assignmentId" element={tool(<InteractiveLabPage />, 'Consultando resultados…')} />
         <Route path="evaluate" element={tool(<EvaluationWorkspacePage />, 'Abriendo Evaluar…')} />
         <Route path="prepare" element={tool(<PreparePage />, 'Abriendo preguntas y exámenes…')} />
         <Route path="enarm-2027" element={tool(<Enarm2027Page />, 'Preparando tu estudio ENARM 2027…')} />

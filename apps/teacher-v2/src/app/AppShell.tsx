@@ -84,6 +84,7 @@ export function AppShell() {
   const queryClient = useQueryClient();
   useAttendanceDraftGuard(auth.user?.id);
   useAcademicDraftGuard(auth.user?.id);
+  const labSaving = useIsMutating({ mutationKey: ['lab-write', auth.user?.id] }) > 0;
   const omrSaving = useIsMutating({ mutationKey: ['omr-write', auth.user?.id] }) > 0;
   const examSaving = useIsMutating({ mutationKey: ['exam-write', auth.user?.id] }) > 0;
   useGradebookDraftGuard(auth.user?.id);
@@ -130,7 +131,7 @@ export function AppShell() {
       setConfirmLogout(true);
       return;
     }
-    if (attendanceSaving || gradebookSaving || omrSaving || examSaving) return;
+    if (attendanceSaving || gradebookSaving || omrSaving || examSaving || labSaving) return;
     setSigningOut(true);
     try {
       await auth.signOut();
@@ -222,7 +223,7 @@ export function AppShell() {
       {moreOpen ? <MobileTools onDismiss={() => setMoreOpen(false)} onSupport={() => { setMoreOpen(false); reliability.openSupport(); }} /> : null}
       {confirmLogout ? <ActionDialog eyebrow="TEDVIO · CUENTA" title={hasPendingAcademicWork(queryClient, auth.user?.id) ? '¿Salir con trabajo pendiente?' : hasPendingGradebook(queryClient, auth.user?.id) ? '¿Salir con calificaciones pendientes?' : '¿Salir con asistencia pendiente?'}
         detail="Hay trabajo académico sin guardar en esta pestaña. Al cerrar sesión se descartará; puedes cancelar y volver a guardarlo."
-        confirmLabel="Salir sin guardar" danger busy={signingOut || attendanceSaving || gradebookSaving || omrSaving || examSaving}
+        confirmLabel="Salir sin guardar" danger busy={signingOut || attendanceSaving || gradebookSaving || omrSaving || examSaving || labSaving}
         onDismiss={() => setConfirmLogout(false)} onConfirm={() => void logout(true)} /> : null}
     </div>
   );

@@ -516,4 +516,134 @@ do $$declare p record; begin
   if p.proname in ('v2_lab_begin','v2_lab_submit','v2_lab_receipt') then execute format('grant execute on function %s to anon',p.sig); end if;
  end loop;
 end $$;
+
+-- Delivery 02. This migration is still UNAPPLIED; extend it before first release.
+-- Idempotency receipts cover teacher creation as well as student delivery.
+create table tedvio_private.lab_teacher_requests (
+ teacher_id uuid not null references auth.users(id), request_id uuid not null,
+ operation text not null, fingerprint text not null, result jsonb not null,
+ primary key(teacher_id,request_id)
+);
+alter table tedvio_private.lab_teacher_requests enable row level security;
+revoke all on tedvio_private.lab_teacher_requests from public,anon,authenticated;
+
+create function tedvio_private.lab_write_once(p_request_id uuid,p_operation text,p_payload jsonb)
+returns jsonb language plpgsql security definer set search_path='' as $$
+declare uid uuid:=auth.uid(); prior tedvio_private.lab_teacher_requests%rowtype; result jsonb; fingerprint text;
+begin
+ if uid is null or not tedvio_private.lab_active_owner() then raise exception 'Cuenta docente no disponible.' using errcode='42501'; end if;
+ if p_request_id is null or p_operation is null or p_operation not in ('create_activity','create_assignment')
+  or p_payload is null or jsonb_typeof(p_payload)<>'object' or octet_length(p_payload::text)>350000
+ then raise exception 'Solicitud inválida.' using errcode='22023'; end if;
+ fingerprint:=encode(sha256(convert_to(p_operation||p_payload::text,'UTF8')),'hex');
+ perform pg_advisory_xact_lock(hashtextextended(uid::text||p_request_id::text,0));
+ select * into prior from tedvio_private.lab_teacher_requests where teacher_id=uid and request_id=p_request_id;
+ if found then
+  if prior.fingerprint<>fingerprint then raise exception 'La solicitud ya existe con otros datos.' using errcode='PT409'; end if;
+  return prior.result;
+ end if;
+ if p_operation='create_activity' then
+  if (p_payload-array['manifest','answer_key','evaluator','subject'])<>'{}'::jsonb then raise exception 'Campos desconocidos.' using errcode='22023'; end if;
+  result:=public.v2_lab_save_version(null,null,p_payload->'manifest',p_payload->'answer_key',p_payload->>'evaluator',coalesce(p_payload->>'subject',''));
+ else
+  if (p_payload-array['version_id','group_ids','title','opens_at','closes_at','max_attempts','mode','selection_rule','duration_seconds'])<>'{}'::jsonb
+   or jsonb_typeof(p_payload->'group_ids') is distinct from 'array'
+  then raise exception 'Campos de asignación inválidos.' using errcode='22023'; end if;
+  result:=public.v2_lab_assign((p_payload->>'version_id')::uuid,
+   array(select value::uuid from jsonb_array_elements_text(p_payload->'group_ids')),
+   p_payload->>'title',(p_payload->>'opens_at')::timestamptz,(p_payload->>'closes_at')::timestamptz,
+   (p_payload->>'max_attempts')::integer,p_payload->>'mode',p_payload->>'selection_rule',(p_payload->>'duration_seconds')::integer);
+ end if;
+ insert into tedvio_private.lab_teacher_requests values(uid,p_request_id,p_operation,fingerprint,result);
+ return result;
+end $$;
+revoke all on function tedvio_private.lab_write_once(uuid,text,jsonb) from public,anon,authenticated;
+grant execute on function tedvio_private.lab_write_once(uuid,text,jsonb) to authenticated;
+create function public.v2_lab_write_once(p_request_id uuid,p_operation text,p_payload jsonb)
+returns jsonb language sql security invoker set search_path='' as $$ select tedvio_private.lab_write_once(p_request_id,p_operation,p_payload) $$;
+revoke all on function public.v2_lab_write_once(uuid,text,jsonb) from public,anon,authenticated;
+grant execute on function public.v2_lab_write_once(uuid,text,jsonb) to authenticated;
+
+-- Paginated native catalog. SECURITY INVOKER preserves all existing Lab RLS.
+create function public.v2_lab_catalog(p_kind text default 'activities',p_offset integer default 0,p_limit integer default 24)
+returns jsonb language plpgsql security invoker set search_path='' as $$
+declare result jsonb; total bigint;
+begin
+ if auth.uid() is null or not tedvio_private.lab_active_owner() then raise exception 'Cuenta docente no disponible.' using errcode='42501'; end if;
+ if p_kind is null or p_kind not in ('activities','assignments') or p_offset is null or p_offset<0 or p_limit is null or p_limit not between 1 and 100
+ then raise exception 'Paginación inválida.' using errcode='22023'; end if;
+ if p_kind='activities' then
+  select count(*) into total from public.v2_lab_activities where teacher_id=auth.uid();
+  select jsonb_agg(to_jsonb(x) order by x.created_at desc,x.id) into result from (
+   select a.id,a.title,a.subject,a.status,a.revision,a.created_at,
+    (select jsonb_build_object('id',v.id,'version',v.version,'evaluator',v.evaluator,'question_count',jsonb_array_length(v.manifest->'questions'))
+     from public.v2_lab_versions v where v.activity_id=a.id order by v.version desc limit 1) latest_version,
+    (select count(*) from public.v2_lab_assignments z join public.v2_lab_versions v on v.id=z.version_id where v.activity_id=a.id) assignment_count
+   from public.v2_lab_activities a where a.teacher_id=auth.uid() order by a.created_at desc,a.id offset p_offset limit p_limit
+  )x;
+ else
+  select count(*) into total from public.v2_lab_assignments where teacher_id=auth.uid();
+  select jsonb_agg(to_jsonb(x) order by x.created_at desc,x.id) into result from (
+   select a.id,a.title,a.status,a.version_id,a.opens_at,a.closes_at,a.max_attempts,a.mode,a.selection_rule,a.duration_seconds,a.feedback_enabled,a.created_at
+   from public.v2_lab_assignments a where a.teacher_id=auth.uid() order by a.created_at desc,a.id offset p_offset limit p_limit
+  )x;
+ end if;
+ return jsonb_build_object('rows',coalesce(result,'[]'::jsonb),'total',total,'offset',p_offset,'limit',p_limit,'has_more',p_offset+p_limit<total);
+end $$;
+revoke all on function public.v2_lab_catalog(text,integer,integer) from public,anon,authenticated;
+grant execute on function public.v2_lab_catalog(text,integer,integer) to authenticated;
+
+-- Verify access and show instructions BEFORE starting a timed attempt.
+create function tedvio_private.lab_access_context(p_token text)
+returns jsonb language plpgsql security definer set search_path='' as $$
+declare r public.v2_lab_recipients%rowtype; a public.v2_lab_assignments%rowtype; v public.v2_lab_versions%rowtype; t public.v2_lab_attempts%rowtype; used integer;
+begin
+ r:=tedvio_private.lab_recipient(p_token);
+ select * into a from public.v2_lab_assignments where id=r.assignment_id;
+ select * into v from public.v2_lab_versions where id=a.version_id;
+ select count(*) into used from public.v2_lab_attempts where recipient_id=r.id;
+ select * into t from public.v2_lab_attempts where recipient_id=r.id order by attempt_number desc limit 1;
+ return jsonb_build_object('assignment_id',a.id,'title',a.title,'instructions',coalesce(v.manifest->>'instructions',''),
+  'opens_at',a.opens_at,'closes_at',a.closes_at,'server_time',clock_timestamp(),'duration_seconds',a.duration_seconds,
+  'max_attempts',a.max_attempts,'attempts_used',used,'selection_rule',a.selection_rule,'mode',a.mode,
+  'question_count',jsonb_array_length(v.manifest->'questions'),'status',a.status,
+  'last_attempt',case when t.id is not null then tedvio_private.lab_attempt_payload(t,a) else null end);
+end $$;
+create function tedvio_private.lab_resume(p_token text,p_attempt_id uuid)
+returns jsonb language plpgsql security definer set search_path='' as $$
+declare r public.v2_lab_recipients%rowtype; a public.v2_lab_assignments%rowtype; t public.v2_lab_attempts%rowtype; v public.v2_lab_versions%rowtype;
+begin
+ r:=tedvio_private.lab_recipient(p_token);
+ select * into t from public.v2_lab_attempts where id=p_attempt_id and recipient_id=r.id;
+ if not found then raise exception 'Intento no disponible.' using errcode='42501'; end if;
+ select * into a from public.v2_lab_assignments where id=r.assignment_id;
+ select * into v from public.v2_lab_versions where id=a.version_id;
+ return tedvio_private.lab_attempt_payload(t,a)||jsonb_build_object('activity_id',v.activity_id,'version',v.version,'manifest',v.manifest);
+end $$;
+create function tedvio_private.lab_attempt_detail(p_attempt_id uuid)
+returns jsonb language plpgsql security definer set search_path='' as $$
+declare t public.v2_lab_attempts%rowtype; r public.v2_lab_recipients%rowtype; a public.v2_lab_assignments%rowtype; m jsonb; responses jsonb;
+begin
+ select * into t from public.v2_lab_attempts where id=p_attempt_id and teacher_id=auth.uid();
+ if not found then raise exception 'Intento no disponible.' using errcode='42501'; end if;
+ select * into r from public.v2_lab_recipients where id=t.recipient_id;
+ perform tedvio_private.lab_assert_group(t.teacher_id,r.group_id);
+ select * into a from public.v2_lab_assignments where id=r.assignment_id;
+ select manifest into m from public.v2_lab_versions where id=a.version_id;
+ select jsonb_agg(jsonb_build_object('question_id',question_id,'answer',answer,'correct',correct,'awarded',awarded) order by question_id)
+ into responses from public.v2_lab_responses where attempt_id=t.id;
+ return jsonb_build_object('attempt_id',t.id,'assignment_id',a.id,'manifest',m,'responses',coalesce(responses,'[]'::jsonb),
+  'score_percent',t.score_percent,'status',t.status,'official_grade',false);
+end $$;
+revoke all on function tedvio_private.lab_access_context(text),tedvio_private.lab_resume(text,uuid),tedvio_private.lab_attempt_detail(uuid) from public,anon,authenticated;
+grant usage on schema tedvio_private to anon;
+grant execute on function tedvio_private.lab_access_context(text),tedvio_private.lab_resume(text,uuid) to anon,authenticated;
+grant execute on function tedvio_private.lab_attempt_detail(uuid) to authenticated;
+create function public.v2_lab_access_context(p_token text) returns jsonb language sql security invoker set search_path='' as $$ select tedvio_private.lab_access_context(p_token) $$;
+create function public.v2_lab_resume(p_token text,p_attempt_id uuid) returns jsonb language sql security invoker set search_path='' as $$ select tedvio_private.lab_resume(p_token,p_attempt_id) $$;
+create function public.v2_lab_attempt_detail(p_attempt_id uuid) returns jsonb language sql security invoker set search_path='' as $$ select tedvio_private.lab_attempt_detail(p_attempt_id) $$;
+revoke all on function public.v2_lab_access_context(text),public.v2_lab_resume(text,uuid),public.v2_lab_attempt_detail(uuid) from public,anon,authenticated;
+grant execute on function public.v2_lab_access_context(text),public.v2_lab_resume(text,uuid) to anon,authenticated;
+grant execute on function public.v2_lab_attempt_detail(uuid) to authenticated;
+
 commit;

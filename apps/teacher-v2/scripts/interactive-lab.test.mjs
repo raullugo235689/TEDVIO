@@ -255,3 +255,45 @@ test('un recibo confirmado sigue consultable después del cierre sin permitir en
  assert.equal(recovered.receipt_id,done.receipt_id);assert.equal((await submit(a.token,t.attempt_id,id)).receipt_id,id);
  await assert.rejects(()=>begin(a.token),/horario/);
 });
+
+test('panel nativo: creación docente idempotente y catálogo real sin claves',async()=>{
+ const id=randomUUID();const payload={manifest,answer_key:key,evaluator:'answer-key-v1',subject:'Prueba nativa'};
+ const first=await rpc('v2_lab_write_once',[id,'create_activity',payload]);
+ const repeat=await rpc('v2_lab_write_once',[id,'create_activity',payload]);assert.deepEqual(repeat,first);
+ await assert.rejects(()=>rpc('v2_lab_write_once',[id,'create_activity',{...payload,subject:'Otro'}]),/otros datos/);
+ const catalog=await rpc('v2_lab_catalog',['activities',0,100]);
+ assert.equal(catalog.rows.filter(x=>x.id===first.activity_id).length,1);
+ assert.equal(catalog.rows.find(x=>x.id===first.activity_id).latest_version.question_count,2);
+ assert(!JSON.stringify(catalog).includes('answer_key'));
+ const foreign=await rpc('v2_lab_catalog',['activities',0,100],other);assert(!foreign.rows.some(x=>x.id===first.activity_id));
+ await assert.rejects(()=>rpc('v2_lab_write_once',[randomUUID(),'create_activity',payload],null,'anon'),/permission denied/);
+});
+test('panel nativo: reintentar asignación no duplica destinatarios',async()=>{
+ const v=await version();await rpc('v2_lab_set_activity_state',[v.activity_id,v.revision,'published']);
+ const payload={version_id:v.version_id,group_ids:[group],title:'Asignación idempotente',opens_at:new Date(Date.now()-60000).toISOString(),closes_at:new Date(Date.now()+3600000).toISOString(),max_attempts:2,mode:'practice',selection_rule:'best',duration_seconds:null};
+ const id=randomUUID();const first=await rpc('v2_lab_write_once',[id,'create_assignment',payload]);
+ assert.deepEqual(await rpc('v2_lab_write_once',[id,'create_assignment',payload]),first);
+ assert.equal((await rpc('v2_lab_results',[first.assignment_id])).summary.assigned,1);
+ await assert.rejects(()=>rpc('v2_lab_write_once',[id,'create_assignment',{...payload,max_attempts:3}]),/otros datos/);
+});
+test('alumno nativo: instrucciones no consumen intentos; recuperación y detalle conservan identidad',async()=>{
+ const a=await setup();const initial=await rpc('v2_lab_access_context',[a.token],null,'anon');
+ assert.equal(initial.attempts_used,0);assert.equal(initial.last_attempt,null);
+ assert.equal((await rpc('v2_lab_results',[a.assignment_id])).summary.started,0);
+ const t=await begin(a.token);const resumed=await rpc('v2_lab_resume',[a.token,t.attempt_id],null,'anon');
+ assert.equal(resumed.attempt_id,t.attempt_id);assert.equal(resumed.version_id,a.version_id);
+ await submit(a.token,t.attempt_id,randomUUID(),{q1:'b',q2:4});
+ const ctx=await rpc('v2_lab_access_context',[a.token],null,'anon');assert.equal(ctx.last_attempt.attempt_id,t.attempt_id);assert.equal(ctx.last_attempt.score_percent,null);
+ const detail=await rpc('v2_lab_attempt_detail',[t.attempt_id]);assert.equal(detail.score_percent,75);assert.equal(detail.responses.length,2);
+ assert.equal(detail.responses.find(x=>x.question_id==='q1').correct,false);
+ const accessB=await rpc('v2_lab_issue_access',[a.recipients.find(x=>x.student_id===student2).recipient_id,true]);
+ await assert.rejects(()=>rpc('v2_lab_resume',[accessB.token,t.attempt_id],null,'anon'),/no disponible/);
+ await assert.rejects(()=>rpc('v2_lab_attempt_detail',[t.attempt_id],other),/no disponible/);
+ await assert.rejects(()=>rpc('v2_lab_attempt_detail',[t.attempt_id],null,'anon'),/permission denied/);
+});
+test('panel nativo: una solicitud inválida no genera un recibo ni altera actividades',async()=>{
+ const id=randomUUID();const payload={manifest,answer_key:{},evaluator:'answer-key-v1',subject:'Materia'};
+ await assert.rejects(()=>rpc('v2_lab_write_once',[id,'create_activity',payload]),/Clave incompleta/);
+ const fixed=await rpc('v2_lab_write_once',[id,'create_activity',{...payload,answer_key:key}]);assert(fixed.activity_id);
+ await assert.rejects(()=>rpc('v2_lab_catalog',['activities',-1,24]),/Paginación/);
+});

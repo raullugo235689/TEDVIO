@@ -25,7 +25,10 @@ export const loadSettingsPage = () => import('../features/settings/SettingsPage'
 export const loadSupportPage = () => import('../features/reliability/SupportPage');
 export const loadPilotHealthPage = () => import('../features/reliability/PilotHealthPage');
 
+export const loadInteractiveLabPage = () => import('../features/interactive-lab/InteractiveLabPage');
+
 const routeLoaders: Array<[test: (pathname: string) => boolean, loader: RouteLoader]> = [
+  [(pathname) => pathname.startsWith('/interactive-lab'), loadInteractiveLabPage],
   [(pathname) => pathname === '/', loadDashboardPage],
   [(pathname) => pathname.startsWith('/enarm-2027'), loadEnarm2027Page],
   [(pathname) => pathname === '/evaluate', loadEvaluationWorkspacePage],

@@ -17,6 +17,7 @@ export const navigation: NavigationItem[] = [
   { to: '/attendance-justifications', label: 'Justificar faltas', shortLabel: 'Justificaciones', icon: 'attendance', section: 'operation', migrated: true },
   { to: '/attendance-joint', label: 'Asistencia conjunta', shortLabel: 'Asistencia conjunta', icon: 'attendance', section: 'operation', migrated: true },
   { to: '/classroom', label: 'Modo Clase', shortLabel: 'Clase', icon: 'classroom', section: 'operation', migrated: true },
+  { to: '/interactive-lab', label: 'Interactive Lab', shortLabel: 'Interactive Lab', icon: 'exam', section: 'operation', migrated: true },
   { to: '/bank', label: 'Banco de preguntas', shortLabel: 'Preguntas', icon: 'bank', section: 'operation', migrated: true },
   { to: '/exams', label: 'Evaluaciones', shortLabel: 'Evaluar', icon: 'exam', section: 'operation', migrated: true },
   { to: '/omr', label: 'Calificar hojas', shortLabel: 'Calificar', icon: 'exam', section: 'operation', migrated: true },
@@ -33,7 +34,7 @@ export const navigation: NavigationItem[] = [
 export const navigationGroups = [
   { to: '/', children: ['/agenda', '/classroom'] },
   { to: '/groups', children: ['/attendance', '/attendance-justifications', '/attendance-joint', '/students'] },
-  { to: '/prepare', children: ['/bank'] },
+  { to: '/prepare', children: ['/bank', '/interactive-lab'] },
   { to: '/evaluate', children: ['/exams', '/omr', '/gradebook', '/periods'] },
   { to: '/reports', children: ['/analytics'] },
 ].map((group) => ({
@@ -82,6 +83,7 @@ export function navigationTitle(pathname: string): string {
   if (pathname.startsWith('/enarm-2027')) return 'ENARM 2027 · Mi preparación';
   if (pathname === '/attendance-joint' || pathname.startsWith('/attendance-joint/')) return 'Asistencia conjunta';
   if (/^\/classroom\/[^/]+\/health$/.test(pathname)) return 'Salud del piloto';
+  if (pathname.startsWith('/interactive-lab')) return 'Interactive Lab';
   if (pathname.startsWith('/groups/')) return 'Centro de grupo';
   if (pathname.startsWith('/attendance/')) return 'Asistencia';
   if (pathname.startsWith('/classroom/')) return 'Modo Clase';

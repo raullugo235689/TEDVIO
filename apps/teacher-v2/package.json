@@ -32,7 +32,7 @@
     "test:enarm2027": "node --experimental-strip-types --test scripts/enarm2027.test.mjs scripts/enarm-flashcards.test.mjs scripts/enarm-game.test.mjs",
     "test:foundations": "node --experimental-strip-types --test scripts/attendance-atomic.test.mjs scripts/data-pages.test.mjs scripts/product-navigation.test.mjs",
     "test:release": "node --test scripts/release-integrity.test.mjs",
-    "test:lab": "node --test scripts/interactive-lab.test.mjs scripts/interactive-lab-sdk.test.mjs"
+    "test:lab": "node --experimental-strip-types --test scripts/interactive-lab.test.mjs scripts/interactive-lab-sdk.test.mjs scripts/interactive-lab-model.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.112.4",
