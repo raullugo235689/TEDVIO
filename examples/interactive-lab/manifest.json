@@ -1,0 +1,27 @@
+{
+  "protocol": "tedvio.lab/1",
+  "title": "Actividad de integración",
+  "instructions": "Ejemplo sintético para comprobar el SDK; no es una evaluación anatómica.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "choice",
+      "prompt": "Selecciona la opción A.",
+      "options": [
+        {
+          "id": "a",
+          "label": "A"
+        },
+        {
+          "id": "b",
+          "label": "B"
+        }
+      ]
+    },
+    {
+      "id": "q2",
+      "type": "numeric",
+      "prompt": "Escribe el número 4."
+    }
+  ]
+}

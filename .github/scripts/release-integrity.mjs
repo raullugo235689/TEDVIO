@@ -13,7 +13,7 @@ function filesIn(relative,workspace=root) {
   .flatMap(name=>filesIn(`${relative}/${name}`,workspace));
 }
 export function sourceFiles(workspace=root) {
- const directories=['apps/teacher-v2/src','apps/teacher-v2/live','apps/teacher-v2/public','apps/teacher-v2/scripts','supabase/migrations','supabase/tests','.github/scripts','.github/workflows','assets'];
+ const directories=['packages/interactive-lab-sdk','apps/teacher-v2/src','apps/teacher-v2/live','apps/teacher-v2/public','apps/teacher-v2/scripts','supabase/migrations','supabase/tests','.github/scripts','.github/workflows','assets'];
  const singles=['apps/teacher-v2/index.html','apps/teacher-v2/package.json','apps/teacher-v2/package-lock.json','apps/teacher-v2/vite.config.ts','apps/teacher-v2/vite.live.config.ts','apps/teacher-v2/tsconfig.json','supabase/config.toml','sw.js','config.js','manifest.webmanifest','vercel.json'];
  // Legacy shells and shared public runtime files remain part of the release.
  // Generated manifests/attestations and temporary runner package files are not inputs.

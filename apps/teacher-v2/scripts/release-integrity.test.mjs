@@ -18,7 +18,7 @@ before(()=>{
 after(()=>fs.rmSync(temporary,{recursive:true,force:true}));
 test('release digest covers teacher HTML, both live applications and shared public code',()=>{
  const original=sourceDigest(temporary);
- for(const file of ['apps/teacher-v2/index.html','apps/teacher-v2/live/student/app.jsx','apps/teacher-v2/live/projection/app.jsx','sw.js','teacher.html']){
+ for(const file of ['apps/teacher-v2/index.html','apps/teacher-v2/live/student/app.jsx','apps/teacher-v2/live/projection/app.jsx','sw.js','teacher.html','packages/interactive-lab-sdk/protocol.mjs','packages/interactive-lab-sdk/host.mjs','packages/interactive-lab-sdk/activity.mjs']){
   const target=path.join(temporary,file),bytes=fs.readFileSync(target);
   try{fs.appendFileSync(target,'\n/* synthetic change */\n');assert.notEqual(sourceDigest(temporary),original,file);}finally{fs.writeFileSync(target,bytes);}
  }

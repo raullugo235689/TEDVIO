@@ -1,0 +1,11 @@
+{
+  "q1": {
+    "answer": "a",
+    "weight": 1
+  },
+  "q2": {
+    "answer": 4,
+    "tolerance": 0.1,
+    "weight": 3
+  }
+}
