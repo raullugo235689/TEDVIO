@@ -4,7 +4,7 @@ export function navigationScope(pathname: string, search = ''): { groupId: strin
   const params = new URLSearchParams(search);
   if (/^\/attendance-joint(?:\/|$)/.test(pathname)) return { groupId: '', periodId: '' };
   const match = /^\/(?:groups|attendance|gradebook|periods|reports|analytics|students)\/([^/]+)/.exec(pathname);
-  const queryScope = ['/prepare', '/evaluate', '/bank', '/classroom', '/exams', '/omr', '/attendance-justifications'].includes(pathname);
+  const queryScope = ['/prepare', '/evaluate', '/bank', '/classroom', '/exams', '/forms', '/forms/new', '/omr', '/attendance-justifications'].includes(pathname);
   let groupId = queryScope && params.getAll('group').length === 1 ? params.get('group') || '' : '';
   if (match?.[1]) { try { groupId = decodeURIComponent(match[1]); } catch { groupId = ''; } }
   return { groupId, periodId: groupId ? params.get('period') || '' : '' };
@@ -21,7 +21,7 @@ export function scopedDestination(destination: string, groupId = '', periodId = 
   } else if (pathname === '/students') {
     path = `/groups/${encodeURIComponent(groupId)}`;
     params.set('tab', 'students');
-  } else if (['/prepare', '/evaluate', '/bank', '/classroom', '/exams', '/exams/new', '/omr', '/attendance-justifications'].includes(path)) {
+  } else if (['/prepare', '/evaluate', '/bank', '/classroom', '/exams', '/exams/new', '/forms', '/forms/new', '/omr', '/attendance-justifications'].includes(path)) {
     params.set('group', groupId);
     if (periodId && pathname === '/evaluate') params.set('period', periodId);
   }

@@ -11,6 +11,7 @@ TEDVIO conecta grupos, asistencia, clase interactiva, evaluación, OMR, califica
 - Modo Clase y proyección.
 - Question Studio.
 - Evaluaciones impresas y versiones.
+- Formularios en línea: selección aleatoria del banco, cupos por tema, intentos individuales y resultados en Excel.
 - Captura OMR con revisión docente.
 - Libro de calificaciones.
 - Alumno 360°.
@@ -26,6 +27,8 @@ La versión anterior se conserva temporalmente en `/teacher-legacy` como mecanis
 ## Alcance de lanzamiento
 
 La definición contractual del producto se encuentra en [`PRODUCT-SCOPE-1.0.md`](PRODUCT-SCOPE-1.0.md). Tareas/Assignments no forma parte de la promesa comercial 1.0 y se evaluará para una versión posterior.
+
+El módulo nativo de [formularios en línea](docs/online-forms.md) añade evaluaciones objetivas al área **Evaluar**. Su activación requiere la migración indicada en esa guía y el despliegue verificado del frontend.
 
 ## Arquitectura
 

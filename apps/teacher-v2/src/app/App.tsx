@@ -58,6 +58,8 @@ const PilotHealthPage = lazy(() => loadPilotHealthPage().then((module) => ({ def
 const AttendanceJustificationsPage = lazy(() => import('../features/attendance/AttendanceJustificationsPage').then(module => ({ default: module.AttendanceJustificationsPage })));
 const JointAttendancePage = lazy(() => import('../features/attendance/JointAttendancePage').then(module => ({ default: module.JointAttendancePage })));
 const AttendanceJoinPage = lazy(() => import('../features/attendance/AttendanceJoinPage').then(module => ({ default: module.AttendanceJoinPage })));
+const OnlineFormsPage = lazy(() => import('../features/forms/OnlineFormsPage').then(module => ({ default: module.OnlineFormsPage })));
+const RespondFormPage = lazy(() => import('../features/forms/RespondFormPage').then(module => ({ default: module.RespondFormPage })));
 
 function ProtectedShell() {
   const auth = useAuth();
@@ -83,6 +85,7 @@ export function App() {
 
   return (
     <Routes>
+      <Route path="/form/:code" element={tool(<RespondFormPage />, 'Abriendo formulario…')} />
       <Route path="/attendance-join" element={tool(<AttendanceJoinPage />, 'Abriendo registro de asistencia…')} />
       <Route path="/login" element={<LoginPage />} />
       <Route element={<ProtectedShell />}>
@@ -102,6 +105,9 @@ export function App() {
         <Route path="classroom/:sessionId" element={tool(<ClassroomPage />, 'Abriendo la sesión…')} />
         <Route path="classroom/:sessionId/health" element={tool(<PilotHealthPage />, 'Calculando salud del piloto…')} />
         <Route path="bank" element={tool(<BankPage />, 'Abriendo banco de preguntas…')} />
+        <Route path="forms" element={tool(<OnlineFormsPage />, 'Abriendo formularios…')} />
+        <Route path="forms/new" element={tool(<OnlineFormsPage create />, 'Preparando formulario…')} />
+        <Route path="forms/:formId" element={tool(<OnlineFormsPage />, 'Abriendo formulario…')} />
         <Route path="exams" element={tool(<ExamsPage />, 'Abriendo Evaluaciones…')} />
         <Route path="exams/new" element={tool(<ExamsPage create />, 'Preparando la evaluación…')} />
         <Route path="exams/:examId/print" element={tool(<ExamPrintPage />, 'Preparando cuadernillo…')} />
