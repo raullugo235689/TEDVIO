@@ -40,7 +40,8 @@ jobs:
   authenticated-browser:
     if: github.event_name == 'workflow_dispatch'
     needs: static-contract
-    runs-on: ubuntu-latest
+    # Match the native dependencies supported by pinned Playwright 1.55.0.
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:
       TEDVIO_E2E_EMAIL: ${{ secrets.TEDVIO_E2E_EMAIL }}

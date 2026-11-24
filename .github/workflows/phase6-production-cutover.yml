@@ -55,7 +55,8 @@ jobs:
           retention-days: 7
   browser-cutover:
     needs: static-cutover
-    runs-on: ubuntu-latest
+    # Match the native dependencies supported by pinned Playwright 1.55.0.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
