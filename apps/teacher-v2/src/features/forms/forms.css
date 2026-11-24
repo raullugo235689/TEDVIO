@@ -3,6 +3,9 @@
   gap: 22px;
 }
 
+/* Let the results table scroll inside its panel without widening the grid. */
+.online-forms-page > .section-card { min-width: 0; }
+
 .online-forms-page .page-header,
 .online-forms-page .page-actions,
 .of-actions,
