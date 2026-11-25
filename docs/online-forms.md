@@ -53,3 +53,7 @@ npm run quality
 La suite SQL usa PostgreSQL aislado mediante PGlite y roles reales `anon`/`authenticated`, sin datos ni conexiones de producción. El recorrido de navegador se encuentra en `tests/browser/phase6-online-forms.spec.mjs` y conecta las RPC del formulario a esa misma implementación SQL. Ejecutar la suite canónica en Chromium y WebKit. Después del despliegue debe verificarse un formulario de prueba completo en la instalación real, incluida la descarga y apertura del Excel.
 
 Límites de esta versión: 20 secciones, 1000 candidatas, 200 preguntas por intento y 1000 intentos registrados por formulario. La exportación se genera localmente en el navegador del docente y se carga solo al solicitarla.
+
+## Navegación de examen
+
+La vista del alumno presenta una pregunta a la vez, con Anterior y Siguiente. El guardado se confirma antes de avanzar; al recargar se retoma la primera pregunta sin responder y se conserva la muestra sorteada. La última pregunta permite revisar y enviar, incluyendo la confirmación de preguntas en blanco. Esta interfaz no impide capturas de pantalla ni inspección del navegador: el servidor conserva el mismo contrato de intento y nunca envía claves con `score_only`. Los formularios nuevos empiezan con **Solo calificación (sin clave)** y un intento; las políticas explícitas de práctica y las reglas de formularios ya guardados se conservan.

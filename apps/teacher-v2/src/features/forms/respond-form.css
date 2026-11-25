@@ -152,3 +152,13 @@ audio.respond-form-media { width: 100%; }
   .respond-form-spinner { animation: none; }
   .respond-form-button { transition: none; }
 }
+
+/* One question per screen; keyboard focus and progress remain on the current item. */
+.respond-form-step-nav { margin-top: 20px; display: grid; gap: 12px; padding: 16px 0 8px; }
+.respond-form-step-count { color: var(--respond-muted); font-size: 12px; text-align: center; }
+.respond-form-step-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.respond-form-step-actions > button { width: 100%; min-width: 0; }
+.respond-form-step-note { margin: 0; font-size: 12px; line-height: 1.5; color: var(--respond-muted); text-align: center; }
+.respond-form-question:focus { outline: none; }
+.respond-form-question:focus-visible { outline: 2px solid #2859b6; outline-offset: 3px; }
+@media (max-width: 360px) { .respond-form-step-actions { gap: 8px; } .respond-form-step-actions > button { padding-inline: 8px; } }

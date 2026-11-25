@@ -131,6 +131,7 @@ function RespondForm({ code }: { code: string }) {
   const [metaLoading, setMetaLoading] = useState(true);
   const [metaError, setMetaError] = useState('');
   const [attempt, setAttempt] = useState<OnlineFormState | null>(null);
+  const [questionIndex, setQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Answers>({});
   const [pending, setPending] = useState<Answers>({});
   const [name, setName] = useState('');
@@ -170,6 +171,7 @@ function RespondForm({ code }: { code: string }) {
   const refreshRef = useRef<() => Promise<void>>(async () => {});
   const confirmDialog = useRef<HTMLDialogElement>(null);
   const resultHeading = useRef<HTMLHeadingElement>(null);
+  const questionCard = useRef<HTMLElement>(null);
 
   const serverTime = () => clock.current.server + performance.now() - clock.current.received;
   const syncClock = (serverNow?: string | null) => {
@@ -214,6 +216,13 @@ function RespondForm({ code }: { code: string }) {
     for (const item of value.items) {
       const draft = pendingRef.current[item.id];
       if (typeof draft === 'string' && item.options.includes(draft) && confirmed[item.id] !== draft) remaining[item.id] = draft;
+    }
+    // Start or resume at the first unanswered question; reconciliation of the
+    // same attempt must never move the student's current question.
+    if (attemptRef.current?.attempt_id !== value.attempt_id) {
+      const selected = { ...confirmed, ...remaining };
+      const firstUnanswered = value.items.findIndex(item => typeof selected[item.id] !== 'string');
+      setQuestionIndex(firstUnanswered < 0 ? Math.max(0, value.items.length - 1) : firstUnanswered);
     }
     savedRef.current = confirmed;
     attemptRef.current = value;
@@ -391,6 +400,7 @@ function RespondForm({ code }: { code: string }) {
     expiredChecked.current = false;
     setHasSession(false);
     setAttempt(null);
+    setQuestionIndex(0);
     setAnswers({});
     setPending({});
     setName('');
@@ -475,12 +485,24 @@ function RespondForm({ code }: { code: string }) {
   }, [confirmOpen]);
   useEffect(() => { if (attempt?.status === 'submitted') resultHeading.current?.focus(); }, [attempt?.status]);
 
+  useEffect(() => {
+    if (attempt?.status !== 'in_progress') return;
+    const card = questionCard.current;
+    if (card) {
+      card.focus({ preventScroll: true });
+      card.scrollIntoView({ block: 'start', behavior: 'auto' });
+    }
+  }, [questionIndex, attempt?.attempt_id, attempt?.status]);
+
   const items = attempt?.items || [];
+  const currentIndex = Math.min(questionIndex, Math.max(0, items.length - 1));
+  const isLastQuestion = currentIndex === items.length - 1;
   const answeredCount = items.filter(item => typeof answers[item.id] === 'string').length;
   const pendingCount = Object.keys(pending).length;
   const savedCount = items.filter(item => typeof savedRef.current[item.id] === 'string').length;
   const locked = expired || submitBusy || uncertainSubmission || checking;
   const canSubmit = attempt?.status === 'in_progress' && !locked && !saving && pendingCount === 0;
+  const canNavigate = canSubmit && items.length > 0;
   const canStart = !!meta?.available && !hasSession && !metaLoading && !recovering;
   const title = attempt?.title || meta?.title || 'Formulario';
   const instructions = attempt?.instructions || meta?.instructions;
@@ -531,15 +553,22 @@ function RespondForm({ code }: { code: string }) {
         {saveError && !expired ? <div className="respond-form-alert error" role="alert"><p>{saveError}</p><p>Tus selecciones siguen visibles. Deben guardarse antes de enviar.</p><button type="button" className="respond-form-button secondary" disabled={saving || checking || submitBusy} onClick={() => void drainAnswers()}>Reintentar guardado</button></div> : null}
         {submitError ? <div className="respond-form-alert error" role="alert"><p>{submitError}</p><button type="button" className="respond-form-button secondary" onClick={() => void restoreSession()} disabled={checking || saving || submitBusy}>{checking ? 'Consultando…' : 'Consultar estado de mi intento'}</button></div> : null}
         <div className="respond-form-questions">
-          {items.map((item, index) => <section className="respond-form-card respond-form-question" key={item.id} aria-labelledby={`question-${item.id}`}>
-            <div className="respond-form-question-top"><span>Pregunta {index + 1}{item.section_title ? ` · ${item.section_title}` : ''}</span><span>{item.points} {item.points === 1 ? 'punto' : 'puntos'}</span></div>
+          {items.slice(currentIndex, currentIndex + 1).map(item => <section ref={questionCard} tabIndex={-1} className="respond-form-card respond-form-question" key={item.id} aria-labelledby={`question-${item.id}`}>
+            <div className="respond-form-question-top"><span>Pregunta {currentIndex + 1} de {items.length}{item.section_title ? ` · ${item.section_title}` : ''}</span><span>{item.points} {item.points === 1 ? 'punto' : 'puntos'}</span></div>
             <fieldset disabled={locked}><legend id={`question-${item.id}`}>{item.prompt}</legend><ItemMedia item={item} /><div className="respond-form-options">
               {item.options.map((option, optionIndex) => <label className={`respond-form-option${answers[item.id] === option ? ' selected' : ''}`} key={`${item.id}-${optionIndex}`}><input type="radio" name={`question-${item.id}`} value={option} checked={answers[item.id] === option} onChange={() => chooseAnswer(item.id, option)} /><span className="respond-form-option-letter" aria-hidden="true">{String.fromCharCode(65 + optionIndex)}</span><span>{option}</span></label>)}
             </div></fieldset>
             <p className={`respond-form-question-status${pending[item.id] !== undefined ? ' pending' : ''}`}>{pending[item.id] !== undefined ? 'Cambio pendiente de confirmar' : answers[item.id] !== undefined ? 'Respuesta guardada' : 'Sin responder'}</p>
           </section>)}
         </div>
-        <section className="respond-form-card respond-form-finish"><div><h2>Revisa tu formulario</h2><p>{answeredCount === items.length ? 'Has respondido todas las preguntas.' : `Tienes ${items.length - answeredCount} ${items.length - answeredCount === 1 ? 'pregunta sin responder' : 'preguntas sin responder'}. Puedes entregar así; se califican con cero puntos.`}</p>{pendingCount > 0 || saving ? <p className="respond-form-pending-note">Espera a que todas tus selecciones estén guardadas antes de enviar.</p> : null}</div><button type="button" className="respond-form-button primary" disabled={!canSubmit} onClick={() => setConfirmOpen(true)}>{submitBusy ? 'Enviando…' : 'Revisar y enviar'}</button></section>
+        <nav className="respond-form-step-nav" aria-label="Navegación de preguntas">
+          <div className="respond-form-step-count" aria-live="polite">Pregunta {currentIndex + 1} de {items.length} · {answeredCount} respondidas</div>
+          <div className="respond-form-step-actions">
+            <button type="button" className="respond-form-button secondary" disabled={!canNavigate || currentIndex === 0} onClick={() => setQuestionIndex(index => Math.max(0, index - 1))}>Anterior</button>
+            {isLastQuestion ? <button type="button" className="respond-form-button primary" disabled={!canSubmit} onClick={() => setConfirmOpen(true)}>{submitBusy ? 'Enviando…' : 'Revisar y enviar'}</button> : <button type="button" className="respond-form-button primary" disabled={!canNavigate} onClick={() => setQuestionIndex(index => Math.min(items.length - 1, index + 1))}>Siguiente <span aria-hidden="true">→</span></button>}
+          </div>
+          {pendingCount > 0 || saving ? <p className="respond-form-step-note" role="status">Confirma el guardado de tu respuesta para continuar.</p> : isLastQuestion ? <p className="respond-form-step-note">{answeredCount === items.length ? 'Has respondido todas las preguntas.' : `Quedan ${items.length - answeredCount} sin responder. Puedes regresar a revisarlas antes de entregar.`}</p> : <p className="respond-form-step-note">Puedes dejar una pregunta sin responder y regresar antes de entregar.</p>}
+        </nav>
       </> : null}
 
       {attempt?.status === 'submitted' ? <section className="respond-form-card respond-form-result">

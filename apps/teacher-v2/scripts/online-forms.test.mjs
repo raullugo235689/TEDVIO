@@ -58,3 +58,8 @@ test('el archivo es XLSX real; matrícula conserva ceros y texto no se interpret
   assert.equal(reopened.getWorksheet('Respuestas').getCell('B2').value, '=HYPERLINK("x")');
   assert.equal(reopened.getWorksheet('Respuestas').getCell('B2').type, ExcelJS.ValueType.String);
 });
+
+
+test('los nuevos formularios no revelan claves por defecto', () => {
+  assert.equal(emptyOnlineFormDraft().feedbackMode, 'score_only');
+});

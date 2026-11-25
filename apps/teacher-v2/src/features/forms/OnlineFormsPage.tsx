@@ -37,14 +37,14 @@ import './forms.css';
 const statusLabels: Record<OnlineFormStatus, string> = { draft: 'Borrador', published: 'Publicado', closed: 'Cerrado' };
 const statusTones: Record<OnlineFormStatus, string> = { draft: 'amber', published: 'green', closed: 'neutral' };
 const feedbackLabels: Record<OnlineFormFeedback, string> = {
-  score_only: 'Solo calificación',
-  after_submit: 'Respuestas al enviar',
-  after_close: 'Resultados al cerrar el formulario',
+  score_only: 'Solo calificación (sin clave)',
+  after_submit: 'Respuestas al enviar (práctica)',
+  after_close: 'Resultados y clave al cerrar',
 };
 const feedbackHints: Record<OnlineFormFeedback, string> = {
-  score_only: 'El alumno verá su calificación sin las respuestas correctas ni las explicaciones.',
-  after_submit: 'Las respuestas correctas y las explicaciones estarán disponibles al enviar cada intento.',
-  after_close: 'La calificación, las respuestas correctas y las explicaciones se mostrarán después del cierre del formulario.',
+  score_only: 'Recomendado para exámenes. El alumno verá únicamente su calificación; las respuestas correctas y las explicaciones no se revelan.',
+  after_submit: 'Solo para práctica: las respuestas correctas y las explicaciones se revelan al enviar cada intento y pueden compartirse.',
+  after_close: 'La calificación y la clave se revelan después del cierre. No uses esta opción si reutilizarás el mismo banco en otro grupo.',
 };
 const selectionLabels: Record<OnlineFormDraft['selectionMode'], string> = {
   all: 'Todas las seleccionadas', random: 'Azar global', topic_quotas: 'Cuotas por tema',

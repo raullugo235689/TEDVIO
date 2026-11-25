@@ -88,7 +88,7 @@ export function onlineFormTopic(question: Pick<BankQuestion, 'topic'>): string {
 export function emptyOnlineFormDraft(groupId = ''): OnlineFormDraft {
   return { title: '', instructions: '', groupId, questionIds: [], selectionMode: 'random',
     questionCount: 35, topicQuotas: {}, shuffleOptions: true, maxAttempts: 1,
-    timeLimitMinutes: null, opensAt: '', closesAt: '', feedbackMode: 'after_close' };
+    timeLimitMinutes: null, opensAt: '', closesAt: '', feedbackMode: 'score_only' };
 }
 function localDateTime(value: string | null): string {
   if (!value) return '';
