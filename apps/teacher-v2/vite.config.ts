@@ -20,6 +20,7 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return undefined;
+          if (id.includes('exceljs')) return 'excel-export';
           if (id.includes('@supabase')) return 'supabase';
           if (id.includes('@tanstack')) return 'query';
           if (id.includes('react-router')) return 'router';

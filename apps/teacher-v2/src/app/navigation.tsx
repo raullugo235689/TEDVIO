@@ -19,6 +19,7 @@ export const navigation: NavigationItem[] = [
   { to: '/classroom', label: 'Modo Clase', shortLabel: 'Clase', icon: 'classroom', section: 'operation', migrated: true },
   { to: '/bank', label: 'Banco de preguntas', shortLabel: 'Preguntas', icon: 'bank', section: 'operation', migrated: true },
   { to: '/exams', label: 'Evaluaciones', shortLabel: 'Evaluar', icon: 'exam', section: 'operation', migrated: true },
+  { to: '/forms', label: 'Formularios en línea', shortLabel: 'Formularios', icon: 'exam', section: 'operation', migrated: true },
   { to: '/omr', label: 'Calificar hojas', shortLabel: 'Calificar', icon: 'exam', section: 'operation', migrated: true },
   { to: '/gradebook', label: 'Calificaciones', shortLabel: 'Libro', icon: 'grades', section: 'operation', migrated: true },
   { to: '/students', label: 'Perfil del alumno', shortLabel: 'Alumnos', icon: 'groups', section: 'operation', migrated: true },
@@ -34,7 +35,7 @@ export const navigationGroups = [
   { to: '/', children: ['/agenda', '/classroom'] },
   { to: '/groups', children: ['/attendance', '/attendance-justifications', '/attendance-joint', '/students'] },
   { to: '/prepare', children: ['/bank'] },
-  { to: '/evaluate', children: ['/exams', '/omr', '/gradebook', '/periods'] },
+  { to: '/evaluate', children: ['/exams', '/forms', '/omr', '/gradebook', '/periods'] },
   { to: '/reports', children: ['/analytics'] },
 ].map((group) => ({
   ...navigation.find((item) => item.to === group.to)!,
@@ -86,6 +87,7 @@ export function navigationTitle(pathname: string): string {
   if (pathname.startsWith('/attendance/')) return 'Asistencia';
   if (pathname.startsWith('/classroom/')) return 'Modo Clase';
   if (pathname.startsWith('/exams/')) return 'Evaluaciones';
+  if (pathname.startsWith('/forms/')) return 'Formularios en línea';
   if (pathname.startsWith('/omr/')) return 'Calificar hojas';
   if (pathname.startsWith('/gradebook/')) return 'Libro de calificaciones';
   if (pathname.startsWith('/students/')) return 'Perfil del alumno';

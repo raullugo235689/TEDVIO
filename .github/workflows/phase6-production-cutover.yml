@@ -55,7 +55,8 @@ jobs:
           retention-days: 7
   browser-cutover:
     needs: static-cutover
-    runs-on: ubuntu-latest
+    # Match the native dependencies supported by pinned Playwright 1.55.0.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -69,6 +70,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/teacher-v2/package-lock.json
+      - name: Install app dependencies for browser fixtures
+        working-directory: apps/teacher-v2
+        run: npm ci --include=dev --no-audit --no-fund
       - uses: actions/download-artifact@v4
         with:
           name: verified-candidate-${{ github.run_id }}

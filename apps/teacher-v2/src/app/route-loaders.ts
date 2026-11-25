@@ -14,6 +14,7 @@ export const loadClassroomPage = () => import('../features/classroom/ClassroomPa
 export const loadBankPage = () => import('../features/bank/BankPage');
 export const loadExamPrintPage = () => import('../features/exams/ExamPrintPage');
 export const loadExamsPage = () => import('../features/exams/ExamsPage');
+export const loadOnlineFormsPage = () => import('../features/forms/OnlineFormsPage');
 export const loadOmrPage = () => import('../features/omr/OmrPage');
 export const loadOmrSheetsPage = () => import('../features/omr/OmrSheetsPage');
 export const loadGradebookPage = () => import('../features/gradebook/GradebookPage');
@@ -40,6 +41,7 @@ const routeLoaders: Array<[test: (pathname: string) => boolean, loader: RouteLoa
   [(pathname) => pathname.startsWith('/bank'), loadBankPage],
   [(pathname) => /\/exams\/[^/]+\/print$/.test(pathname), loadExamPrintPage],
   [(pathname) => pathname.startsWith('/exams'), loadExamsPage],
+  [(pathname) => pathname.startsWith('/forms'), loadOnlineFormsPage],
   [(pathname) => /\/omr\/[^/]+\/sheets$/.test(pathname), loadOmrSheetsPage],
   [(pathname) => pathname.startsWith('/omr'), loadOmrPage],
   [(pathname) => pathname.startsWith('/gradebook'), loadGradebookPage],

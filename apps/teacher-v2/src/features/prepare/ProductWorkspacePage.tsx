@@ -12,6 +12,7 @@ const libraryTools: { to: string; icon: IconName; label: string; detail: string;
   { to: '/bank?launch=1', icon: 'classroom', label: 'Preparar una clase', detail: 'Selecciona preguntas revisadas y prepara una sesión. Nada se proyecta hasta que tú lo decidas.', action: 'Elegir preguntas' },
 ];
 const evaluationTools: typeof libraryTools = [
+  { to: '/forms', icon: 'bank', label: 'Formularios en línea', detail: 'Asigna preguntas al azar desde tu banco, comparte el enlace y descarga respuestas y calificaciones en Excel.', action: 'Abrir formularios' },
   { to: '/exams/new', icon: 'exam', label: 'Crear un examen', detail: 'Elige preguntas, revisa la composición y prepara las versiones y claves.', action: 'Crear examen' },
   { to: '/exams', icon: 'layout', label: 'Mis evaluaciones', detail: 'Retoma un borrador, imprime un examen o consulta una evaluación aplicada.', action: 'Ver evaluaciones' },
   { to: '/omr', icon: 'attendance', label: 'Calificar hojas', detail: 'Escanea respuestas y revisa las marcas dudosas antes de confirmar resultados.', action: 'Abrir calificador' },
