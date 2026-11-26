@@ -181,8 +181,21 @@ test('Grupos premium: filtros reales, orden, lista y datos no disponibles', asyn
   await expect(page.locator('.pg-catalog')).toHaveAttribute('data-view', 'list');
   for (const width of [320, 390, 768, 1280, 1440]) {
     await page.setViewportSize({ width, height: 900 });
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    // Chromium can acknowledge the resize before the responsive layout is painted.
+    // Keep the same one-pixel bound, then check it again after the action is stable.
+    await expect.poll(() => page.evaluate(() => innerWidth), {
+      timeout: 2_000, message: `Viewport should reach ${width}px`,
+    }).toBe(width);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth), {
+      timeout: 2_000, message: `Group list must fit the ${width}px viewport after resize`,
+    }).toBeLessThanOrEqual(width + 1);
     await cards.first().getByRole('link', { name: 'Abrir grupo', exact: true }).click({ trial: true });
+    const layout = await page.evaluate(() => ({
+      viewport: innerWidth, pageWidth: document.documentElement.scrollWidth,
+    }));
+    expect(layout.viewport, JSON.stringify(layout)).toBe(width);
+    expect(layout.pageWidth, JSON.stringify(layout)).toBeLessThanOrEqual(width + 1);
+    console.log('GROUP_LIST_LAYOUT', { requestedWidth: width, ...layout });
   }
   await page.screenshot({ path: test.info().outputPath('groups-premium-list.png'), fullPage: true });
   await page.getByRole('button', { name: 'Vista de tarjetas', exact: true }).click();
