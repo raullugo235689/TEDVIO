@@ -10,7 +10,11 @@ import {
   type OnlineFormMeta,
   type OnlineFormState,
 } from '../../core/online-forms';
+import uasCrest from '../../assets/uas-crest.png';
 import './respond-form.css';
+
+// This cover belongs to the UAS form; other institutions keep their own identity.
+const UAS_ANATOMOCLINICAL_FORM_ID = '4400337b-33bf-452f-a41b-d2b99ff22531';
 
 type Answers = Record<string, string>;
 interface StoredSession {
@@ -513,6 +517,7 @@ function RespondForm({ code }: { code: string }) {
   const canNavigate = canSubmit && items.length > 0;
   const canStart = !!meta?.available && !hasSession && !metaLoading && !recovering;
   const title = attempt?.title || meta?.title || 'Formulario';
+  const showUasCover = meta?.id === UAS_ANATOMOCLINICAL_FORM_ID && attempt?.status !== 'in_progress';
   const instructions = attempt?.instructions || meta?.instructions;
   const scoreVisible = attempt?.status === 'submitted' && attempt.released && typeof attempt.score === 'number';
 
@@ -521,6 +526,12 @@ function RespondForm({ code }: { code: string }) {
     <header className="respond-form-brand"><img src="/assets/tedvio_official_isotipo.svg" alt="TEDVIO" width="38" height="38" /><div><strong>TEDVIO</strong><span>Formularios</span></div><span className="respond-form-private"><span aria-hidden="true" className="respond-form-live-dot"/> Acceso de estudiantes</span></header>
     <div className="respond-form-wrap" id="respond-form-content" tabIndex={-1}>
       <section className="respond-form-intro">
+        {showUasCover && (
+          <div className="respond-form-institution">
+            <img src={uasCrest} alt="Escudo de la UAS" width="250" height="321" />
+            <p>Universidad Autónoma de Sinaloa</p>
+          </div>
+        )}
         <span className="respond-form-eyebrow">{attempt?.status === 'submitted' ? 'TU ENTREGA' : 'FORMULARIO ACADÉMICO'}</span>
         <h1>{title}</h1>
         {meta?.group_name ? <p className="respond-form-group">{meta.group_name}</p> : null}
