@@ -322,7 +322,7 @@ test('configuración publicada editable y avance único confirmado persisten con
     await page.getByRole('dialog', { name: '¿Cerrar este formulario?' }).getByRole('button', { name: 'Cerrar formulario', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Actualizar resultados', exact: true })).toBeEnabled();
     await page.getByRole('button', { name: 'Editar configuración', exact: true }).click();
-    await page.getByLabel('Instrucciones', { exact: true }).fill('Configuración guardada después del cierre.');
+    await page.getByRole('textbox', { name: 'Instrucciones', exact: true }).fill('Configuración guardada después del cierre.');
     await page.getByRole('button', { name: 'Guardar configuración', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Actualizar resultados', exact: true })).toBeEnabled();
     const closed = await fixture.call('v2_online_form_detail', { p_form_id: published.id });
