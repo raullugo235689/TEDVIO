@@ -210,3 +210,33 @@ audio.respond-form-media { width: 100%; }
 .respond-form-result { text-align:center; }
 @media(max-width:600px){.respond-form-shell{padding-inline:12px}.respond-form-brand{min-height:68px}.respond-form-private{max-width:none;font-size:10px;padding:6px 8px}.respond-form-intro{border-radius:19px;padding:22px 20px}.respond-form-card{padding:22px 17px;border-radius:18px}.respond-form-progress{top:0;padding:12px 14px;margin-left:0;margin-right:0}.respond-form-question{scroll-margin-top:160px}.respond-form-question legend{font-size:17px}.respond-form-option{min-height:58px;padding:13px 10px}.respond-form-step-nav{padding-inline:10px;gap:8px}.respond-form-step-actions{gap:8px}.respond-form-step-actions .respond-form-button{padding-inline:9px}}
 @media(prefers-reduced-motion:reduce){.respond-form-shell *{scroll-behavior:auto!important}}
+
+/* Institutional identity stays scoped to the configured form cover. */
+.respond-form-institution {
+  display: flex;
+  align-items: center;
+  gap: clamp(14px, 3vw, 20px);
+  margin-bottom: 22px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid #ffffff26;
+}
+.respond-form-institution img {
+  box-sizing: content-box;
+  display: block;
+  flex: 0 0 auto;
+  width: clamp(56px, 14vw, 72px);
+  height: auto;
+  padding: 10px;
+  border-radius: 12px;
+  background: #fff;
+}
+.respond-form-institution p {
+  min-width: 0;
+  max-width: 24ch;
+  margin: 0;
+  color: #fff;
+  font-size: clamp(16px, 3.8vw, 20px);
+  font-weight: 650;
+  line-height: 1.35;
+  text-wrap: balance;
+}
