@@ -1,6 +1,7 @@
 import { before, beforeEach, after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { createOnlineFormsTestDatabase } from './online-forms-fixture.mjs';
 
 let fixture, db, owner, other, group, foreignGroup, bank;
@@ -32,7 +33,7 @@ const status = (id, value, actor = owner) => rpc('v2_online_form_set_status', [i
 const state = token => anon('v2_online_form_state', [token]);
 const answer = (token, id, value) => anon('v2_online_form_answer', [token, id, value]);
 const submit = token => anon('v2_online_form_submit', [token]);
-const start = (form, token = randomUUID(), enrollment = '001', name = 'Alumno sintético') => anon('v2_online_form_start', [form.code, name, enrollment, token]);
+const start = (form, token = randomUUID(), enrollment = '001', name = 'Alumno sintético') => anon('v2_online_form_start_configured', [form.code, name, enrollment, token]);
 async function ready(overrides = {}) { const f = await save(payload(overrides)); return status(f.id, 'published'); }
 const allItems = form => form.sections.flatMap(s => s.items);
 const numberOf = async table => Number((await db.query(`select count(*) n from public.${table}`)).rows[0].n);
@@ -278,4 +279,176 @@ test('configurar por primera vez un formulario publicado conserva los intentos p
  await assert.rejects(()=>anon('v2_online_form_set_group_choices',[f.id,['3-09']]), /permission denied/);
  await assert.rejects(()=>save(payload({group_choices:['A','a']})), /no pueden repetirse/);
  await assert.rejects(()=>save(payload({group_id:group,group_choices:['A']})), /no ambos/);
+});
+
+const updateSettings = (form, settings, actor = owner, revision = form.revision) => rpc('v2_online_form_update_settings', [form.id, settings, revision], actor);
+const advance = (token, itemId) => anon('v2_online_form_advance', [token, itemId]);
+
+test('editar configuración publicada conserva banco, estado, respuestas y reglas de intentos anteriores', async () => {
+  const close = new Date(Date.now() + 7200000).toISOString();
+  const form = await ready({ feedback_mode: 'score_only', time_limit_minutes: 60, closes_at: close });
+  const token = randomUUID(), first = await start(form, token);
+  await answer(token, first.items[0].id, first.items[0].options[0]);
+  const before = await state(token);
+  const changed = await updateSettings(form, { title: 'Título actualizado', instructions: 'Instrucciones nuevas',
+    navigation_mode: 'forward_only', feedback_mode: 'after_submit', time_limit_minutes: 5,
+    max_attempts: 2, shuffle_questions: false, shuffle_options: false });
+  assert.equal(changed.status, 'published'); assert.equal(changed.revision, form.revision + 1);
+  assert.deepEqual(changed.sections, form.sections); assert.equal(changed.code, form.code);
+  const recovered = await state(token);
+  assert.deepEqual(recovered.attempt, before.attempt); assert.deepEqual(recovered.responses, before.responses);
+  assert.deepEqual(recovered.items, before.items); assert.equal(recovered.form.title, 'Título actualizado');
+  assert.equal(recovered.form.feedback_mode, 'score_only');
+  const next = await start(changed, randomUUID(), '002');
+  assert.equal(next.attempt.navigation_mode, 'forward_only'); assert.equal(next.items.length, 1);
+  assert.equal(next.form.feedback_mode, 'after_submit');
+  assert.ok(Date.parse(next.attempt.expires_at) - Date.parse(next.attempt.started_at) <= 300000);
+  assert.equal(next.question_count, 3); assert.equal(next.answered_count, 0);
+  const finished = await submit(token); noAnswers(finished);
+  const closed = await status(form.id, 'closed');
+  const closedEdit = await updateSettings(closed, { title: 'Título de revisión', feedback_mode: 'after_submit' });
+  assert.equal(closedEdit.status, 'closed');
+  assert.equal((await state(token)).attempt.score, finished.attempt.score); noAnswers(await state(token));
+});
+
+test('configuración exige propietario y revisión, valida valores y rechaza cambios estructurales', async () => {
+  const form = await ready();
+  await assert.rejects(() => updateSettings(form, { title: 'Ajeno' }, other), /no está disponible/);
+  await assert.rejects(() => anon('v2_online_form_update_settings', [form.id, { title: 'Anónimo' }, form.revision]), /permission denied/);
+  await assert.rejects(() => updateSettings(form, { title: 'Obsoleto' }, owner, form.revision - 1), /cambió/);
+  await assert.rejects(() => updateSettings(form, { title: 'Sin revisión' }, owner, null), /cambió/);
+  for (const key of ['sections', 'group_id', 'group_choices', 'status', 'teacher_id']) {
+    await assert.rejects(() => updateSettings(form, { [key]: null }), /preguntas y los grupos/);
+  }
+  for (const settings of [{ title: '' }, { title: 'x'.repeat(201) }, { max_attempts: 6 }, { time_limit_minutes: 301 },
+    { navigation_mode: 'arbitrary' }, { navigation_mode: null }, { feedback_mode: 'arbitrary' },
+    { opens_at: '2030-02-02T00:00:00Z', closes_at: '2030-02-01T00:00:00Z' }]) {
+    await assert.rejects(() => updateSettings(form, settings), /constraint/);
+  }
+  assert.deepEqual(await detail(form.id), form);
+  await assert.rejects(() => save(payload({ id: form.id, revision: form.revision })), /Editar configuración/);
+  const changed = await updateSettings(form, { max_attempts: 2 });
+  await assert.rejects(() => updateSettings(form, { title: 'Otra pestaña' }), /cambió/);
+  assert.equal((await detail(form.id)).revision, changed.revision);
+});
+
+test('navegación secuencial oculta preguntas futuras y bloquea envío prematuro o respuestas ajenas al cursor', async () => {
+  const form = await ready({ navigation_mode: 'forward_only', shuffle_questions: false, shuffle_options: false });
+  assert.equal((await anon('v2_online_form_meta', [form.code])).navigation_mode, 'forward_only');
+  const token = randomUUID(), current = await start(form, token);
+  const row = (await db.query('select item_ids from public.v2_online_form_attempts where id=$1', [current.attempt.id])).rows[0];
+  assert.equal(current.attempt.current_position, 1); assert.equal(current.items.length, 1); assert.equal(current.question_count, 3);
+  assert.equal(current.items[0].position, 1); noAnswers(current); noSecrets(current);
+  const future = allItems(form).find(item => item.id === row.item_ids[1]);
+  assert.ok(!JSON.stringify(current).includes(future.prompt));
+  await assert.rejects(() => answer(token, future.id, future.options[0]), /ya no admite cambios/);
+  await assert.rejects(() => advance(token, future.id), /pregunta actual/);
+  await assert.rejects(() => advance(token, randomUUID()), /no pertenece/);
+  await assert.rejects(() => advance(token, null), /no pertenece/);
+  await assert.rejects(() => submit(token), /última pregunta/);
+  await assert.rejects(() => advance(randomUUID(), current.items[0].id), /no está disponible/);
+  await assert.rejects(() => queryAs('update public.v2_online_form_attempts set current_position=2 where id=$1', [current.attempt.id]), /permission denied/);
+  await assert.rejects(() => queryAs('select tedvio_private.online_form_snapshot_rules()'), /permission denied/);
+  assert.equal((await state(token)).attempt.current_position, 1);
+});
+
+test('avance confirmado es persistente e idempotente ante reintentos y peticiones duplicadas', async () => {
+  const form = await ready({ navigation_mode: 'forward_only', feedback_mode: 'score_only' });
+  const token = randomUUID(), first = await start(form, token), firstItem = first.items[0];
+  await answer(token, firstItem.id, firstItem.options[0]);
+  // The fixture serializes a connection; production also serializes this row
+  // with FOR UPDATE. Duplicate expected-item requests must never advance twice.
+  const [a, b] = await Promise.all([advance(token, firstItem.id), advance(token, firstItem.id)]);
+  assert.equal(a.attempt.current_position, 2); assert.equal(b.attempt.current_position, 2);
+  assert.deepEqual(a.items, b.items); assert.equal(a.answered_count, 1);
+  assert.equal((await start(form, token)).attempt.current_position, 2);
+  await assert.rejects(() => answer(token, firstItem.id, firstItem.options[1]), /ya no admite cambios/);
+  await assert.rejects(() => answer(token, firstItem.id, null), /ya no admite cambios/);
+  const secondItem = a.items[0]; await answer(token, secondItem.id, secondItem.options[0]);
+  const last = await advance(token, secondItem.id);
+  assert.equal(last.attempt.current_position, 3); assert.equal(last.items[0].position, 3);
+  assert.equal(last.answered_count, 2); assert.equal((await advance(token, firstItem.id)).attempt.current_position, 3);
+  await assert.rejects(() => advance(token, last.items[0].id), /última pregunta/);
+  await answer(token, last.items[0].id, last.items[0].options[0]);
+  const done = await submit(token); assert.equal(done.attempt.status, 'submitted'); assert.equal(done.answered_count, 3);
+  assert.equal(done.items.length, 0); noAnswers(done); noSecrets(done);
+  assert.deepEqual((await advance(token, firstItem.id)).attempt, done.attempt);
+  assert.deepEqual((await submit(token)).attempt, done.attempt);
+  assert.equal((await answer(token, firstItem.id, firstItem.options[1])).saved, false);
+});
+
+test('omitir una pregunta en modo secuencial impide contestarla después y conserva cero puntos', async () => {
+  const form = await ready({ navigation_mode: 'forward_only', feedback_mode: 'after_submit' });
+  const token = randomUUID(), first = await start(form, token);
+  const second = await advance(token, first.items[0].id), last = await advance(token, second.items[0].id);
+  assert.equal(last.answered_count, 0);
+  await assert.rejects(() => answer(token, second.items[0].id, second.items[0].options[0]), /ya no admite cambios/);
+  const done = await submit(token); assert.equal(done.attempt.score, 0);
+  assert.equal(done.feedback.length, 3); assert.equal(done.items.length, 3); assert.equal(done.show_answers, true);
+});
+
+test('vencimiento y cierre docente entregan en cualquier posición sin aceptar avances tardíos', async () => {
+  const form = await ready({ navigation_mode: 'forward_only', feedback_mode: 'score_only' });
+  const token = randomUUID(), first = await start(form, token);
+  await answer(token, first.items[0].id, first.items[0].options[0]);
+  await db.query("update public.v2_online_form_attempts set expires_at=now()-interval '1 second' where id=$1", [first.attempt.id]);
+  const expired = await advance(token, first.items[0].id);
+  assert.equal(expired.attempt.status, 'submitted'); assert.equal(expired.attempt.auto_submitted, true);
+  assert.equal(expired.attempt.current_position, 1); assert.equal(expired.answered_count, 1);
+  const anotherToken = randomUUID(); await start(form, anotherToken, '002');
+  await status(form.id, 'closed'); const closed = await submit(anotherToken);
+  assert.equal(closed.attempt.status, 'submitted'); assert.equal(closed.attempt.auto_submitted, true);
+});
+
+test('editar fechas o retroalimentación no acorta intentos activos ni libera claves ya retenidas', async () => {
+  const future = new Date(Date.now() + 7200000).toISOString();
+  const past = new Date(Date.now() - 3600000).toISOString();
+  const form = await ready({ feedback_mode: 'after_close', time_limit_minutes: 60, closes_at: future });
+  const token = randomUUID(), first = await start(form, token);
+  const changed = await updateSettings(form, { closes_at: past, time_limit_minutes: 1, feedback_mode: 'after_submit', navigation_mode: 'forward_only' });
+  const resumed = await state(token);
+  assert.equal(resumed.attempt.status, 'in_progress'); assert.equal(resumed.attempt.expires_at, first.attempt.expires_at);
+  assert.equal(resumed.form.closes_at, first.form.closes_at); assert.equal(resumed.form.feedback_mode, 'after_close');
+  await assert.rejects(() => start(changed, randomUUID(), '002'), /ya cerró/);
+  const done = await submit(token); assert.equal(done.released, false); noAnswers(done);
+  await db.query("update public.v2_online_form_attempts set feedback_release_at=now()-interval '1 second' where id=$1", [first.attempt.id]);
+  const released = await state(token); assert.equal(released.released, true); assert.equal(released.feedback.length, 3);
+});
+
+test('migración conserva navegación libre, respuestas, plazos y política de intentos preexistentes', async () => {
+  const legacy = await createOnlineFormsTestDatabase({ withEditableSettings: false });
+  try {
+    const form = await legacy.call('v2_online_form_save', { p_form: {
+      title: 'Formulario previo', feedback_mode: 'score_only', time_limit_minutes: 60,
+      sections: [{ title: 'Bloque', draw_count: 2, items: legacy.bank.slice(0, 3).map(bank_id => ({ bank_id, points: 1 })) }]
+    } });
+    const published = await legacy.call('v2_online_form_set_status', { p_form_id: form.id, p_status: 'published' });
+    const token = randomUUID();
+    const before = await legacy.call('v2_online_form_start', { p_code: form.code, p_name: 'Sintético', p_enrollment: 'LEGACY', p_token: token }, null);
+    await legacy.call('v2_online_form_answer', { p_token: token, p_item_id: before.items[0].id, p_answer: before.items[0].options[0] }, null);
+    await legacy.db.exec(readFileSync(new URL('../../../supabase/migrations/20261126183910_online_forms_editable_settings_forward_navigation.sql', import.meta.url), 'utf8'));
+    await legacy.call('v2_online_form_update_settings', { p_form_id: form.id, p_settings: { navigation_mode: 'forward_only', feedback_mode: 'after_submit' }, p_revision: published.revision });
+    const after = await legacy.call('v2_online_form_state', { p_token: token }, null);
+    assert.equal(after.attempt.navigation_mode, 'free'); assert.equal(after.form.feedback_mode, 'score_only');
+    assert.equal(after.attempt.expires_at, before.attempt.expires_at); assert.deepEqual(after.items, before.items);
+    assert.equal(after.answered_count, 1);
+    await assert.rejects(() => legacy.call('v2_online_form_advance', { p_token: token, p_item_id: before.items[0].id }, null), /navegación libre/);
+    noAnswers(await legacy.call('v2_online_form_submit', { p_token: token }, null));
+  } finally { await legacy.db.close(); }
+});
+
+test('clientes antiguos deben actualizar antes de crear un intento secuencial; la capacidad no debilita la protección', async () => {
+  const form = await ready({ navigation_mode: 'forward_only', group_choices: ['3-01'] });
+  const token = randomUUID();
+  await assert.rejects(() => anon('v2_online_form_start', [form.code, 'Alumno', 'OLD', token]), /Actualiza la página.*avance único/);
+  await assert.rejects(() => anon('v2_online_form_start_grouped', [form.code, 'Alumno', 'OLD', token, '3-01']), /Actualiza la página.*avance único/);
+  assert.equal(await numberOf('v2_online_form_attempts'), 0);
+  const current = await anon('v2_online_form_start_configured', [form.code, 'Alumno', 'OLD', token, '3-01']);
+  assert.equal(current.attempt.navigation_mode, 'forward_only'); assert.equal(current.attempt.declared_group, '3-01');
+  const replay = await anon('v2_online_form_start_grouped', [form.code, 'Alumno', 'OLD', token, '3-01']);
+  assert.equal(replay.attempt.id, current.attempt.id); assert.equal(await numberOf('v2_online_form_attempts'), 1);
+  const report = await results(form.id);
+  assert.equal(report.attempts[0].navigation_mode, 'forward_only'); assert.equal(report.attempts[0].current_position, 1);
+  assert.equal(report.attempts[0].feedback_mode, 'after_submit'); noSecrets(report);
+  await assert.rejects(() => submit(token), /última pregunta/);
 });

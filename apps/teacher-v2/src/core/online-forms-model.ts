@@ -3,6 +3,7 @@ import type { GroupRecord } from './types';
 
 export type OnlineFormFeedback = 'score_only' | 'after_submit' | 'after_close';
 export type OnlineFormStatus = 'draft' | 'published' | 'closed';
+export type OnlineFormNavigation = 'free' | 'forward_only';
 export interface OnlineFormItem {
   id: string; bank_id: string; section_id: string; position: number;
   prompt: string; question_type: 'multiple_choice' | 'true_false'; options: string[];
@@ -19,6 +20,7 @@ export interface OnlineForm {
   attempt_count: number; submitted_count: number; max_attempts: number;
   time_limit_minutes: number | null; opens_at: string | null; closes_at: string | null;
   shuffle_questions: boolean; shuffle_options: boolean; feedback_mode: OnlineFormFeedback;
+  navigation_mode?: OnlineFormNavigation;
   created_at: string; updated_at: string; sections: OnlineFormSection[]; revision?: number;
 }
 export interface OnlineFormResponse {
@@ -28,6 +30,7 @@ export interface OnlineFormAttempt {
   id: string; display_name: string; enrollment: string; attempt_no: number; declared_group?: string | null;
   status: 'in_progress' | 'submitted'; started_at: string; submitted_at: string | null;
   expires_at: string | null; auto_submitted?: boolean; score: number | null;
+  navigation_mode?: OnlineFormNavigation; current_position?: number;
   max_score: number | null; percentage: number | null;
   item_ids: string[]; responses: OnlineFormResponse[];
 }
@@ -44,13 +47,14 @@ export interface OnlineFormDraft {
   questionIds: string[]; selectionMode: 'all' | 'random' | 'topic_quotas';
   questionCount: number; topicQuotas: Record<string, number>; shuffleOptions: boolean;
   maxAttempts: number; timeLimitMinutes: number | null; opensAt: string; closesAt: string;
-  feedbackMode: OnlineFormFeedback;
+  feedbackMode: OnlineFormFeedback; navigationMode: OnlineFormNavigation;
 }
 export interface OnlineFormMeta {
   id: string; code: string; title: string; instructions: string; status: OnlineFormStatus;
   question_count: number; max_attempts: number; time_limit_minutes: number | null;
   opens_at: string | null; closes_at: string | null; group_name?: string | null;
   available: boolean; message?: string; server_now: string; group_choices?: string[];
+  navigation_mode?: OnlineFormNavigation;
 }
 export interface OnlineFormPublicItem {
   id: string; prompt: string; options: string[]; points: number; section_title: string;
@@ -65,6 +69,8 @@ export interface OnlineFormState {
   responses: { item_id: string; answer: string }[]; score: number | null;
   max_score: number | null; percentage: number | null; released: boolean;
   show_answers: boolean; feedback: OnlineFormStudentFeedback[];
+  navigation_mode: OnlineFormNavigation; current_position: number;
+  question_count: number; answered_count: number;
 }
 export interface RawOnlineFormState {
   form: Pick<OnlineForm, 'title' | 'instructions' | 'code'>;
@@ -73,6 +79,7 @@ export interface RawOnlineFormState {
   items: (Omit<OnlineFormPublicItem, 'section_title'> & { section_id: string })[];
   answers: Record<string, string>; released: boolean; show_answers: boolean;
   feedback: OnlineFormStudentFeedback[];
+  question_count?: number; answered_count?: number;
 }
 
 export function compatibleOnlineFormQuestion(q: BankQuestion): boolean {
@@ -89,7 +96,7 @@ export function onlineFormTopic(question: Pick<BankQuestion, 'topic'>): string {
 export function emptyOnlineFormDraft(groupId = ''): OnlineFormDraft {
   return { title: '', instructions: '', groupId, groupChoicesText: '', questionIds: [], selectionMode: 'random',
     questionCount: 35, topicQuotas: {}, shuffleOptions: true, maxAttempts: 1,
-    timeLimitMinutes: null, opensAt: '', closesAt: '', feedbackMode: 'score_only' };
+    timeLimitMinutes: null, opensAt: '', closesAt: '', feedbackMode: 'score_only', navigationMode: 'free' };
 }
 function localDateTime(value: string | null): string {
   if (!value) return '';
@@ -105,7 +112,8 @@ export function onlineFormDraftFromDetail(detail: OnlineFormDetail): OnlineFormD
     questionIds: ids, selectionMode: sections.length > 1 ? 'topic_quotas' : form.question_count === ids.length ? 'all' : 'random',
     questionCount: form.question_count, topicQuotas: Object.fromEntries(sections.map(section => [section.title, section.draw_count])),
     shuffleOptions: form.shuffle_options, maxAttempts: form.max_attempts, timeLimitMinutes: form.time_limit_minutes,
-    opensAt: localDateTime(form.opens_at), closesAt: localDateTime(form.closes_at), feedbackMode: form.feedback_mode };
+    opensAt: localDateTime(form.opens_at), closesAt: localDateTime(form.closes_at), feedbackMode: form.feedback_mode,
+    navigationMode: form.navigation_mode || 'free' };
 }
 export function parseOnlineFormGroupChoices(value: string): string[] {
   const choices = value.split(',').map(label => label.trim()).filter(Boolean);
@@ -114,10 +122,9 @@ export function parseOnlineFormGroupChoices(value: string): string[] {
   return choices;
 }
 export function onlineFormDraftPayload(draft: OnlineFormDraft, questions: BankQuestion[]) {
+  const settings = onlineFormSettingsPayload(draft);
   const groupChoices = parseOnlineFormGroupChoices(draft.groupChoicesText || '');
   if (draft.groupId && groupChoices.length) throw new Error('Elige un grupo vinculado o una lista declarada, no ambos.');
-  if (!draft.title.trim()) throw new Error('Escribe el título del formulario.');
-  if (draft.title.trim().length > 200) throw new Error('El título admite hasta 200 caracteres.');
   const ids = [...new Set(draft.questionIds)];
   if (!ids.length) throw new Error('Selecciona preguntas del banco.');
   if (ids.length > 1000) throw new Error('El conjunto admite hasta 1000 preguntas candidatas.');
@@ -139,15 +146,23 @@ export function onlineFormDraftPayload(draft: OnlineFormDraft, questions: BankQu
   if (!sections.length) throw new Error('El examen debe asignar al menos una pregunta.');
   if (sections.length > 20) throw new Error('El formulario admite hasta 20 temas o secciones.');
   if (sections.reduce((sum, section) => sum + section.draw_count, 0) > 200) throw new Error('Se pueden asignar hasta 200 preguntas por intento.');
+  return { id: draft.id || null, ...(draft.revision != null ? { revision: draft.revision } : {}), ...settings,
+    group_id: draft.groupId || null, group_choices: groupChoices, shuffle_questions: true, sections };
+}
+/** Settings edits deliberately omit the bank, groups, status, and stored question copies. */
+export function onlineFormSettingsPayload(draft: OnlineFormDraft) {
+  if (!draft.title.trim()) throw new Error('Escribe el título del formulario.');
+  if (draft.title.trim().length > 200) throw new Error('El título admite hasta 200 caracteres.');
+  if (!['free', 'forward_only'].includes(draft.navigationMode || 'free')) throw new Error('Elige un modo de navegación válido.');
+  if (!['score_only', 'after_submit', 'after_close'].includes(draft.feedbackMode)) throw new Error('Elige una política de retroalimentación válida.');
   if (!Number.isInteger(draft.maxAttempts) || draft.maxAttempts < 1 || draft.maxAttempts > 5) throw new Error('Elige entre 1 y 5 intentos.');
   if (draft.timeLimitMinutes != null && (!Number.isInteger(draft.timeLimitMinutes) || draft.timeLimitMinutes < 1 || draft.timeLimitMinutes > 300)) throw new Error('El tiempo debe estar entre 1 y 300 minutos.');
   const date = (value: string) => { if (!value) return null; const parsed = new Date(value); if (!Number.isFinite(parsed.getTime())) throw new Error('Revisa las fechas de apertura y cierre.'); return parsed.toISOString(); };
   const opensAt = date(draft.opensAt), closesAt = date(draft.closesAt);
   if (opensAt && closesAt && closesAt <= opensAt) throw new Error('El cierre debe ser posterior a la apertura.');
-  return { id: draft.id || null, ...(draft.revision != null ? { revision: draft.revision } : {}), title: draft.title.trim(), instructions: draft.instructions.trim(),
-    group_id: draft.groupId || null, group_choices: groupChoices, opens_at: opensAt, closes_at: closesAt,
+  return { title: draft.title.trim(), instructions: draft.instructions.trim(), opens_at: opensAt, closes_at: closesAt,
     time_limit_minutes: draft.timeLimitMinutes, max_attempts: draft.maxAttempts,
-    shuffle_questions: true, shuffle_options: draft.shuffleOptions, feedback_mode: draft.feedbackMode, sections };
+    shuffle_options: draft.shuffleOptions, feedback_mode: draft.feedbackMode, navigation_mode: draft.navigationMode || 'free' };
 }
 export function normalizeOnlineFormState(raw: RawOnlineFormState): OnlineFormState {
   const attempt = raw.attempt;
@@ -156,7 +171,10 @@ export function normalizeOnlineFormState(raw: RawOnlineFormState): OnlineFormSta
     form_code: raw.form.code, attempt_id: attempt.id, display_name: attempt.display_name,
     enrollment: attempt.enrollment, declared_group: attempt.declared_group ?? null, attempt_no: attempt.attempt_no, server_now: raw.server_now,
     expires_at: attempt.expires_at, started_at: attempt.started_at, submitted_at: attempt.submitted_at,
-    auto_submitted: Boolean(attempt.auto_submitted),
+    auto_submitted: Boolean(attempt.auto_submitted), navigation_mode: attempt.navigation_mode || 'free',
+    current_position: attempt.current_position || 1,
+    question_count: raw.question_count ?? attempt.item_ids?.length ?? raw.items?.length ?? 0,
+    answered_count: raw.answered_count ?? Object.keys(raw.answers || {}).length,
     items: (raw.items || []).map(item => ({ ...item, section_title: titles.get(item.section_id) || 'Preguntas' })),
     responses: Object.entries(raw.answers || {}).map(([item_id, answer]) => ({ item_id, answer })),
     score: attempt.score, max_score: attempt.max_score, percentage: attempt.percentage,

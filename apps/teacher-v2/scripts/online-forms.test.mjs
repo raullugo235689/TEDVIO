@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { emptyOnlineFormDraft, onlineFormDraftPayload, normalizeOnlineFormState, compatibleOnlineFormQuestion } from '../src/core/online-forms-model.ts';
+import { emptyOnlineFormDraft, onlineFormDraftPayload, onlineFormSettingsPayload, normalizeOnlineFormState, compatibleOnlineFormQuestion } from '../src/core/online-forms-model.ts';
 import { onlineFormExportSheets, buildOnlineFormWorkbook } from '../src/core/online-forms-export.ts';
 
 const question = (id, topic = 'Tema A') => ({ id, topic, archived: false, prompt: `Pregunta ${id}`, question_type: 'multiple_choice', options: ['Primera', 'Segunda'], correct_answer: 'Segunda' });
@@ -64,4 +64,33 @@ test('el archivo es XLSX real; matrícula conserva ceros y texto no se interpret
 
 test('los nuevos formularios no revelan claves por defecto', () => {
   assert.equal(emptyOnlineFormDraft().feedbackMode, 'score_only');
+  assert.equal(emptyOnlineFormDraft().navigationMode, 'free');
+});
+
+test('editar configuración no necesita el banco ni envía cambios a preguntas o grupos', () => {
+  const draft = { ...emptyOnlineFormDraft(), id: 'published', revision: 8, title: '  Evaluación publicada  ', questionIds: [], groupChoicesText: 'A, A', navigationMode: 'forward_only', maxAttempts: 2, timeLimitMinutes: 30 };
+  const payload = onlineFormSettingsPayload(draft);
+  assert.equal(payload.title, 'Evaluación publicada');
+  assert.equal(payload.navigation_mode, 'forward_only');
+  assert.equal(payload.time_limit_minutes, 30);
+  for (const key of ['sections', 'question_count', 'group_id', 'group_choices', 'status', 'id', 'revision']) assert.equal(key in payload, false);
+  assert.throws(() => onlineFormSettingsPayload({ ...draft, navigationMode: 'jump_anywhere' }), /navegación/);
+  assert.throws(() => onlineFormSettingsPayload({ ...draft, maxAttempts: 0 }), /intentos/);
+  assert.throws(() => onlineFormSettingsPayload({ ...draft, opensAt: '2026-11-27T11:00:00Z', closesAt: '2026-11-27T10:00:00Z' }), /posterior/);
+});
+
+test('avance secuencial conserva el cursor y los totales del servidor aunque solo llegue una pregunta', () => {
+  const raw = { form: { title: 'Prueba', instructions: '', code: 'TEST' },
+    attempt: { id: 'at', status: 'in_progress', navigation_mode: 'forward_only', current_position: 2, item_ids: ['q1', 'q2', 'q3'], display_name: 'Alumno', enrollment: '001', attempt_no: 1, started_at: '2026-11-25T10:00:00Z', submitted_at: null, expires_at: null, score: null, max_score: null, percentage: null },
+    question_count: 3, answered_count: 1, server_now: '2026-11-25T10:10:00Z', sections: [{ id: 's', title: 'Tema' }],
+    items: [{ id: 'q2', section_id: 's', prompt: 'Actual', options: ['A', 'B'], points: 1 }], answers: { q1: 'B' }, released: false, show_answers: false, feedback: [] };
+  const state = normalizeOnlineFormState(raw);
+  assert.equal(state.navigation_mode, 'forward_only');
+  assert.equal(state.current_position, 2);
+  assert.equal(state.question_count, 3);
+  assert.equal(state.answered_count, 1);
+  assert.deepEqual(state.items.map(item => item.id), ['q2']);
+  const legacy = normalizeOnlineFormState({ ...raw, attempt: { ...raw.attempt, navigation_mode: undefined, current_position: undefined } });
+  assert.equal(legacy.navigation_mode, 'free');
+  assert.equal(legacy.current_position, 1);
 });

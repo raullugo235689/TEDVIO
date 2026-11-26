@@ -142,3 +142,196 @@ test('docente crea y publica; alumno responde y reanuda; resultados y XLSX coinc
     expect(errors).toEqual([]); expect(studentErrors).toEqual([]);
   } finally { await studentContext?.close(); await fixture.db.close(); }
 });
+
+test('una entrega sin revisión distingue una respuesta pendiente de un guardado con acuse perdido', async ({ page }) => {
+  const fixture = await createOnlineFormsTestDatabase();
+  try {
+    const errors = await routeFixture(page, fixture, false);
+    await page.setViewportSize({ width: 390, height: 844 });
+    for (const committed of [false, true]) {
+      const draft = await fixture.call('v2_online_form_save', { p_form: {
+        title: committed ? 'Respuesta guardada sin acuse' : 'Respuesta todavía sin guardar',
+        instructions: 'Prueba aislada de recuperación.', max_attempts: 1,
+        navigation_mode: 'forward_only', feedback_mode: 'score_only',
+        shuffle_questions: false, shuffle_options: false,
+        sections: [{ title: 'Pregunta', draw_count: 1, items: [{ bank_id: fixture.bank[0], points: 1 }] }],
+      } });
+      const form = await fixture.call('v2_online_form_set_status', { p_form_id: draft.id, p_status: 'published' });
+      await page.goto(`/teacher#/form/${form.code}`);
+      await page.getByLabel('Nombre completo').fill('Alumno de recuperación');
+      await page.getByLabel('Matrícula', { exact: true }).fill(committed ? 'ACUSE001' : 'PENDIENTE001');
+      await page.getByRole('button', { name: /Comenzar formulario/ }).click();
+      await expect(page.locator('.respond-form-question-top')).toContainText('Pregunta 1 de 1');
+      const session = await page.evaluate(code => JSON.parse(localStorage.getItem(`tedvio:online-form:${code}:session:v1`)), form.code);
+      const state = await fixture.call('v2_online_form_state', { p_token: session.token }, null);
+      const item = state.items[0], correct = form.sections[0].items[0].correct_answer;
+      await page.route('https://forms-fixture.supabase.test/rest/v1/rpc/v2_online_form_answer', async route => {
+        if (committed) await fixture.call('v2_online_form_answer', route.request().postDataJSON(), null);
+        await route.abort('failed');
+      }, { times: 1 });
+      await page.locator(`input[name="question-${item.id}"][value="${correct}"]`).check();
+      await expect(page.getByRole('button', { name: 'Reintentar guardado', exact: true })).toBeVisible();
+      const pending = await page.evaluate(code => JSON.parse(localStorage.getItem(`tedvio:online-form:${code}:session:v1`)).pending, form.code);
+      expect(pending[item.id]).toBe(correct);
+
+      // An owner close finalizes the isolated attempt before the pending client
+      // receives a receipt. score_only deliberately returns no question content.
+      await fixture.call('v2_online_form_set_status', { p_form_id: form.id, p_status: 'closed' });
+      const acceptUnload = dialog => dialog.accept();
+      page.on('dialog', acceptUnload);
+      await page.reload();
+      page.off('dialog', acceptUnload);
+      await expect(page.getByRole('heading', { name: 'Tu formulario quedó entregado' })).toBeVisible();
+      const warning = page.getByText(/cambio no alcanzó a guardarse antes del cierre/);
+      if (committed) await expect(warning).toHaveCount(0);
+      else await expect(warning).toBeVisible();
+      const delivered = await fixture.call('v2_online_form_state', { p_token: session.token }, null);
+      expect(delivered.items).toEqual([]); expect(delivered.show_answers).toBe(false);
+      expect(delivered.attempt.status).toBe('submitted'); expect(delivered.attempt.auto_submitted).toBe(true);
+      expect(delivered.attempt.score).toBe(committed ? 1 : 0);
+      expect(delivered.answers[item.id]).toBe(committed ? correct : undefined);
+    }
+    expect(errors).toEqual([]);
+  } finally { await fixture.db.close(); }
+});
+
+test('configuración publicada editable y avance único confirmado persisten con recarga y acuse perdido', async ({ page, browser }, info) => {
+  const fixture = await createOnlineFormsTestDatabase();
+  let studentContext;
+  try {
+    const draft = await fixture.call('v2_online_form_save', { p_form: {
+      title: 'Configuración revisable', instructions: 'Responde cada pregunta y confirma el avance.',
+      max_attempts: 1, time_limit_minutes: 30, navigation_mode: 'free',
+      shuffle_questions: false, shuffle_options: false, feedback_mode: 'score_only',
+      sections: [{ title: 'Aplicación', draw_count: 3, items: fixture.bank.slice(0, 3).map(bank_id => ({ bank_id, points: 1 })) }],
+    } });
+    const published = await fixture.call('v2_online_form_set_status', { p_form_id: draft.id, p_status: 'published' });
+    const originalItemIds = published.sections.flatMap(section => section.items.map(item => item.id));
+    const errors = await routeFixture(page, fixture, true);
+    await page.goto(`/teacher#/forms/${published.id}`);
+    await page.getByRole('button', { name: 'Editar configuración', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Editar configuración', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Preguntas candidatas', exact: true })).toHaveCount(0);
+    await expect(page.getByLabel('Grupo (opcional)', { exact: true })).toHaveCount(0);
+    await page.getByLabel('Navegación entre preguntas').selectOption('forward_only');
+    await expect(page.getByText(/El alumno no podrá volver a preguntas anteriores/)).toBeVisible();
+    await noOverflow(page);
+    await page.screenshot({ path: info.outputPath('formulario-configuracion-editable.png'), fullPage: true });
+    await page.getByRole('button', { name: 'Guardar configuración', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Actualizar resultados', exact: true })).toBeEnabled();
+    const configured = await fixture.call('v2_online_form_detail', { p_form_id: published.id });
+    expect(configured.navigation_mode).toBe('forward_only');
+    expect(configured.status).toBe('published'); expect(configured.code).toBe(published.code);
+    expect(configured.sections.flatMap(section => section.items.map(item => item.id))).toEqual(originalItemIds);
+    const link = await page.getByLabel('Enlace para alumnos').inputValue();
+
+    studentContext = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
+    const student = await studentContext.newPage();
+    const studentErrors = await routeFixture(student, fixture, false);
+    await student.goto(link);
+    await expect(student.getByText('Este formulario es de avance único', { exact: true })).toBeVisible();
+    await student.getByLabel('Nombre completo').fill('Alumno avance único');
+    await student.getByLabel('Matrícula', { exact: true }).fill('AVANCE001');
+    await student.getByRole('button', { name: /Comenzar formulario/ }).click();
+    await expect(student.locator('.respond-form-question')).toHaveCount(1);
+    await expect(student.locator('.respond-form-question-top')).toContainText('Pregunta 1 de 3');
+    await expect(student.getByRole('button', { name: 'Anterior', exact: true })).toHaveCount(0);
+    const session = await student.evaluate(code => JSON.parse(localStorage.getItem(`tedvio:online-form:${code}:session:v1`)), published.code);
+    const firstState = await fixture.call('v2_online_form_state', { p_token: session.token }, null);
+    expect(firstState.items).toHaveLength(1);
+    expect(firstState.attempt.navigation_mode).toBe('forward_only');
+    expect(firstState.attempt.current_position).toBe(1);
+    const first = firstState.items[0];
+    const key = (await fixture.call('v2_online_form_results', { p_form_id: published.id })).items;
+    const firstAnswer = key.find(item => item.id === first.id).correct_answer;
+    await student.locator(`input[name="question-${first.id}"][value="${firstAnswer}"]`).check();
+    await expect(student.locator('.respond-form-question-status')).toHaveText('Respuesta guardada');
+    await student.getByRole('button', { name: /Siguiente/ }).click();
+    await expect(student.getByRole('dialog', { name: '¿Cerrar esta pregunta y avanzar?' })).toBeVisible();
+    await student.getByRole('button', { name: 'Seguir en esta pregunta', exact: true }).click();
+    await expect(student.locator('.respond-form-question-top')).toContainText('Pregunta 1 de 3');
+    expect((await fixture.call('v2_online_form_state', { p_token: session.token }, null)).attempt.current_position).toBe(1);
+    await student.getByRole('button', { name: /Siguiente/ }).click();
+    await student.getByRole('button', { name: 'Sí, avanzar', exact: true }).click();
+    await expect(student.locator('.respond-form-question-top')).toContainText('Pregunta 2 de 3');
+    await student.reload();
+    await expect(student.locator('.respond-form-question-top')).toContainText('Pregunta 2 de 3');
+    await expect(student.locator(`input[name="question-${first.id}"]`)).toHaveCount(0);
+
+    // Policy edits apply to future attempts; an active attempt keeps its contract.
+    await page.getByRole('button', { name: 'Editar configuración', exact: true }).click();
+    await page.getByLabel('Navegación entre preguntas').selectOption('free');
+    await page.getByLabel('Tiempo por intento (minutos)').fill('90');
+    await page.getByLabel('Retroalimentación al alumno').selectOption('after_submit');
+    await page.getByRole('button', { name: 'Guardar configuración', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Actualizar resultados', exact: true })).toBeEnabled();
+    const edited = await fixture.call('v2_online_form_detail', { p_form_id: published.id });
+    expect(edited.navigation_mode).toBe('free'); expect(edited.time_limit_minutes).toBe(90);
+    expect(edited.feedback_mode).toBe('after_submit'); expect(edited.status).toBe('published');
+    expect(edited.code).toBe(published.code);
+    expect(edited.sections.flatMap(section => section.items.map(item => item.id))).toEqual(originalItemIds);
+    const stillActive = await fixture.call('v2_online_form_state', { p_token: session.token }, null);
+    expect(stillActive.attempt.navigation_mode).toBe('forward_only');
+    expect(stillActive.attempt.expires_at).toBe(firstState.attempt.expires_at);
+    await student.reload();
+    await expect(student.locator('.respond-form-question-top')).toContainText('Pregunta 2 de 3');
+    await expect(student.getByRole('button', { name: 'Anterior', exact: true })).toHaveCount(0);
+
+    // Commit the advance, then lose only its response. Recovery must read state,
+    // rather than issue another advance or silently skip the next question.
+    let lostAdvanceCalls = 0;
+    let advanceRequestsAfterLoss = 0;
+    student.on('request', request => { if (request.url().endsWith('/rpc/v2_online_form_advance')) advanceRequestsAfterLoss += 1; });
+    await student.route('https://forms-fixture.supabase.test/rest/v1/rpc/v2_online_form_advance', async route => {
+      lostAdvanceCalls += 1;
+      await fixture.call('v2_online_form_advance', route.request().postDataJSON(), null);
+      await route.abort('failed');
+    }, { times: 1 });
+    await student.getByRole('button', { name: /Siguiente/ }).click();
+    await expect(student.getByRole('dialog', { name: '¿Cerrar esta pregunta y avanzar?' })).toContainText('Esta pregunta quedará sin responder');
+    await student.getByRole('button', { name: 'Sí, avanzar', exact: true }).click();
+    await expect(student.getByRole('button', { name: 'Consultar estado de mi intento', exact: true })).toBeEnabled();
+    await expect(student.getByRole('button', { name: /Siguiente/ })).toBeDisabled();
+    expect((await fixture.call('v2_online_form_state', { p_token: session.token }, null)).attempt.current_position).toBe(3);
+    await student.getByRole('button', { name: 'Consultar estado de mi intento', exact: true }).click();
+    await expect(student.locator('.respond-form-question-top')).toContainText('Pregunta 3 de 3');
+    await expect(student.locator('.respond-form-question')).toHaveCount(1);
+    expect(lostAdvanceCalls).toBe(1);
+    expect(advanceRequestsAfterLoss).toBe(1);
+    const recovered = await fixture.call('v2_online_form_state', { p_token: session.token }, null);
+    expect(recovered.attempt.current_position).toBe(3); expect(recovered.items).toHaveLength(1);
+    const third = recovered.items[0], thirdAnswer = key.find(item => item.id === third.id).correct_answer;
+    await student.locator(`input[name="question-${third.id}"][value="${thirdAnswer}"]`).check();
+    await expect(student.locator('.respond-form-question-status')).toHaveText('Respuesta guardada');
+    await noOverflow(student);
+    await student.screenshot({ path: info.outputPath('formulario-avance-unico-recuperado.png'), fullPage: true });
+    await student.getByRole('button', { name: 'Confirmar entrega', exact: true }).click();
+    await expect(student.getByRole('dialog', { name: '¿Enviar tu formulario?' })).toContainText('1 pregunta quedará sin responder');
+    await student.getByRole('button', { name: 'Sí, enviar formulario', exact: true }).click();
+    await expect(student.getByRole('heading', { name: 'Tu formulario quedó entregado' })).toBeVisible();
+    const delivered = await fixture.call('v2_online_form_state', { p_token: session.token }, null);
+    expect(delivered.attempt.status).toBe('submitted'); expect(delivered.attempt.score).toBe(2);
+    expect(delivered.attempt.max_score).toBe(3); expect(delivered.show_answers).toBe(false); expect(delivered.feedback).toEqual([]);
+    const results = await fixture.call('v2_online_form_results', { p_form_id: published.id });
+    expect(results.attempts).toHaveLength(1);
+    expect(results.attempts[0].responses).toHaveLength(2);
+    expect(results.attempts[0].responses.find(response => response.item_id === first.id).answer).toBe(firstAnswer);
+    expect(results.attempts[0].responses.find(response => response.item_id === third.id).answer).toBe(thirdAnswer);
+
+    await page.getByRole('button', { name: 'Cerrar formulario', exact: true }).click();
+    await page.getByRole('dialog', { name: '¿Cerrar este formulario?' }).getByRole('button', { name: 'Cerrar formulario', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Actualizar resultados', exact: true })).toBeEnabled();
+    await page.getByRole('button', { name: 'Editar configuración', exact: true }).click();
+    await page.getByRole('textbox', { name: 'Instrucciones', exact: true }).fill('Configuración guardada después del cierre.');
+    await page.getByRole('button', { name: 'Guardar configuración', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Actualizar resultados', exact: true })).toBeEnabled();
+    const closed = await fixture.call('v2_online_form_detail', { p_form_id: published.id });
+    expect(closed.status).toBe('closed'); expect(closed.code).toBe(published.code);
+    expect(closed.instructions).toBe('Configuración guardada después del cierre.');
+    expect(closed.sections.flatMap(section => section.items.map(item => item.id))).toEqual(originalItemIds);
+    const preserved = (await fixture.call('v2_online_form_results', { p_form_id: published.id })).attempts[0];
+    expect(preserved.navigation_mode).toBe('forward_only'); expect(preserved.expires_at).toBe(firstState.attempt.expires_at);
+    expect(preserved.score).toBe(2); expect(preserved.responses).toEqual(results.attempts[0].responses);
+    expect(errors).toEqual([]); expect(studentErrors).toEqual([]);
+  } finally { await studentContext?.close(); await fixture.db.close(); }
+});
