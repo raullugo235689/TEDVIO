@@ -19,6 +19,7 @@ interface StoredSession {
   pendingStart: boolean;
   name: string;
   enrollment: string;
+  group?: string;
   pending: Answers;
 }
 type FormItem = OnlineFormState['items'][number];
@@ -30,6 +31,8 @@ const rejectedIdentityMessages = new Set([
   'Escribe tu nombre completo.',
   'Ya existe un intento activo. Reanúdalo con el token guardado en el dispositivo original.',
   'Ya utilizaste los intentos permitidos.',
+  'Selecciona un grupo válido y actualiza la página si no aparece la lista.',
+  'Este formulario no admite un grupo declarado.',
 ]);
 
 async function resumeStoredSession(code: string, session: StoredSession): Promise<OnlineFormState> {
@@ -39,7 +42,7 @@ async function resumeStoredSession(code: string, session: StoredSession): Promis
   } catch {
     // A failed lookup never changes the secret or identity. Replaying exactly
     // the original start is idempotent, even if the first response was lost.
-    return startOnlineForm(code, session.name, session.enrollment, session.token);
+    return startOnlineForm(code, session.name, session.enrollment, session.token, session.group);
   }
 }
 
@@ -56,7 +59,7 @@ function readSession(code: string): StoredSession | null {
       if (stored.pending && typeof stored.pending === 'object') {
         for (const [id, answer] of Object.entries(stored.pending)) if (typeof answer === 'string') pending[id] = answer;
       }
-      return { version: 1, token: stored.token, pendingStart: stored.pendingStart === true, name: typeof stored.name === 'string' ? stored.name : '', enrollment: typeof stored.enrollment === 'string' ? stored.enrollment : '', pending };
+      return { version: 1, token: stored.token, pendingStart: stored.pendingStart === true, name: typeof stored.name === 'string' ? stored.name : '', enrollment: typeof stored.enrollment === 'string' ? stored.enrollment : '', group: typeof stored.group === 'string' ? stored.group : '', pending };
     } catch { /* A blocked storage area must not prevent using the form. */ }
   }
   return null;
@@ -136,6 +139,7 @@ function RespondForm({ code }: { code: string }) {
   const [pending, setPending] = useState<Answers>({});
   const [name, setName] = useState('');
   const [enrollment, setEnrollment] = useState('');
+  const [declaredGroup, setDeclaredGroup] = useState('');
   const [recovering, setRecovering] = useState(false);
   const [starting, setStarting] = useState(false);
   const [accessError, setAccessError] = useState('');
@@ -204,6 +208,8 @@ function RespondForm({ code }: { code: string }) {
     setStorageWarning(false);
     setName(session.name);
     setEnrollment(session.enrollment);
+    setDeclaredGroup(session.group || '');
+    void loadMeta();
   };
 
   function applyState(value: OnlineFormState) {
@@ -249,6 +255,7 @@ function RespondForm({ code }: { code: string }) {
       sessionRef.current.pendingStart = false;
       sessionRef.current.name = value.display_name;
       sessionRef.current.enrollment = value.enrollment;
+      sessionRef.current.group = value.declared_group || '';
       persist();
     }
   }
@@ -346,7 +353,7 @@ function RespondForm({ code }: { code: string }) {
 
   async function begin(event: FormEvent) {
     event.preventDefault();
-    if (startBusyRef.current || checkingRef.current || !name.trim() || !enrollment.trim()) return;
+    if (startBusyRef.current || checkingRef.current || !name.trim() || !enrollment.trim() || ((meta?.group_choices?.length || 0)>0 && !meta?.group_choices?.includes(declaredGroup))) return;
     startBusyRef.current = true;
     setStarting(true);
     setAccessError('');
@@ -356,12 +363,12 @@ function RespondForm({ code }: { code: string }) {
       const retry = !!sessionRef.current;
       if (!sessionRef.current) {
         if (typeof crypto.randomUUID !== 'function') throw new Error('Abre este formulario en un navegador actualizado y mediante el enlace seguro de tu docente.');
-        sessionRef.current = { version: 1, token: crypto.randomUUID(), pendingStart: true, name: name.trim(), enrollment: enrollment.trim(), pending: {} };
+        sessionRef.current = { version: 1, token: crypto.randomUUID(), pendingStart: true, name: name.trim(), enrollment: enrollment.trim(), group: declaredGroup, pending: {} };
         setHasSession(true);
         persist();
       }
       session = sessionRef.current;
-      const value = retry ? await resumeStoredSession(code, session) : await startOnlineForm(code, session.name, session.enrollment, session.token);
+      const value = retry ? await resumeStoredSession(code, session) : await startOnlineForm(code, session.name, session.enrollment, session.token, session.group);
       if (mounted.current) applyState(value);
     } catch (error) { if (mounted.current) { if (session) clearRejectedStart(session, error); setAccessError(onlineFormError(error)); } }
     finally { startBusyRef.current = false; if (mounted.current) setStarting(false); }
@@ -405,6 +412,7 @@ function RespondForm({ code }: { code: string }) {
     setPending({});
     setName('');
     setEnrollment('');
+    setDeclaredGroup('');
     setLastSaved('');
     setSubmitError('');
     setSaveError('');
@@ -422,7 +430,7 @@ function RespondForm({ code }: { code: string }) {
     pendingRef.current = stored?.pending || {};
     setPending(pendingRef.current);
     setHasSession(!!stored);
-    if (stored) { setName(stored.name); setEnrollment(stored.enrollment); setRecovering(true); }
+    if (stored) { setName(stored.name); setEnrollment(stored.enrollment); setDeclaredGroup(stored.group || ''); setRecovering(true); }
     void fetchOnlineFormMeta(code).then(value => {
       if (!current) return;
       setMeta(value);
@@ -508,15 +516,15 @@ function RespondForm({ code }: { code: string }) {
   const instructions = attempt?.instructions || meta?.instructions;
   const scoreVisible = attempt?.status === 'submitted' && attempt.released && typeof attempt.score === 'number';
 
-  return <main className="respond-form-shell">
+  return <main className={`respond-form-shell${attempt?.status === 'in_progress' ? ' is-answering' : ''}${attempt?.status === 'submitted' ? ' is-delivered' : ''}`}>
     <a className="respond-form-skip" href="#respond-form-content" onClick={event => { event.preventDefault(); document.getElementById('respond-form-content')?.focus(); }}>Ir al formulario</a>
-    <header className="respond-form-brand"><img src="/assets/tedvio_official_isotipo.svg" alt="TEDVIO" width="38" height="38" /><div><strong>TEDVIO</strong><span>Formularios</span></div><span className="respond-form-private">Acceso de estudiantes</span></header>
+    <header className="respond-form-brand"><img src="/assets/tedvio_official_isotipo.svg" alt="TEDVIO" width="38" height="38" /><div><strong>TEDVIO</strong><span>Formularios</span></div><span className="respond-form-private"><span aria-hidden="true" className="respond-form-live-dot"/> Acceso de estudiantes</span></header>
     <div className="respond-form-wrap" id="respond-form-content" tabIndex={-1}>
       <section className="respond-form-intro">
         <span className="respond-form-eyebrow">{attempt?.status === 'submitted' ? 'TU ENTREGA' : 'FORMULARIO ACADÉMICO'}</span>
         <h1>{title}</h1>
         {meta?.group_name ? <p className="respond-form-group">{meta.group_name}</p> : null}
-        {instructions ? <p className="respond-form-instructions">{instructions}</p> : null}
+        {instructions && attempt?.status !== 'in_progress' && attempt?.status !== 'submitted' ? <p className="respond-form-instructions">{instructions}</p> : null}
         <div className="respond-form-facts">
           {meta?.question_count ? <span>{meta.question_count} preguntas</span> : items.length ? <span>{items.length} preguntas</span> : null}
           {meta?.time_limit_minutes ? <span>{meta.time_limit_minutes} minutos por intento</span> : null}
@@ -534,18 +542,19 @@ function RespondForm({ code }: { code: string }) {
         {metaError ? <div className="respond-form-alert error" role="alert"><p>{metaError}</p><button type="button" className="respond-form-button secondary" onClick={() => void loadMeta()} disabled={metaLoading}>Volver a consultar</button></div> : null}
         {accessError ? <div className="respond-form-alert error" role="alert"><p>{accessError}</p>{hasSession ? <><p>Conservamos el acceso a este intento en este navegador. Vuelve a consultarlo antes de salir.</p>{sessionRef.current?.pendingStart ? <p>Datos enviados: {sessionRef.current.name} · Matrícula {sessionRef.current.enrollment}. Primero confirmaremos si el intento ya comenzó.</p> : null}<button type="button" className="respond-form-button secondary" disabled={recovering || starting} onClick={() => void restoreSession()}>Reintentar mi intento</button></> : null}</div> : null}
         {!metaLoading && !recovering && meta && !meta.available && !hasSession ? <div className="respond-form-unavailable"><h2>El formulario no está disponible</h2><p>{meta.message || (meta.status === 'closed' ? 'Tu docente cerró la recepción de respuestas.' : 'Consulta con tu docente cuándo puedes iniciar.')}</p>{meta.opens_at ? <p>Apertura: {readableDate(meta.opens_at)}</p> : null}<button type="button" className="respond-form-button secondary" onClick={() => void loadMeta()}>Consultar disponibilidad</button></div> : null}
-        {canStart ? <><h2>Antes de comenzar</h2><p className="respond-form-muted">Escribe tus datos como aparecen en la lista de tu grupo.</p><form onSubmit={event => { void begin(event); }} className="respond-form-identity">
+        {canStart ? <><div className="respond-form-entry-heading"><span className="respond-form-eyebrow">01 · IDENTIFICACIÓN</span><h2>Comienza tu evaluación</h2><p className="respond-form-muted">Escribe tu nombre completo y matrícula. Comprueba tus datos antes de comenzar.</p></div><form onSubmit={event => { void begin(event); }} className="respond-form-identity">
           <label htmlFor="respond-form-name">Nombre completo<input id="respond-form-name" name="name" autoComplete="name" required maxLength={160} value={name} disabled={starting} onChange={event => setName(event.target.value)} placeholder="Tu nombre y apellidos" /></label>
           <label htmlFor="respond-form-enrollment">Matrícula<input id="respond-form-enrollment" name="enrollment" autoComplete="off" autoCapitalize="none" spellCheck={false} required maxLength={100} value={enrollment} disabled={starting} onChange={event => setEnrollment(event.target.value)} placeholder="Tu matrícula" /></label>
-          <p className="respond-form-muted">{meta.time_limit_minutes ? 'El tiempo empieza cuando inicias el intento. ' : ''}Podrás continuar desde este mismo navegador si cierras la página.</p>
-          <button className="respond-form-button primary" type="submit" disabled={starting || !name.trim() || !enrollment.trim()}>{starting ? 'Preparando tu intento…' : 'Comenzar formulario'}<span aria-hidden="true">→</span></button>
+          {meta.group_choices?.length ? <label htmlFor="respond-form-group">Grupo<select id="respond-form-group" name="group" required value={declaredGroup} disabled={starting} onChange={event => setDeclaredGroup(event.target.value)}><option value="" disabled>Selecciona tu grupo</option>{meta.group_choices.map(label => <option key={label} value={label}>{label}</option>)}</select></label> : null}
+          <p className="respond-form-entry-note">{meta.time_limit_minutes ? 'El tiempo empieza cuando inicias el intento. ' : ''}Podrás continuar desde este mismo navegador si cierras la página.</p>
+          <button className="respond-form-button primary" type="submit" disabled={starting || !name.trim() || !enrollment.trim() || (!!meta.group_choices?.length && !meta.group_choices.includes(declaredGroup))}>{starting ? 'Preparando tu intento…' : 'Comenzar formulario'}<span aria-hidden="true">→</span></button>
         </form></> : null}
         {starting ? <p role="status">Preparando tu intento. Espera la confirmación…</p> : null}
       </section> : null}
 
       {attempt?.status === 'in_progress' ? <>
         <section className="respond-form-progress" aria-label="Estado del intento">
-          <div className="respond-form-progress-heading"><div><strong>{attempt.display_name}</strong><span>Matrícula {attempt.enrollment} · Intento {attempt.attempt_no}</span></div>{remaining !== null ? <div className={`respond-form-timer${remaining < 120000 ? ' urgent' : ''}`} role="timer" aria-label={`Tiempo restante ${durationLabel(remaining)}`}><span>Tiempo restante</span><strong>{durationLabel(remaining)}</strong></div> : <span className="respond-form-open-label">En curso</span>}</div>
+          <div className="respond-form-progress-heading"><div><strong>{attempt.display_name}</strong><span>{attempt.declared_group ? `Grupo ${attempt.declared_group} · ` : ''}Matrícula {attempt.enrollment} · Intento {attempt.attempt_no}</span></div>{remaining !== null ? <div className={`respond-form-timer${remaining < 120000 ? ' urgent' : ''}`} role="timer" aria-label={`Tiempo restante ${durationLabel(remaining)}`}><span>Tiempo restante</span><strong>{durationLabel(remaining)}</strong></div> : <span className="respond-form-open-label">En curso</span>}</div>
           <div className="respond-form-progress-row"><span>{answeredCount} de {items.length} respondidas</span><span>{savedCount} guardadas</span></div><progress max={Math.max(1, items.length)} value={answeredCount} aria-label={`${answeredCount} de ${items.length} preguntas respondidas`} />
           <p className={`respond-form-save-state${saveError ? ' error' : ''}`} aria-live="polite" aria-atomic="true">{saving ? 'Guardando respuestas…' : saveError ? 'Hay respuestas sin guardar.' : pendingCount > 0 ? `${pendingCount} ${pendingCount === 1 ? 'respuesta pendiente' : 'respuestas pendientes'} de guardar.` : savedCount > 0 ? `Respuestas guardadas${lastSaved ? ` · ${new Date(lastSaved).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}` : ''}` : 'Selecciona una opción. Cada respuesta se guarda automáticamente.'}</p>
         </section>
@@ -572,7 +581,7 @@ function RespondForm({ code }: { code: string }) {
       </> : null}
 
       {attempt?.status === 'submitted' ? <section className="respond-form-card respond-form-result">
-        <span className="respond-form-success-mark" aria-hidden="true">✓</span><span className="respond-form-eyebrow">{attempt.auto_submitted ? 'TIEMPO FINALIZADO' : 'REGISTRO CONFIRMADO'}</span><h2 ref={resultHeading} tabIndex={-1}>Tu formulario quedó entregado</h2><p>{attempt.display_name} · Matrícula {attempt.enrollment}</p>{attempt.submitted_at ? <p className="respond-form-muted">Entregado el {readableDate(attempt.submitted_at)}</p> : null}{attempt.attempt_id ? <p className="respond-form-receipt">Folio: {attempt.attempt_id}</p> : null}
+        <span className="respond-form-success-mark" aria-hidden="true">✓</span><span className="respond-form-eyebrow">{attempt.auto_submitted ? 'TIEMPO FINALIZADO' : 'REGISTRO CONFIRMADO'}</span><h2 ref={resultHeading} tabIndex={-1}>Tu formulario quedó entregado</h2><p>{attempt.display_name} · {attempt.declared_group ? `Grupo ${attempt.declared_group} · ` : ''}Matrícula {attempt.enrollment}</p>{attempt.submitted_at ? <p className="respond-form-muted">Entregado el {readableDate(attempt.submitted_at)}</p> : null}{attempt.attempt_id ? <p className="respond-form-receipt">Folio: {attempt.attempt_id}</p> : null}
         {lostChanges > 0 ? <p className="respond-form-alert warning">{lostChanges} {lostChanges === 1 ? 'cambio no alcanzó' : 'cambios no alcanzaron'} a guardarse antes del cierre y no se incluyeron en la entrega.</p> : null}
         {scoreVisible ? <div className="respond-form-score"><span>Tu resultado</span><strong>{attempt.score}<small> / {attempt.max_score} puntos</small></strong>{typeof attempt.percentage === 'number' ? <p>{attempt.percentage.toLocaleString('es-MX', { maximumFractionDigits: 1 })}%</p> : null}</div> : <p className="respond-form-result-message">Tu docente recibió las respuestas. El resultado se mostrará cuando lo habilite.</p>}
         {attempt.released && attempt.show_answers && attempt.feedback?.length ? <div className="respond-form-feedback"><h3>Revisión de respuestas</h3>{attempt.feedback.map(feedback => {

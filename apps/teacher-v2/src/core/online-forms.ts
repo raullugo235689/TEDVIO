@@ -62,8 +62,12 @@ export function onlineFormStudentUrl(form: Pick<OnlineForm, 'code'>): string {
 export async function fetchOnlineFormMeta(code: string): Promise<OnlineFormMeta> {
   return call<OnlineFormMeta>('v2_online_form_meta', { p_code: code }, true);
 }
-export async function startOnlineForm(code: string, name: string, enrollment: string, token: string) {
-  return normalizeOnlineFormState(await call<RawOnlineFormState>('v2_online_form_start', { p_code: code, p_name: name, p_enrollment: enrollment, p_token: token }, true));
+export async function startOnlineForm(code: string, name: string, enrollment: string, token: string, group = '') {
+  const args = { p_code: code, p_name: name, p_enrollment: enrollment, p_token: token };
+  return normalizeOnlineFormState(await call<RawOnlineFormState>(group ? 'v2_online_form_start_grouped' : 'v2_online_form_start', group ? { ...args, p_group: group } : args, true));
+}
+export async function configurePublishedFormGroups(formId: string, choices: string[]) {
+  return call<OnlineForm>('v2_online_form_set_group_choices', { p_form_id: formId, p_choices: choices });
 }
 export async function fetchOnlineFormState(token: string) {
   return normalizeOnlineFormState(await call<RawOnlineFormState>('v2_online_form_state', { p_token: token }, true));

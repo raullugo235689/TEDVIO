@@ -52,6 +52,7 @@ test('docente crea y publica; alumno responde y reanuda; resultados y XLSX coinc
     await expect(page.getByLabel('Título', { exact: true })).toBeVisible();
     await page.getByLabel('Título', { exact: true }).fill('Unidad 1 · Examen de prueba');
     await page.getByLabel('Instrucciones', { exact: true }).fill('Responde con base en el manual.');
+    await page.getByLabel('Grupos disponibles para el alumno').fill('3-01, 3-02, 3-03, 3-04, 3-09');
     await page.getByRole('button', { name: 'Seleccionar 8 filtradas', exact: true }).click();
     await page.getByRole('radio', { name: /Cuotas por tema/ }).check();
     await page.getByLabel('Preguntas por alumno del tema Tema A').fill('2');
@@ -75,6 +76,11 @@ test('docente crea y publica; alumno responde y reanuda; resultados y XLSX coinc
     await student.goto(link);
     await student.getByLabel('Nombre completo').fill('Alumna de prueba');
     await student.getByLabel('Matrícula', { exact: true }).fill('000123');
+    await expect(student.getByRole('button', { name: /Comenzar formulario/ })).toBeDisabled();
+    await expect(student.getByLabel('Grupo', { exact: true }).locator('option')).toHaveCount(6);
+    await student.getByLabel('Grupo', { exact: true }).selectOption('3-09');
+    await noOverflow(student);
+    await student.screenshot({path:info.outputPath('formulario-alumno-acceso.png'),fullPage:true});
     await student.getByRole('button', { name: /Comenzar formulario/ }).click();
     await expect(student.locator('.respond-form-question')).toHaveCount(1);
     await expect(student.locator('.respond-form-question-top')).toContainText('Pregunta 1 de 3');
@@ -82,6 +88,7 @@ test('docente crea y publica; alumno responde y reanuda; resultados y XLSX coinc
     await expect(student.getByRole('button', { name: 'Revisar y enviar', exact: true })).toHaveCount(0);
     const session = await student.evaluate(code => JSON.parse(localStorage.getItem(`tedvio:online-form:${code}:session:v1`)), published.code);
     const state = await fixture.call('v2_online_form_state', { p_token: session.token }, null);
+    expect(state.attempt.declared_group).toBe('3-09');
     expect(new Set(state.items.map(item => item.id)).size).toBe(3);
     expect(state.items.filter(item => item.topic === 'Tema A')).toHaveLength(2);
     expect(state.items.filter(item => item.topic === 'Tema B')).toHaveLength(1);
@@ -127,6 +134,7 @@ test('docente crea y publica; alumno responde y reanuda; resultados y XLSX coinc
     expect(download.suggestedFilename()).toMatch(/\.xlsx$/);
     const workbook = new ExcelJS.Workbook(); await workbook.xlsx.load(await readFile(await download.path()));
     const sheet = workbook.getWorksheet('Respuestas');
+    expect(sheet.getCell('L2').value).toBe('3-09');
     expect(sheet.getCell('C2').value).toBe('000123'); expect(sheet.getCell('G2').value).toBe(1); expect(sheet.getCell('H2').value).toBe(3);
     const row = sheet.getRow(2).values;
     expect(row.filter(value => value === 'No asignada')).toHaveLength(5);

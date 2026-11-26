@@ -11,6 +11,7 @@ export async function createOnlineFormsTestDatabase() {
   await db.exec(readFileSync(new URL('../../../supabase/tests/online_forms_fixture.sql', import.meta.url), 'utf8'));
   await db.query('insert into auth.users values($1),($2)', [owner, other]);
   await db.exec(readFileSync(new URL('../../../supabase/migrations/20261124213410_online_forms_question_bank_attempts.sql', import.meta.url), 'utf8'));
+  await db.exec(readFileSync(new URL('../../../supabase/migrations/20261126164641_online_forms_declared_groups.sql', import.meta.url), 'utf8'));
 
   // PGlite uses one connection. Serialize the entire role/JWT/query block so
   // parallel browser RPC requests cannot inherit another request's identity.
