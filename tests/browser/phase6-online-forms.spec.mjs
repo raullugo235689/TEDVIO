@@ -77,8 +77,8 @@ test('docente crea y publica; alumno responde y reanuda; resultados y XLSX coinc
     await student.getByLabel('Nombre completo').fill('Alumna de prueba');
     await student.getByLabel('Matrícula', { exact: true }).fill('000123');
     await expect(student.getByRole('button', { name: /Comenzar formulario/ })).toBeDisabled();
-    await expect(student.getByLabel('Grupo', { exact: true }).locator('option')).toHaveCount(6);
-    await student.getByLabel('Grupo', { exact: true }).selectOption('3-09');
+    await expect(student.getByRole('combobox', { name: 'Grupo', exact: true }).locator('option')).toHaveCount(6);
+    await student.getByRole('combobox', { name: 'Grupo', exact: true }).selectOption('3-09');
     await noOverflow(student);
     await student.screenshot({path:info.outputPath('formulario-alumno-acceso.png'),fullPage:true});
     await student.getByRole('button', { name: /Comenzar formulario/ }).click();
