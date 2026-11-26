@@ -249,3 +249,33 @@ test('verdadero/falso y contrato JSON con parámetros nombrados funcionan desde 
   const done = await fixture.call('v2_online_form_submit', { p_token: token }, null);
   assert.equal(done.attempt.percentage, 100);
 });
+
+
+test('grupo declarado se valida y persiste sin exponer padrón ni permitir cambiar la identidad', async () => {
+ const f = await ready({group_choices:['3-01','3-02','3-03','3-04','3-09'],feedback_mode:'score_only'});
+ const m=await anon('v2_online_form_meta',[f.code]); assert.deepEqual(m.group_choices,['3-01','3-02','3-03','3-04','3-09']); noAnswers(m);
+ const token=randomUUID();
+ await assert.rejects(()=>start(f,token), /Selecciona un grupo válido/);
+ await assert.rejects(()=>anon('v2_online_form_start_grouped',[f.code,'Alumno sintético','001',token,'3-99']), /Selecciona un grupo válido/);
+ const s=await anon('v2_online_form_start_grouped',[f.code,'Alumno sintético','001',token,'3-09']); assert.equal(s.attempt.declared_group,'3-09'); noAnswers(s);
+ assert.equal((await state(token)).attempt.declared_group,'3-09');
+ await assert.rejects(()=>anon('v2_online_form_start_grouped',[f.code,'Alumno sintético','001',token,'3-01']), /grupo no corresponde/);
+ await assert.rejects(()=>anon('v2_online_form_start_grouped',[f.code,'Alumno sintético','001',randomUUID(),'3-01']), /Ya existe un intento activo/);
+ const receipt=await submit(token); assert.equal(receipt.attempt.declared_group,'3-09'); noAnswers(receipt);
+ assert.equal((await results(f.id)).attempts[0].declared_group,'3-09');
+ await assert.rejects(()=>rpc('v2_online_form_set_group_choices',[f.id,['3-01']],other), /no está disponible/);
+ await assert.rejects(()=>rpc('v2_online_form_set_group_choices',[f.id,['3-01']]), /congelada/);
+});
+test('configurar por primera vez un formulario publicado conserva los intentos previos', async () => {
+ const f=await ready({feedback_mode:'score_only'}), token=randomUUID(); await start(f,token);
+ const previous=await state(token);
+ const updated=await rpc('v2_online_form_set_group_choices',[f.id,['3-01','3-09']]);
+ assert.deepEqual(updated.group_choices,['3-01','3-09']); assert.equal(updated.status,'published');
+ const recovered=await state(token); assert.equal(recovered.attempt.id,previous.attempt.id); assert.equal(recovered.attempt.declared_group,null); assert.deepEqual(recovered.items,previous.items);
+ const legacy=await start(f,token); assert.equal(legacy.attempt.id,previous.attempt.id);
+ const newToken=randomUUID(); const next=await anon('v2_online_form_start_grouped',[f.code,'Otro alumno','002',newToken,'3-09']); assert.equal(next.attempt.declared_group,'3-09');
+ assert.equal((await results(f.id)).attempts.length,2);
+ await assert.rejects(()=>anon('v2_online_form_set_group_choices',[f.id,['3-09']]), /permission denied/);
+ await assert.rejects(()=>save(payload({group_choices:['A','a']})), /no pueden repetirse/);
+ await assert.rejects(()=>save(payload({group_id:group,group_choices:['A']})), /no ambos/);
+});

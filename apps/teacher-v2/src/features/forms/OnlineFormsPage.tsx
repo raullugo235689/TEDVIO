@@ -37,14 +37,14 @@ import './forms.css';
 const statusLabels: Record<OnlineFormStatus, string> = { draft: 'Borrador', published: 'Publicado', closed: 'Cerrado' };
 const statusTones: Record<OnlineFormStatus, string> = { draft: 'amber', published: 'green', closed: 'neutral' };
 const feedbackLabels: Record<OnlineFormFeedback, string> = {
-  score_only: 'Solo calificación',
-  after_submit: 'Respuestas al enviar',
-  after_close: 'Resultados al cerrar el formulario',
+  score_only: 'Solo calificación (sin clave)',
+  after_submit: 'Respuestas al enviar (práctica)',
+  after_close: 'Resultados y clave al cerrar',
 };
 const feedbackHints: Record<OnlineFormFeedback, string> = {
-  score_only: 'El alumno verá su calificación sin las respuestas correctas ni las explicaciones.',
-  after_submit: 'Las respuestas correctas y las explicaciones estarán disponibles al enviar cada intento.',
-  after_close: 'La calificación, las respuestas correctas y las explicaciones se mostrarán después del cierre del formulario.',
+  score_only: 'Recomendado para exámenes. El alumno verá únicamente su calificación; las respuestas correctas y las explicaciones no se revelan.',
+  after_submit: 'Solo para práctica: las respuestas correctas y las explicaciones se revelan al enviar cada intento y pueden compartirse.',
+  after_close: 'La calificación y la clave se revelan después del cierre. No uses esta opción si reutilizarás el mismo banco en otro grupo.',
 };
 const selectionLabels: Record<OnlineFormDraft['selectionMode'], string> = {
   all: 'Todas las seleccionadas', random: 'Azar global', topic_quotas: 'Cuotas por tema',
@@ -267,7 +267,8 @@ function OnlineFormEditor({ workspace, initialDraft, initialUpdatedAt, onCancel 
             <fieldset disabled={busy} className="of-form-fields">
               <label className="of-field">Título<input value={draft.title} maxLength={200} required onChange={event => patchDraft({ title: event.currentTarget.value })} placeholder="Unidad 1 · Sesiones anatomoclínicas" /></label>
               <label className="of-field">Instrucciones<textarea value={draft.instructions} rows={3} onChange={event => patchDraft({ instructions: event.currentTarget.value })} placeholder="Explica qué debe hacer el alumno antes de iniciar." /></label>
-              <label className="of-field">Grupo (opcional)<select value={draft.groupId} onChange={event => patchDraft({ groupId: event.currentTarget.value })}><option value="">Sin grupo</option>{workspace.groups.map(group => <option key={group.id} value={group.id}>{groupLabel(group)}</option>)}</select><small>{draft.groupId ? 'El alumno deberá ingresar una matrícula activa registrada en este grupo.' : 'Sin grupo, el alumno se identifica con su nombre y matrícula al abrir el enlace.'}</small></label>
+              <label className="of-field">Grupo (opcional)<select value={draft.groupId} onChange={event => patchDraft({ groupId: event.currentTarget.value, ...(event.currentTarget.value ? { groupChoicesText: '' } : {}) })}><option value="">Sin grupo</option>{workspace.groups.map(group => <option key={group.id} value={group.id}>{groupLabel(group)}</option>)}</select><small>{draft.groupId ? 'El alumno deberá ingresar una matrícula activa registrada en este grupo.' : 'Sin grupo vinculado, el alumno se identifica con su nombre y matrícula al abrir el enlace.'}</small></label>
+              {!draft.groupId ? <label className="of-field">Grupos disponibles para el alumno<input value={draft.groupChoicesText || ''} onChange={event => patchDraft({ groupChoicesText: event.currentTarget.value })} placeholder="3-01, 3-02, 3-03" /><small>Opcional. Separa los grupos por comas. Se registrarán como declarados, sin vincular automáticamente el padrón.</small></label> : null}
             </fieldset>
           </SectionCard>
           <SectionCard>
@@ -401,7 +402,7 @@ function FormOverview({ form, group }: { form: OnlineForm; group?: GroupRecord }
   return (
     <>
       <dl className="of-overview">
-        <div><dt>Grupo</dt><dd>{groupLabel(group)}</dd></div>
+        <div><dt>Grupo</dt><dd>{form.group_choices?.length ? form.group_choices.join(' · ') + ' (declarados)' : groupLabel(group)}</dd></div>
         <div><dt>Preguntas por alumno</dt><dd>{form.question_count} de {form.pool_count} candidatas</dd></div>
         <div><dt>Intentos máximos</dt><dd>{form.max_attempts}</dd></div>
         <div><dt>Tiempo por intento</dt><dd>{form.time_limit_minutes ? `${form.time_limit_minutes} minutos` : 'Sin límite'}</dd></div>
@@ -421,7 +422,7 @@ function AttemptDialog({ attempt, detail, onDismiss }: { attempt: OnlineFormAtte
   const items = new Map(detail.results.items.map(item => [item.id, item]));
   const responses = new Map(attempt.responses.map(response => [response.item_id, response]));
   return (
-    <ActionDialog className="of-dialog" eyebrow="TEDVIO · RESULTADO INDIVIDUAL" title={attempt.display_name} detail={`${attempt.enrollment || 'Sin matrícula'} · Intento ${attempt.attempt_no}`} onDismiss={onDismiss} focusStart>
+    <ActionDialog className="of-dialog" eyebrow="TEDVIO · RESULTADO INDIVIDUAL" title={attempt.display_name} detail={`${attempt.enrollment || 'Sin matrícula'} · ${attempt.declared_group ? `Grupo ${attempt.declared_group} · ` : ''}Intento ${attempt.attempt_no}`} onDismiss={onDismiss} focusStart>
       <dl className="of-overview">
         <div><dt>Estado</dt><dd>{attempt.status === 'submitted' ? (attempt.auto_submitted ? 'Enviado automáticamente' : 'Enviado') : 'En curso'}</dd></div>
         <div><dt>Calificación sobre 10</dt><dd>{resultGrade(attempt)}</dd></div>
@@ -467,6 +468,8 @@ function OnlineFormDetailView({ detail, groups, onEdit, onRefresh, refreshing }:
   const [copyError, setCopyError] = useState('');
   const [resultQuery, setResultQuery] = useState('');
   const [resultStatus, setResultStatus] = useState('');
+  const [resultGroup, setResultGroup] = useState('');
+  const resultGroups = [...new Set([...(form.group_choices || []), ...detail.attempts.flatMap(a => a.declared_group ? [a.declared_group] : [])])];
   const [selectedAttemptId, setSelectedAttemptId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const linkInput = useRef<HTMLInputElement>(null);
@@ -477,9 +480,10 @@ function OnlineFormDetailView({ detail, groups, onEdit, onRefresh, refreshing }:
   const filteredAttempts = useMemo(() => {
     const needle = resultQuery.trim().toLocaleLowerCase('es-MX');
     return detail.attempts.filter(attempt => (!resultStatus || attempt.status === resultStatus)
+      && (!resultGroup || (resultGroup === '__missing__' ? !attempt.declared_group : attempt.declared_group === resultGroup))
       && (!needle || [attempt.display_name, attempt.enrollment].join(' ').toLocaleLowerCase('es-MX').includes(needle)))
       .sort((a, b) => b.started_at.localeCompare(a.started_at));
-  }, [detail.attempts, resultQuery, resultStatus]);
+  }, [detail.attempts, resultQuery, resultStatus, resultGroup]);
   const pageCount = Math.max(1, Math.ceil(filteredAttempts.length / 20));
   const currentPage = Math.min(page, pageCount);
   const visibleAttempts = filteredAttempts.slice((currentPage - 1) * 20, currentPage * 20);
@@ -571,13 +575,15 @@ function OnlineFormDetailView({ detail, groups, onEdit, onRefresh, refreshing }:
             <div className="of-grid-two of-results-filters">
               <label className="of-field">Buscar alumno<input type="search" value={resultQuery} onChange={event => { setResultQuery(event.target.value); setPage(1); }} placeholder="Nombre o matrícula" /></label>
               <label className="of-field">Estado del intento<select value={resultStatus} onChange={event => { setResultStatus(event.target.value); setPage(1); }}><option value="">Todos los intentos</option><option value="submitted">Enviados</option><option value="in_progress">En curso</option></select></label>
+              {resultGroups.length ? <label className="of-field">Grupo declarado<select value={resultGroup} onChange={event => { setResultGroup(event.target.value); setPage(1); }}><option value="">Todos los grupos</option>{resultGroups.map(label => <option key={label} value={label}>{label}</option>)}<option value="__missing__">Sin grupo registrado</option></select></label> : null}
             </div>
             {visibleAttempts.length ? <div className="of-results-scroll" tabIndex={0} aria-label="Tabla de resultados con desplazamiento horizontal">
               <table className="of-results-table">
                 <caption>Resultados individuales del formulario {form.title}</caption>
-                <thead><tr><th scope="col">Alumno</th><th scope="col">Intento</th><th scope="col">Estado</th><th scope="col">Puntos</th><th scope="col">Calificación / 10</th><th scope="col">Inicio / envío</th><th scope="col">Detalle</th></tr></thead>
+                <thead><tr><th scope="col">Alumno</th><th scope="col">Grupo</th><th scope="col">Intento</th><th scope="col">Estado</th><th scope="col">Puntos</th><th scope="col">Calificación / 10</th><th scope="col">Inicio / envío</th><th scope="col">Detalle</th></tr></thead>
                 <tbody>{visibleAttempts.map(attempt => <tr key={attempt.id}>
                   <td><strong>{attempt.display_name}</strong><small>{attempt.enrollment || 'Sin matrícula'}</small></td>
+                  <td>{attempt.declared_group || form.group_name || 'Sin grupo registrado'}</td>
                   <td>{attempt.attempt_no}</td>
                   <td><StatusPill tone={attempt.status === 'submitted' ? 'green' : 'blue'}>{attempt.status === 'submitted' ? 'Enviado' : 'En curso'}</StatusPill>{attempt.auto_submitted ? <small>Envío automático</small> : null}</td>
                   <td>{attempt.status === 'submitted' && attempt.score != null ? `${attempt.score} / ${attempt.max_score ?? form.question_count}` : '—'}</td>
@@ -596,7 +602,7 @@ function OnlineFormDetailView({ detail, groups, onEdit, onRefresh, refreshing }:
         detail={confirmation === 'publish' ? 'Las preguntas y la configuración quedarán fijadas. El alumnado podrá responder según las fechas configuradas.' : 'Se cerrará el acceso y los intentos en curso se enviarán automáticamente con las respuestas guardadas. Los resultados se conservarán para su consulta y descarga.'}
         confirmLabel={confirmation === 'publish' ? 'Publicar y obtener enlace' : 'Cerrar formulario'} danger={confirmation === 'close'} busy={busy}
         error={statusMutation.isError ? onlineFormError(statusMutation.error) : undefined} onDismiss={() => setConfirmation(null)} onConfirm={() => statusMutation.mutate(confirmation)}>
-        {confirmation === 'publish' ? <dl className="of-overview"><div><dt>Preguntas por alumno</dt><dd>{form.question_count}</dd></div><div><dt>Intentos máximos</dt><dd>{form.max_attempts}</dd></div><div><dt>Tiempo</dt><dd>{form.time_limit_minutes ? `${form.time_limit_minutes} minutos` : 'Sin límite'}</dd></div><div><dt>Acceso</dt><dd>{form.group_id ? `Matrículas de ${groupLabel(group)}` : 'Por enlace, con nombre y matrícula'}</dd></div><div><dt>Apertura</dt><dd>{form.opens_at ? dateTime(form.opens_at) : 'Al publicar'}</dd></div><div><dt>Cierre</dt><dd>{form.closes_at ? dateTime(form.closes_at) : 'Manual'}</dd></div><div><dt>Retroalimentación</dt><dd>{feedbackLabels[form.feedback_mode]}</dd></div></dl> : null}
+        {confirmation === 'publish' ? <dl className="of-overview"><div><dt>Preguntas por alumno</dt><dd>{form.question_count}</dd></div><div><dt>Intentos máximos</dt><dd>{form.max_attempts}</dd></div><div><dt>Tiempo</dt><dd>{form.time_limit_minutes ? `${form.time_limit_minutes} minutos` : 'Sin límite'}</dd></div><div><dt>Acceso</dt><dd>{form.group_id ? `Matrículas de ${groupLabel(group)}` : form.group_choices?.length ? `Por enlace, grupo declarado: ${form.group_choices.join(', ')}` : 'Por enlace, con nombre y matrícula'}</dd></div><div><dt>Apertura</dt><dd>{form.opens_at ? dateTime(form.opens_at) : 'Al publicar'}</dd></div><div><dt>Cierre</dt><dd>{form.closes_at ? dateTime(form.closes_at) : 'Manual'}</dd></div><div><dt>Retroalimentación</dt><dd>{feedbackLabels[form.feedback_mode]}</dd></div></dl> : null}
       </ActionDialog> : null}
       {selectedAttempt ? <AttemptDialog attempt={selectedAttempt} detail={detail} onDismiss={() => setSelectedAttemptId(null)} /> : null}
     </div>

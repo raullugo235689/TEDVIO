@@ -14,6 +14,7 @@ export interface OnlineFormSection {
 }
 export interface OnlineForm {
   id: string; code: string; title: string; instructions: string; group_id: string | null;
+  group_choices?: string[]; group_name?: string | null;
   status: OnlineFormStatus; question_count: number; pool_count: number;
   attempt_count: number; submitted_count: number; max_attempts: number;
   time_limit_minutes: number | null; opens_at: string | null; closes_at: string | null;
@@ -24,7 +25,7 @@ export interface OnlineFormResponse {
   item_id: string; answer: string | null; is_correct: boolean | null; points: number;
 }
 export interface OnlineFormAttempt {
-  id: string; display_name: string; enrollment: string; attempt_no: number;
+  id: string; display_name: string; enrollment: string; attempt_no: number; declared_group?: string | null;
   status: 'in_progress' | 'submitted'; started_at: string; submitted_at: string | null;
   expires_at: string | null; auto_submitted?: boolean; score: number | null;
   max_score: number | null; percentage: number | null;
@@ -39,7 +40,7 @@ export interface OnlineFormDetail {
 }
 export interface OnlineFormsWorkspace { forms: OnlineForm[]; groups: GroupRecord[]; questions: BankQuestion[] }
 export interface OnlineFormDraft {
-  id?: string; revision?: number; title: string; instructions: string; groupId: string;
+  id?: string; revision?: number; title: string; instructions: string; groupId: string; groupChoicesText?: string;
   questionIds: string[]; selectionMode: 'all' | 'random' | 'topic_quotas';
   questionCount: number; topicQuotas: Record<string, number>; shuffleOptions: boolean;
   maxAttempts: number; timeLimitMinutes: number | null; opensAt: string; closesAt: string;
@@ -49,7 +50,7 @@ export interface OnlineFormMeta {
   id: string; code: string; title: string; instructions: string; status: OnlineFormStatus;
   question_count: number; max_attempts: number; time_limit_minutes: number | null;
   opens_at: string | null; closes_at: string | null; group_name?: string | null;
-  available: boolean; message?: string; server_now: string;
+  available: boolean; message?: string; server_now: string; group_choices?: string[];
 }
 export interface OnlineFormPublicItem {
   id: string; prompt: string; options: string[]; points: number; section_title: string;
@@ -58,7 +59,7 @@ export interface OnlineFormPublicItem {
 export interface OnlineFormStudentFeedback extends OnlineFormResponse { correct_answer: string; explanation?: string | null }
 export interface OnlineFormState {
   status: 'in_progress' | 'submitted'; title: string; instructions: string;
-  form_code: string; attempt_id: string; display_name: string; enrollment: string; attempt_no: number;
+  form_code: string; attempt_id: string; display_name: string; enrollment: string; attempt_no: number; declared_group?: string | null;
   server_now: string; expires_at: string | null; started_at: string; submitted_at: string | null;
   auto_submitted: boolean; items: OnlineFormPublicItem[];
   responses: { item_id: string; answer: string }[]; score: number | null;
@@ -86,9 +87,9 @@ export function onlineFormTopic(question: Pick<BankQuestion, 'topic'>): string {
   return question.topic?.trim() || 'Sin tema';
 }
 export function emptyOnlineFormDraft(groupId = ''): OnlineFormDraft {
-  return { title: '', instructions: '', groupId, questionIds: [], selectionMode: 'random',
+  return { title: '', instructions: '', groupId, groupChoicesText: '', questionIds: [], selectionMode: 'random',
     questionCount: 35, topicQuotas: {}, shuffleOptions: true, maxAttempts: 1,
-    timeLimitMinutes: null, opensAt: '', closesAt: '', feedbackMode: 'after_close' };
+    timeLimitMinutes: null, opensAt: '', closesAt: '', feedbackMode: 'score_only' };
 }
 function localDateTime(value: string | null): string {
   if (!value) return '';
@@ -100,13 +101,21 @@ export function onlineFormDraftFromDetail(detail: OnlineFormDetail): OnlineFormD
   const form = detail.form;
   const sections = form.sections || [];
   const ids = sections.flatMap(section => section.items.map(item => item.bank_id));
-  return { id: form.id, revision: form.revision, title: form.title, instructions: form.instructions || '', groupId: form.group_id || '',
+  return { id: form.id, revision: form.revision, title: form.title, instructions: form.instructions || '', groupId: form.group_id || '', groupChoicesText: (form.group_choices || []).join(', '),
     questionIds: ids, selectionMode: sections.length > 1 ? 'topic_quotas' : form.question_count === ids.length ? 'all' : 'random',
     questionCount: form.question_count, topicQuotas: Object.fromEntries(sections.map(section => [section.title, section.draw_count])),
     shuffleOptions: form.shuffle_options, maxAttempts: form.max_attempts, timeLimitMinutes: form.time_limit_minutes,
     opensAt: localDateTime(form.opens_at), closesAt: localDateTime(form.closes_at), feedbackMode: form.feedback_mode };
 }
+export function parseOnlineFormGroupChoices(value: string): string[] {
+  const choices = value.split(',').map(label => label.trim()).filter(Boolean);
+  if (choices.length > 20 || choices.some(label => label.length > 40 || /[\u0000-\u001f\u007f]/.test(label))) throw new Error('Agrega hasta 20 grupos, de 1 a 40 caracteres cada uno.');
+  if (new Set(choices.map(label => label.toLowerCase())).size !== choices.length) throw new Error('Los grupos declarados no pueden repetirse.');
+  return choices;
+}
 export function onlineFormDraftPayload(draft: OnlineFormDraft, questions: BankQuestion[]) {
+  const groupChoices = parseOnlineFormGroupChoices(draft.groupChoicesText || '');
+  if (draft.groupId && groupChoices.length) throw new Error('Elige un grupo vinculado o una lista declarada, no ambos.');
   if (!draft.title.trim()) throw new Error('Escribe el título del formulario.');
   if (draft.title.trim().length > 200) throw new Error('El título admite hasta 200 caracteres.');
   const ids = [...new Set(draft.questionIds)];
@@ -136,7 +145,7 @@ export function onlineFormDraftPayload(draft: OnlineFormDraft, questions: BankQu
   const opensAt = date(draft.opensAt), closesAt = date(draft.closesAt);
   if (opensAt && closesAt && closesAt <= opensAt) throw new Error('El cierre debe ser posterior a la apertura.');
   return { id: draft.id || null, ...(draft.revision != null ? { revision: draft.revision } : {}), title: draft.title.trim(), instructions: draft.instructions.trim(),
-    group_id: draft.groupId || null, opens_at: opensAt, closes_at: closesAt,
+    group_id: draft.groupId || null, group_choices: groupChoices, opens_at: opensAt, closes_at: closesAt,
     time_limit_minutes: draft.timeLimitMinutes, max_attempts: draft.maxAttempts,
     shuffle_questions: true, shuffle_options: draft.shuffleOptions, feedback_mode: draft.feedbackMode, sections };
 }
@@ -145,7 +154,7 @@ export function normalizeOnlineFormState(raw: RawOnlineFormState): OnlineFormSta
   const titles = new Map((raw.sections || []).map(section => [section.id, section.title]));
   return { status: attempt.status, title: raw.form.title, instructions: raw.form.instructions || '',
     form_code: raw.form.code, attempt_id: attempt.id, display_name: attempt.display_name,
-    enrollment: attempt.enrollment, attempt_no: attempt.attempt_no, server_now: raw.server_now,
+    enrollment: attempt.enrollment, declared_group: attempt.declared_group ?? null, attempt_no: attempt.attempt_no, server_now: raw.server_now,
     expires_at: attempt.expires_at, started_at: attempt.started_at, submitted_at: attempt.submitted_at,
     auto_submitted: Boolean(attempt.auto_submitted),
     items: (raw.items || []).map(item => ({ ...item, section_title: titles.get(item.section_id) || 'Preguntas' })),

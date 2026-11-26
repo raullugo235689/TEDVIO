@@ -152,3 +152,61 @@ audio.respond-form-media { width: 100%; }
   .respond-form-spinner { animation: none; }
   .respond-form-button { transition: none; }
 }
+
+/* One question per screen; keyboard focus and progress remain on the current item. */
+.respond-form-step-nav { margin-top: 20px; display: grid; gap: 12px; padding: 16px 0 8px; }
+.respond-form-step-count { color: var(--respond-muted); font-size: 12px; text-align: center; }
+.respond-form-step-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.respond-form-step-actions > button { width: 100%; min-width: 0; }
+.respond-form-step-note { margin: 0; font-size: 12px; line-height: 1.5; color: var(--respond-muted); text-align: center; }
+.respond-form-question:focus { outline: none; }
+.respond-form-question:focus-visible { outline: 2px solid #2859b6; outline-offset: 3px; }
+@media (max-width: 360px) { .respond-form-step-actions { gap: 8px; } .respond-form-step-actions > button { padding-inline: 8px; } }
+
+/* Student Forms · focused assessment experience. No correctness colors. */
+.respond-form-shell { --respond-ink:#13263e; --respond-muted:#51657d; --respond-blue:#2456c4; --respond-line:#e0e7f1; padding-bottom: max(24px, env(safe-area-inset-bottom)); background: radial-gradient(ellipse at 50% -10%,#dce8fb 0%,transparent 55%),#f3f6fb; }
+.respond-form-brand { max-width: 760px; min-height: 76px; }
+.respond-form-brand img { width: 40px; height: 40px; padding: 5px; border-radius: 12px; background:#fff; box-shadow: 0 3px 16px #16345d12; }
+.respond-form-brand strong { font-size: 22px; letter-spacing: -.06em; }
+.respond-form-private { display:flex; align-items:center; gap:7px; padding:7px 10px; border:1px solid #cdd9eb; border-radius:999px; background:#ffffffa6; font-weight:600; }
+.respond-form-live-dot { width:7px; height:7px; border-radius:50%; background:#486fc2; flex-shrink:0; }
+.respond-form-wrap { width:min(100%,720px); }
+.respond-form-intro { border-radius:24px; padding:28px clamp(22px,5vw,38px); color:#e2eaff; background:linear-gradient(125deg,#122d50,#1d4377 65%,#2957a0); box-shadow:0 14px 38px #16376425; margin:0 0 18px; }
+.respond-form-intro h1 { color:#fff; font-size:clamp(24px,4.8vw,36px); font-weight:730; letter-spacing:-.04em; }
+.respond-form-intro .respond-form-eyebrow { color:#bfdbff; }
+.respond-form-intro :is(.respond-form-group,.respond-form-deadline) { color:#d5e2f8; }
+.respond-form-intro .respond-form-instructions { color:#e8effa; font-size:14px; }
+.respond-form-intro .respond-form-facts { margin-top:14px; gap:7px; }
+.respond-form-intro .respond-form-facts > span { background:#ffffff13; color:#fff; border-color:#ffffff35; border-radius:999px; }
+.respond-form-card { border:1px solid #dfe7f2; border-radius:22px; box-shadow:0 10px 36px #1939560c; }
+.respond-form-entry-heading .respond-form-muted { margin:0; }
+.respond-form-entry-heading h2 { margin-bottom:8px; font-size:25px; }
+.respond-form-identity { gap:18px; }
+.respond-form-identity label { font-weight:650; color:#243b57; }
+.respond-form-identity :is(input,select) { appearance:auto; box-sizing:border-box; width:100%; min-width:0; min-height:52px; padding:12px 14px; font:inherit; font-size:16px; font-weight:450; color:#13263e; border:1px solid #bfcde0; border-radius:12px; background:#fdfefe; }
+.respond-form-identity :is(input,select):focus-visible { border-color:#2456c4; outline:3px solid #c9d9fa; outline-offset:1px; }
+.respond-form-entry-note { padding:12px 14px; background:#f1f5fc; border:1px solid #dce7f7; border-radius:12px; font-size:13px; color:#405b7b; }
+.respond-form-button { min-height:50px; border-radius:12px; font-size:15px; }
+.respond-form-button.primary { background:#2456c4; box-shadow:0 5px 13px #2456c422; }
+.respond-form-button.secondary { border-color:#c2cee0; }
+.respond-form-progress { border:1px solid #dce5f1; border-radius:18px; border-top:0; box-shadow:0 7px 25px #19395612; padding:15px 20px 12px; margin-bottom:16px; top:8px; }
+.respond-form-progress progress { height:7px; }
+.respond-form-question { scroll-margin-top:180px; min-width:0; }
+.respond-form-question-top { margin-bottom:18px; align-items:center; font-size:12px; font-weight:650; letter-spacing:.01em; }
+.respond-form-question-top > span:first-child { padding:5px 10px; border-radius:8px; background:#edf3ff; color:#214c9d; }
+.respond-form-question legend { font-size:clamp(17px,3vw,22px); line-height:1.52; font-weight:700; letter-spacing:-.018em; margin-bottom:22px; }
+.respond-form-options { gap:12px; }
+.respond-form-option { min-height:62px; border-radius:14px; background:#fff; border-color:#d9e2ef; }
+.respond-form-option.selected { border-color:#2456c4; background:#eef3ff; box-shadow:inset 0 0 0 1px #2456c4; }
+.respond-form-question-status { font-size:12px; margin-top:18px; }
+.respond-form-step-nav { position:sticky; bottom:0; z-index:7; margin-top:12px; padding:12px 14px max(12px,env(safe-area-inset-bottom)); border:1px solid #dfe7f1; border-radius:18px; background:#fffffff5; box-shadow:0 -4px 22px #1838590f; }
+.respond-form-step-actions { grid-template-columns:minmax(0,1fr) minmax(0,1.5fr); }
+.respond-form-step-count { font-weight:650; color:#3b5578; }
+.respond-form-step-note { font-size:11px; }
+.is-answering .respond-form-intro { padding:16px 22px; border-radius:18px; margin-bottom:12px; }
+.is-answering .respond-form-intro h1 { font-size:clamp(19px,3vw,25px); }
+.is-answering .respond-form-intro .respond-form-eyebrow { margin-bottom:5px; }
+.is-answering .respond-form-intro .respond-form-facts { display:none; }
+.respond-form-result { text-align:center; }
+@media(max-width:600px){.respond-form-shell{padding-inline:12px}.respond-form-brand{min-height:68px}.respond-form-private{max-width:none;font-size:10px;padding:6px 8px}.respond-form-intro{border-radius:19px;padding:22px 20px}.respond-form-card{padding:22px 17px;border-radius:18px}.respond-form-progress{top:0;padding:12px 14px;margin-left:0;margin-right:0}.respond-form-question{scroll-margin-top:160px}.respond-form-question legend{font-size:17px}.respond-form-option{min-height:58px;padding:13px 10px}.respond-form-step-nav{padding-inline:10px;gap:8px}.respond-form-step-actions{gap:8px}.respond-form-step-actions .respond-form-button{padding-inline:9px}}
+@media(prefers-reduced-motion:reduce){.respond-form-shell *{scroll-behavior:auto!important}}

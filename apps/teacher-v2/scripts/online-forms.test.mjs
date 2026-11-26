@@ -35,14 +35,15 @@ const exportFixture = () => ({
   sections: [{ id: 's', title: 'Tema', position: 1 }],
   items: ['a', 'b', 'c'].map((id, index) => ({ id, bank_id: `bank-${id}`, section_id: 's', position: index + 1, prompt: `Pregunta ${id}`, options: ['Uno', 'Dos'], correct_answer: 'Dos', points: 1, topic: 'Tema', explanation: 'Manual · apartado 1.1' })),
   attempts: [
-    { id: 'first', display_name: '=HYPERLINK("x")', enrollment: '0001', attempt_no: 1, status: 'submitted', item_ids: ['b', 'a'], started_at: '2026-11-25T10:00:00Z', submitted_at: '2026-11-25T10:10:00Z', score: 1, max_score: 2, percentage: 50, responses: [{ item_id: 'b', answer: 'Dos', is_correct: true, points: 1 }] },
+    { id: 'first', display_name: '=HYPERLINK("x")', enrollment: '0001', declared_group:'3-09', attempt_no: 1, status: 'submitted', item_ids: ['b', 'a'], started_at: '2026-11-25T10:00:00Z', submitted_at: '2026-11-25T10:10:00Z', score: 1, max_score: 2, percentage: 50, responses: [{ item_id: 'b', answer: 'Dos', is_correct: true, points: 1 }] },
     { id: 'second', display_name: 'B', enrollment: '0002', attempt_no: 1, status: 'in_progress', item_ids: ['c', 'b'], started_at: '2026-11-25T10:02:00Z', submitted_at: null, score: null, max_score: 2, percentage: null, responses: [{ item_id: 'c', answer: 'Uno', is_correct: false, points: 0 }] },
   ], server_now: '2026-11-25T11:00:00Z',
 });
 test('Excel alinea por ID aunque el orden del examen cambie; vacías y no asignadas son diferentes', () => {
   const sheets = onlineFormExportSheets(exportFixture()); const rows = sheets[0].rows;
-  assert.deepEqual(rows[0].slice(11), ['Sin responder', 'Dos', 'No asignada']);
-  assert.deepEqual(rows[1].slice(11), ['No asignada', 'Sin responder', 'Uno']);
+  assert.deepEqual(rows[0].slice(12), ['Sin responder', 'Dos', 'No asignada']);
+  assert.deepEqual(rows[1].slice(12), ['No asignada', 'Sin responder', 'Uno']);
+  assert.equal(rows[0][11], '3-09'); assert.equal(rows[1][11], null);
   assert.equal(rows[0][9], 5); assert.equal(rows[1][9], null);
   const detail = sheets.find(sheet => sheet.name === 'Detalle');
   assert.equal(detail.rows[0][5], 1); assert.equal(detail.rows[0][7], 'b');
@@ -55,6 +56,12 @@ test('el archivo es XLSX real; matrícula conserva ceros y texto no se interpret
   const { default: ExcelJS } = await import('exceljs'); const reopened = new ExcelJS.Workbook(); await reopened.xlsx.load(buffer);
   assert.deepEqual(reopened.worksheets.map(sheet => sheet.name), ['Respuestas', 'Detalle', 'Reactivos', 'Resumen']);
   assert.equal(reopened.getWorksheet('Respuestas').getCell('C2').value, '0001');
+  assert.equal(reopened.getWorksheet('Respuestas').getCell('L2').value, '3-09');
   assert.equal(reopened.getWorksheet('Respuestas').getCell('B2').value, '=HYPERLINK("x")');
   assert.equal(reopened.getWorksheet('Respuestas').getCell('B2').type, ExcelJS.ValueType.String);
+});
+
+
+test('los nuevos formularios no revelan claves por defecto', () => {
+  assert.equal(emptyOnlineFormDraft().feedbackMode, 'score_only');
 });
