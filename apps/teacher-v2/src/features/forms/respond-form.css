@@ -240,3 +240,23 @@ audio.respond-form-media { width: 100%; }
   line-height: 1.35;
   text-wrap: balance;
 }
+
+/* One-way assessment controls explain the restriction before it takes effect. */
+.respond-form-navigation-notice {
+  padding: 16px 18px;
+  border: 1px solid #d6dfed;
+  border-left: 4px solid #2456c4;
+  border-radius: 12px;
+  background: #f1f5fc;
+  color: #243b57;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.respond-form-navigation-notice strong { display: block; font-size: 15px; }
+.respond-form-navigation-notice p { margin: 8px 0 0; }
+.respond-form-forward-status { margin: 8px 0 0; color: #3d5680; font-size: 11px; font-weight: 650; }
+.respond-form-step-actions.forward-only { grid-template-columns: minmax(0, 1fr); }
+.is-forward-only .respond-form-question { scroll-margin-top: 210px; }
+.is-forward-only .respond-form-dialog { max-height: calc(100dvh - 32px); overflow-y: auto; }
+.respond-form-advance-answer { padding: 12px 14px; border-radius: 10px; background: #f1f5fc; overflow-wrap: anywhere; white-space: pre-wrap; }
+.respond-form-advance-answer strong { display: block; margin-bottom: 4px; }

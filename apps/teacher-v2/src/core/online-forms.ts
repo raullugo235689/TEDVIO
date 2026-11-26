@@ -4,7 +4,7 @@ import { fetchAllPages } from './data-pages';
 import type { BankQuestion } from './bank';
 import type { GroupRecord } from './types';
 import {
-  compatibleOnlineFormQuestion, onlineFormDraftPayload, normalizeOnlineFormState,
+  compatibleOnlineFormQuestion, onlineFormDraftPayload, onlineFormSettingsPayload, normalizeOnlineFormState,
   type OnlineForm, type OnlineFormDetail, type OnlineFormDraft, type OnlineFormMeta,
   type OnlineFormResults, type OnlineFormsWorkspace, type RawOnlineFormState,
 } from './online-forms-model';
@@ -50,6 +50,13 @@ export async function saveOnlineFormDraft(user: User, draft: OnlineFormDraft): P
   const form = await call<OnlineForm>('v2_online_form_save', { p_form: onlineFormDraftPayload(draft, questions) });
   return form.id;
 }
+export async function saveOnlineFormSettings(_user: User, draft: OnlineFormDraft): Promise<string> {
+  if (!draft.id || draft.revision == null) throw new Error('Recarga la configuración antes de guardar.');
+  const form = await call<OnlineForm>('v2_online_form_update_settings', {
+    p_form_id: draft.id, p_revision: draft.revision, p_settings: onlineFormSettingsPayload(draft),
+  });
+  return form.id;
+}
 export async function publishOnlineForm(_user: User, id: string): Promise<void> {
   await call('v2_online_form_set_status', { p_form_id: id, p_status: 'published' });
 }
@@ -63,8 +70,9 @@ export async function fetchOnlineFormMeta(code: string): Promise<OnlineFormMeta>
   return call<OnlineFormMeta>('v2_online_form_meta', { p_code: code }, true);
 }
 export async function startOnlineForm(code: string, name: string, enrollment: string, token: string, group = '') {
-  const args = { p_code: code, p_name: name, p_enrollment: enrollment, p_token: token };
-  return normalizeOnlineFormState(await call<RawOnlineFormState>(group ? 'v2_online_form_start_grouped' : 'v2_online_form_start', group ? { ...args, p_group: group } : args, true));
+  return normalizeOnlineFormState(await call<RawOnlineFormState>('v2_online_form_start_configured', {
+    p_code: code, p_name: name, p_enrollment: enrollment, p_token: token, p_group: group || null,
+  }, true));
 }
 export async function configurePublishedFormGroups(formId: string, choices: string[]) {
   return call<OnlineForm>('v2_online_form_set_group_choices', { p_form_id: formId, p_choices: choices });
@@ -77,4 +85,7 @@ export async function saveOnlineFormAnswer(token: string, itemId: string, answer
 }
 export async function submitOnlineForm(token: string) {
   return normalizeOnlineFormState(await call<RawOnlineFormState>('v2_online_form_submit', { p_token: token }, true));
+}
+export async function advanceOnlineForm(token: string, itemId: string) {
+  return normalizeOnlineFormState(await call<RawOnlineFormState>('v2_online_form_advance', { p_token: token, p_item_id: itemId }, true));
 }

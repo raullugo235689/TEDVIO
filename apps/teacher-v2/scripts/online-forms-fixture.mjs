@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
 
 /** Isolated PostgreSQL fixture; never connects to Supabase or a remote service. */
-export async function createOnlineFormsTestDatabase() {
+export async function createOnlineFormsTestDatabase({ withEditableSettings = true } = {}) {
   const db = new PGlite();
   const owner = randomUUID(), other = randomUUID(), group = randomUUID(), otherGroup = randomUUID();
   const pupil = randomUUID(), inactive = randomUUID();
@@ -12,6 +12,7 @@ export async function createOnlineFormsTestDatabase() {
   await db.query('insert into auth.users values($1),($2)', [owner, other]);
   await db.exec(readFileSync(new URL('../../../supabase/migrations/20261124213410_online_forms_question_bank_attempts.sql', import.meta.url), 'utf8'));
   await db.exec(readFileSync(new URL('../../../supabase/migrations/20261126164641_online_forms_declared_groups.sql', import.meta.url), 'utf8'));
+  if (withEditableSettings) await db.exec(readFileSync(new URL('../../../supabase/migrations/20261126183910_online_forms_editable_settings_forward_navigation.sql', import.meta.url), 'utf8'));
 
   // PGlite uses one connection. Serialize the entire role/JWT/query block so
   // parallel browser RPC requests cannot inherit another request's identity.

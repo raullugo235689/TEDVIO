@@ -10,7 +10,15 @@ Ejemplo: un banco de 70 preguntas puede asignar 35 mediante cupos de 10, 10, 8 y
 
 Cada pregunta vale un punto en el editor de esta versión. La configuración admite de 1 a 5 intentos por matrícula, tiempo opcional de 1 a 300 minutos, apertura y cierre opcionales, mezcla de opciones y tres políticas de retroalimentación: solo calificación, respuestas al enviar o resultados y respuestas después del cierre. Una fecha vacía de cierre requiere cerrarlo manualmente para liberar la retroalimentación configurada para el cierre.
 
-Guarda el borrador, revisa su composición y pulsa **Publicar formulario**. Copia el enlace que aparece; el alumno puede abrirlo sin una cuenta docente. El borrador no admite respuestas. Tras el primer intento, la composición y las reglas quedan congeladas. El cierre finaliza los intentos abiertos utilizando exclusivamente las respuestas guardadas.
+Guarda el borrador, revisa su composición y pulsa **Publicar formulario**. Copia el enlace que aparece; el alumno puede abrirlo sin una cuenta docente. El borrador no admite respuestas. Al publicar se fija la composición de preguntas y grupos. El cierre manual finaliza los intentos abiertos utilizando exclusivamente las respuestas guardadas.
+
+## Editar una configuración publicada
+
+Abre el formulario y pulsa **Editar configuración**. Puedes cambiar el título, las instrucciones, el máximo de intentos, el tiempo por intento, las fechas de apertura y cierre, la mezcla de opciones, la retroalimentación y la navegación. **Guardar configuración** conserva el enlace, las preguntas, las respuestas y el estado publicado o cerrado. Guardar un formulario cerrado no lo reabre.
+
+El título y las instrucciones se actualizan de inmediato. Las reglas de navegación, la fecha límite y la retroalimentación se conservan por intento desde que comienza; las nuevas reglas se aplican a quienes inicien después de guardar. El máximo de intentos y la apertura/cierre controlan los nuevos accesos. Modificar el cierre programado no recorta ni extiende el plazo ya asignado a un alumno. El cierre manual sigue siendo una acción explícita que finaliza los intentos abiertos.
+
+La configuración se guarda con comprobación de revisión: dos pestañas docentes no pueden sobrescribir silenciosamente cambios entre sí. La edición de ajustes no vuelve a consultar el banco para reconstruir las preguntas, por lo que conserva sus copias incluso si después se archiva una pregunta del banco.
 
 ## Experiencia del alumno
 
@@ -37,9 +45,11 @@ Si se permiten varios intentos, se exportan todos; no se decide automáticamente
 
 ## Activación y verificación
 
-Migración aditiva: `supabase/migrations/20261124213410_online_forms_question_bank_attempts.sql`. Crea tablas y RPC propias; no migra ni modifica las tareas históricas. Antes de aplicar en un entorno, comprobar los contratos existentes `v2_question_bank`, `v2_groups` y `v2_group_students`. Aplicar la migración, refrescar la caché de PostgREST y construir/desplegar el frontend mediante el flujo protegido del repositorio. No basta con cambiar los archivos estáticos.
+Migración inicial: `supabase/migrations/20261124213410_online_forms_question_bank_attempts.sql`. La actualización de ajustes y navegación es `supabase/migrations/20261126183910_online_forms_editable_settings_forward_navigation.sql`, posterior a la migración de grupos declarados. Conserva los intentos existentes con navegación libre y copia su política de retroalimentación vigente. Antes de aplicar en un entorno, comprobar los contratos existentes `v2_question_bank`, `v2_groups` y `v2_group_students`. Aplicar las migraciones aditivas, refrescar la caché de PostgREST y construir/desplegar el frontend mediante el flujo protegido del repositorio. No basta con cambiar los archivos estáticos.
 
-Se conserva el flujo de revisión descrito en `GITHUB-PRODUCTION-PROTECTION.md`. Para revertir el frontend, volver al artefacto anterior; conservar las tablas nuevas y sus datos, sin borrar intentos.
+El cliente actualizado inicia mediante `v2_online_form_start_configured`. Los clientes anteriores conservan el acceso libre y la reanudación de sus intentos; deben actualizarse antes de crear un intento de avance único. El servidor rechaza ese inicio antiguo antes de consumir un intento. Activar avance único en un formulario publicado requiere que el nuevo frontend ya esté disponible.
+
+Se conserva el flujo de revisión descrito en `GITHUB-PRODUCTION-PROTECTION.md`. Para revertir el frontend, usar un artefacto validado compatible con los modos de los intentos activos; una versión anterior al protocolo de avance único no puede completar esos intentos. Conservar las tablas y los datos, sin borrar intentos ni cambiar sus reglas para permitir un retroceso.
 
 Pruebas:
 
@@ -56,8 +66,14 @@ Límites de esta versión: 20 secciones, 1000 candidatas, 200 preguntas por inte
 
 ## Navegación de examen
 
-La vista del alumno presenta una pregunta a la vez, con Anterior y Siguiente. El guardado se confirma antes de avanzar; al recargar se retoma la primera pregunta sin responder y se conserva la muestra sorteada. La última pregunta permite revisar y enviar, incluyendo la confirmación de preguntas en blanco. Esta interfaz no impide capturas de pantalla ni inspección del navegador: el servidor conserva el mismo contrato de intento y nunca envía claves con `score_only`. Los formularios nuevos empiezan con **Solo calificación (sin clave)** y un intento; las políticas explícitas de práctica y las reglas de formularios ya guardados se conservan.
+La vista del alumno presenta una pregunta a la vez. En **Libre: puede volver a revisar**, dispone de Anterior y Siguiente y puede cambiar respuestas antes de entregar. El guardado se confirma antes de avanzar; al recargar se conserva la muestra sorteada y se retoma la primera pregunta sin responder.
+
+En **Solo avanzar: sin regresar**, la portada avisa la regla antes de comenzar. Siguiente pide confirmar el cierre de la pregunta y muestra la respuesta que quedará registrada; si está vacía, avisa que valdrá cero puntos. El servidor entrega únicamente la pregunta actual y guarda un cursor que no puede retroceder. Rechaza respuestas a preguntas anteriores o futuras y no permite entregar antes de llegar a la última, salvo cierre o vencimiento. Un reintento de la misma solicitud de avance devuelve el estado actual y no salta una segunda pregunta.
+
+Tras una recarga, una respuesta de red perdida o una acción desde otra pestaña, la recuperación consulta el cursor del servidor. El avance queda bloqueado sin conexión o mientras hay una respuesta pendiente. La última pregunta permite **Confirmar entrega**, con aviso de preguntas vacías. Las respuestas anteriores siguen disponibles para el docente y para la calificación; la retroalimentación al finalizar respeta la política guardada para ese intento.
+
+Esta medida controla la navegación y edición dentro del formulario; no impide capturas de pantalla, consultas externas ni el uso de otro dispositivo. Los formularios nuevos empiezan con navegación libre, **Solo calificación (sin clave)** y un intento. El docente puede activar avance único desde la configuración sin alterar las reglas de quienes ya comenzaron.
 
 ## Grupos declarados y vista de evaluación
 
-Al crear un formulario sin grupo vinculado, el docente puede introducir hasta 20 etiquetas de grupo separadas por comas. El alumno debe seleccionar una de ellas junto con su nombre completo y matrícula; el servidor valida la lista y conserva la etiqueta en el intento, los resultados y Excel. Esta modalidad **no valida pertenencia al padrón** ni crea grupos académicos. Los formularios de grupo único mantienen la validación anterior. Un formulario publicado sin lista puede recibirla por primera vez sin alterar intentos previos (quedan sin grupo registrado); la lista ya publicada no puede reemplazarse. Se conserva la navegación Anterior/Siguiente con una pregunta visible, guardado confirmado y claves privadas con Solo calificación.
+Al crear un formulario sin grupo vinculado, el docente puede introducir hasta 20 etiquetas de grupo separadas por comas. El alumno debe seleccionar una de ellas junto con su nombre completo y matrícula; el servidor valida la lista y conserva la etiqueta en el intento, los resultados y Excel. Esta modalidad **no valida pertenencia al padrón** ni crea grupos académicos. Los formularios de grupo único mantienen la validación anterior. Un formulario publicado sin lista puede recibirla por primera vez sin alterar intentos previos (quedan sin grupo registrado); la lista ya publicada no puede reemplazarse. Ambos modos de navegación conservan la selección de grupo, el guardado confirmado y las claves privadas con Solo calificación.

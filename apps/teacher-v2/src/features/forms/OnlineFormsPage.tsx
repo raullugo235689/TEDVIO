@@ -13,12 +13,14 @@ import {
   onlineFormDetailKey,
   onlineFormDraftFromDetail,
   onlineFormDraftPayload,
+  onlineFormSettingsPayload,
   onlineFormError,
   onlineFormsWorkspaceKey,
   onlineFormStudentUrl,
   onlineFormTopic,
   publishOnlineForm,
   saveOnlineFormDraft,
+  saveOnlineFormSettings,
   type OnlineForm,
   type OnlineFormAttempt,
   type OnlineFormDetail,
@@ -48,6 +50,10 @@ const feedbackHints: Record<OnlineFormFeedback, string> = {
 };
 const selectionLabels: Record<OnlineFormDraft['selectionMode'], string> = {
   all: 'Todas las seleccionadas', random: 'Azar global', topic_quotas: 'Cuotas por tema',
+};
+const navigationLabels: Record<OnlineFormDraft['navigationMode'], string> = {
+  free: 'Libre: puede volver a revisar',
+  forward_only: 'Solo avanzar: sin regresar',
 };
 const PAGE_SIZE = 12;
 
@@ -169,16 +175,18 @@ function CandidateSelector({ questions, selectedIds, disabled, onChange }: {
   );
 }
 
-function OnlineFormEditor({ workspace, initialDraft, initialUpdatedAt, onCancel }: {
+function OnlineFormEditor({ workspace, initialDraft, initialUpdatedAt, settingsForm, onCancel }: {
   workspace: OnlineFormsWorkspace;
   initialDraft: OnlineFormDraft;
   initialUpdatedAt?: string;
+  settingsForm?: OnlineForm;
   onCancel?: () => void;
 }) {
   const auth = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const draftKey = ['online-form-draft', auth.user?.id, initialDraft.id || `new:${initialDraft.groupId}`];
+  const settingsOnly = Boolean(settingsForm);
+  const draftKey = [settingsOnly ? 'online-form-settings' : 'online-form-draft', auth.user?.id, initialDraft.id || `new:${initialDraft.groupId}`];
   const academic = useAcademicDraft(draftKey, { draft: initialDraft, updatedAt: initialUpdatedAt }, { persistInSession: true });
   const draft = academic.value.draft;
   const [error, setError] = useState('');
@@ -195,9 +203,9 @@ function OnlineFormEditor({ workspace, initialDraft, initialUpdatedAt, onCancel 
   const assignedCount = draft.selectionMode === 'all' ? draft.questionIds.length : draft.selectionMode === 'random'
     ? draft.questionCount : selectedTopics.reduce((sum, [topic]) => sum + (Number(draft.topicQuotas[topic]) || 0), 0);
   const validationError = useMemo(() => {
-    try { onlineFormDraftPayload(draft, questions); return ''; }
+    try { if (settingsOnly) onlineFormSettingsPayload(draft); else onlineFormDraftPayload(draft, questions); return ''; }
     catch (cause) { return onlineFormError(cause); }
-  }, [draft, questions]);
+  }, [draft, questions, settingsOnly]);
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   useEffect(() => {
@@ -223,13 +231,15 @@ function OnlineFormEditor({ workspace, initialDraft, initialUpdatedAt, onCancel 
       const stored = queryClient.getQueryData<AcademicDraft<typeof academic.value> | null>(draftKey);
       const snapshot = stored?.value ?? academic.value;
       const revision = stored?.revision ?? academic.revision;
-      if (snapshot.draft.id) {
+      if (snapshot.draft.id && !settingsOnly) {
         const latest = await fetchOnlineFormDetail(auth.user, snapshot.draft.id);
         if (latest.form.status !== 'draft' || (latest.form.attempt_count || 0) > 0 || latest.attempts.length > 0 || (snapshot.updatedAt && latest.form.updated_at !== snapshot.updatedAt)) {
           throw new Error('El formulario cambió desde que lo abriste. Conservamos tus cambios pendientes; vuelve al formulario para revisar la versión guardada.');
         }
       }
-      const id = await saveOnlineFormDraft(auth.user, snapshot.draft);
+      const id = settingsOnly
+        ? await saveOnlineFormSettings(auth.user, snapshot.draft)
+        : await saveOnlineFormDraft(auth.user, snapshot.draft);
       return { id, revision };
     },
     onSuccess: ({ id, revision }) => {
@@ -257,8 +267,9 @@ function OnlineFormEditor({ workspace, initialDraft, initialUpdatedAt, onCancel 
 
   return (
     <div className="view-stack online-forms-page">
-      <PageHeader eyebrow="EVALUAR · FORMULARIOS" title={draft.id ? 'Editar borrador' : 'Nuevo formulario'} detail="Selecciona las preguntas, define cómo se asignan y guarda el borrador para revisar antes de publicar."
+      <PageHeader eyebrow="EVALUAR · FORMULARIOS" title={settingsOnly ? 'Editar configuración' : draft.id ? 'Editar borrador' : 'Nuevo formulario'} detail={settingsOnly ? 'Ajusta la aplicación del formulario y guarda los cambios en su mismo enlace.' : 'Selecciona las preguntas, define cómo se asignan y guarda el borrador para revisar antes de publicar.'}
         actions={<button className="button secondary" type="button" disabled={busy} onClick={cancel}>Cancelar</button>} />
+      {settingsOnly ? <p className="of-message neutral">El título y las instrucciones se actualizan de inmediato. Los intentos iniciados conservan su tiempo, navegación y retroalimentación; los ajustes de aplicación se usarán en los próximos intentos.</p> : null}
       <form onSubmit={event => { event.preventDefault(); if (!busy && !validationError) saveMutation.mutate(); }} className="of-editor-layout">
         <div className="of-editor-main">
           <SectionCard>
@@ -267,11 +278,13 @@ function OnlineFormEditor({ workspace, initialDraft, initialUpdatedAt, onCancel 
             <fieldset disabled={busy} className="of-form-fields">
               <label className="of-field">Título<input value={draft.title} maxLength={200} required onChange={event => patchDraft({ title: event.currentTarget.value })} placeholder="Unidad 1 · Sesiones anatomoclínicas" /></label>
               <label className="of-field">Instrucciones<textarea value={draft.instructions} rows={3} onChange={event => patchDraft({ instructions: event.currentTarget.value })} placeholder="Explica qué debe hacer el alumno antes de iniciar." /></label>
-              <label className="of-field">Grupo (opcional)<select value={draft.groupId} onChange={event => patchDraft({ groupId: event.currentTarget.value, ...(event.currentTarget.value ? { groupChoicesText: '' } : {}) })}><option value="">Sin grupo</option>{workspace.groups.map(group => <option key={group.id} value={group.id}>{groupLabel(group)}</option>)}</select><small>{draft.groupId ? 'El alumno deberá ingresar una matrícula activa registrada en este grupo.' : 'Sin grupo vinculado, el alumno se identifica con su nombre y matrícula al abrir el enlace.'}</small></label>
-              {!draft.groupId ? <label className="of-field">Grupos disponibles para el alumno<input value={draft.groupChoicesText || ''} onChange={event => patchDraft({ groupChoicesText: event.currentTarget.value })} placeholder="3-01, 3-02, 3-03" /><small>Opcional. Separa los grupos por comas. Se registrarán como declarados, sin vincular automáticamente el padrón.</small></label> : null}
+              {!settingsOnly ? <>
+                <label className="of-field">Grupo (opcional)<select value={draft.groupId} onChange={event => patchDraft({ groupId: event.currentTarget.value, ...(event.currentTarget.value ? { groupChoicesText: '' } : {}) })}><option value="">Sin grupo</option>{workspace.groups.map(group => <option key={group.id} value={group.id}>{groupLabel(group)}</option>)}</select><small>{draft.groupId ? 'El alumno deberá ingresar una matrícula activa registrada en este grupo.' : 'Sin grupo vinculado, el alumno se identifica con su nombre y matrícula al abrir el enlace.'}</small></label>
+                {!draft.groupId ? <label className="of-field">Grupos disponibles para el alumno<input value={draft.groupChoicesText || ''} onChange={event => patchDraft({ groupChoicesText: event.currentTarget.value })} placeholder="3-01, 3-02, 3-03" /><small>Opcional. Separa los grupos por comas. Se registrarán como declarados, sin vincular automáticamente el padrón.</small></label> : null}
+              </> : null}
             </fieldset>
           </SectionCard>
-          <SectionCard>
+          {!settingsOnly ? <><SectionCard>
             <span className="of-step-label">2 · BANCO DE PREGUNTAS</span><h2 className="of-section-title">Preguntas candidatas</h2>
             <p className="of-section-intro">Elige hasta 1,000 preguntas candidatas de opción múltiple o verdadero/falso con una respuesta correcta. Cada pregunta vale un punto.</p>
             {unavailableCount > 0 ? <div className="of-message error" role="alert"><p>{unavailableCount} preguntas de la selección ya no están disponibles en el banco.</p><button type="button" className="button secondary compact" disabled={busy} onClick={() => changeSelection(ids => ids.filter(id => byId.has(id)))}>Quitar preguntas no disponibles</button></div> : null}
@@ -309,35 +322,45 @@ function OnlineFormEditor({ workspace, initialDraft, initialUpdatedAt, onCancel 
                 </div>
               ) : <p className="of-hint">Cada alumno responderá {selectedQuestions.length} preguntas.</p>}
             </fieldset>
-          </SectionCard>
+          </SectionCard></> : <SectionCard>
+            <h2 className="of-section-title">Preguntas y grupo</h2>
+            <p className="of-section-intro">La selección de preguntas y el grupo se fijan al publicar para conservar la integridad de los resultados.</p>
+            <dl className="of-overview">
+              <div><dt>Preguntas por alumno</dt><dd>{settingsForm?.question_count} de {settingsForm?.pool_count} candidatas</dd></div>
+              <div><dt>Grupo</dt><dd>{settingsForm?.group_choices?.length ? settingsForm.group_choices.join(' · ') : groupLabel(workspace.groups.find(group => group.id === settingsForm?.group_id))}</dd></div>
+              <div><dt>Estado</dt><dd>{settingsForm ? statusLabels[settingsForm.status] : ''}</dd></div>
+            </dl>
+          </SectionCard>}
           <SectionCard>
-            <span className="of-step-label">4 · APLICACIÓN</span><h2 className="of-section-title">Acceso y entrega</h2>
+            <span className="of-step-label">{settingsOnly ? '2 · APLICACIÓN' : '4 · APLICACIÓN'}</span><h2 className="of-section-title">Acceso y entrega</h2>
             <p className="of-section-intro">Las fechas usan la zona horaria de este dispositivo: {timeZone}.</p>
             <fieldset disabled={busy} className="of-form-fields">
               <div className="of-grid-two">
                 <label className="of-field">Intentos máximos<select value={draft.maxAttempts} onChange={event => patchDraft({ maxAttempts: Number(event.currentTarget.value) })}>{[1, 2, 3, 4, 5].map(count => <option key={count} value={count}>{count} {count === 1 ? 'intento' : 'intentos'}</option>)}</select></label>
                 <label className="of-field">Tiempo por intento (minutos)<input type="number" min={1} max={300} step={1} value={draft.timeLimitMinutes ?? ''} onChange={event => patchDraft({ timeLimitMinutes: event.currentTarget.value === '' ? null : Number(event.currentTarget.value) })} placeholder="Sin límite" /><small>Déjalo vacío para no establecer un límite de tiempo.</small></label>
                 <label className="of-field">Apertura<input type="datetime-local" value={draft.opensAt} onChange={event => patchDraft({ opensAt: event.currentTarget.value })} /><small>Sin fecha: disponible al publicar.</small></label>
-                <label className="of-field">Cierre<input type="datetime-local" value={draft.closesAt} onChange={event => patchDraft({ closesAt: event.currentTarget.value })} /><small>Sin fecha: podrás cerrarlo manualmente.</small></label>
+                <label className="of-field">Cierre<input type="datetime-local" value={draft.closesAt} onChange={event => patchDraft({ closesAt: event.currentTarget.value })} /><small>{settingsOnly ? 'Controla el acceso y la fecha límite de los nuevos intentos. Los ya iniciados conservan su límite.' : 'Sin fecha: podrás cerrarlo manualmente.'}</small></label>
               </div>
               <label className="of-check"><input type="checkbox" checked={draft.shuffleOptions} onChange={event => patchDraft({ shuffleOptions: event.currentTarget.checked })} /><span>Mezclar el orden de las opciones de respuesta</span></label>
+              <label className="of-field">Navegación entre preguntas<select value={draft.navigationMode ?? 'free'} onChange={event => patchDraft({ navigationMode: event.currentTarget.value as OnlineFormDraft['navigationMode'] })}>{Object.entries(navigationLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><small>{draft.navigationMode === 'forward_only' ? 'Al confirmar el avance, la respuesta queda cerrada. El alumno no podrá volver a preguntas anteriores, aunque recargue la página.' : 'El alumno puede volver a preguntas anteriores y cambiar sus respuestas antes de entregar.'}</small></label>
               <label className="of-field">Retroalimentación al alumno<select value={draft.feedbackMode} onChange={event => patchDraft({ feedbackMode: event.currentTarget.value as OnlineFormFeedback })}>{Object.entries(feedbackLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><small>{feedbackHints[draft.feedbackMode]}</small></label>
             </fieldset>
           </SectionCard>
         </div>
         <SectionCard className="of-editor-summary">
-          <h2>Resumen del borrador</h2>
+          <h2>{settingsOnly ? 'Resumen de configuración' : 'Resumen del borrador'}</h2>
           <dl className="of-stat-list">
-            <div><dt>Candidatas</dt><dd>{draft.questionIds.length}</dd></div>
-            <div><dt>Por alumno</dt><dd>{assignedCount}</dd></div>
-            <div><dt>Asignación</dt><dd>{selectionLabels[draft.selectionMode]}</dd></div>
+            <div><dt>Candidatas</dt><dd>{settingsForm?.pool_count ?? draft.questionIds.length}</dd></div>
+            <div><dt>Por alumno</dt><dd>{settingsForm?.question_count ?? assignedCount}</dd></div>
+            {!settingsOnly ? <div><dt>Asignación</dt><dd>{selectionLabels[draft.selectionMode]}</dd></div> : null}
             <div><dt>Tiempo</dt><dd>{draft.timeLimitMinutes ? `${draft.timeLimitMinutes} min` : 'Sin límite'}</dd></div>
             <div><dt>Intentos</dt><dd>{draft.maxAttempts}</dd></div>
+            <div><dt>Navegación</dt><dd>{draft.navigationMode === 'forward_only' ? 'Solo avanzar' : 'Libre'}</dd></div>
           </dl>
           {validationError ? <ul className="of-validation" aria-live="polite"><li>{validationError}</li></ul> : <p className="of-message success">La configuración está lista para guardar.</p>}
           {error ? <p className="of-message error" role="alert">{error}</p> : null}
-          <button className="button primary" type="submit" disabled={busy || Boolean(validationError)}>{busy ? 'Guardando…' : 'Guardar borrador'}</button>
-          <p className="of-hint">Después podrás revisar la configuración y publicar el enlace para tus alumnos.</p>
+          <button className="button primary" type="submit" disabled={busy || Boolean(validationError)}>{busy ? 'Guardando…' : settingsOnly ? 'Guardar configuración' : 'Guardar borrador'}</button>
+          <p className="of-hint">{settingsOnly ? settingsForm?.status === 'closed' ? 'Guardar no reabre el formulario. Se conservará su estado cerrado.' : 'Los cambios se guardan en el formulario publicado.' : 'Después podrás revisar la configuración y publicar el enlace para tus alumnos.'}</p>
           {academic.dirty ? <p className="of-hint" role="status">Hay cambios pendientes de guardar.</p> : null}
         </SectionCard>
       </form>
@@ -409,6 +432,7 @@ function FormOverview({ form, group }: { form: OnlineForm; group?: GroupRecord }
         <div><dt>Apertura</dt><dd>{form.opens_at ? dateTime(form.opens_at) : 'Al publicar'}</dd></div>
         <div><dt>Cierre</dt><dd>{form.closes_at ? dateTime(form.closes_at) : 'Manual'}</dd></div>
         <div><dt>Opciones de respuesta</dt><dd>{form.shuffle_options ? 'Orden mezclado' : 'Orden original'}</dd></div>
+        <div><dt>Navegación entre preguntas</dt><dd>{navigationLabels[form.navigation_mode ?? 'free']}</dd></div>
         <div><dt>Retroalimentación</dt><dd>{feedbackLabels[form.feedback_mode]}</dd></div>
         <div><dt>Valor por pregunta</dt><dd>1 punto</dd></div>
       </dl>
@@ -428,6 +452,7 @@ function AttemptDialog({ attempt, detail, onDismiss }: { attempt: OnlineFormAtte
         <div><dt>Calificación sobre 10</dt><dd>{resultGrade(attempt)}</dd></div>
         <div><dt>Inicio</dt><dd>{dateTime(attempt.started_at)}</dd></div>
         <div><dt>Envío</dt><dd>{attempt.submitted_at ? dateTime(attempt.submitted_at) : 'Pendiente'}</dd></div>
+        <div><dt>Navegación de este intento</dt><dd>{navigationLabels[attempt.navigation_mode ?? 'free']}</dd></div>
       </dl>
       <div className="of-result-details">
         {attempt.item_ids.length ? attempt.item_ids.map((id, index) => {
@@ -543,7 +568,8 @@ function OnlineFormDetailView({ detail, groups, onEdit, onRefresh, refreshing }:
       <PageHeader eyebrow="EVALUAR · FORMULARIOS" title={form.title} detail={`${form.question_count} preguntas por alumno · ${groupLabel(group)}`}
         actions={<>
           <StatusPill tone={statusTones[form.status]}>{statusLabels[form.status]}</StatusPill>
-          {editable ? <><button type="button" className="button secondary" disabled={busy} onClick={onEdit}>Editar borrador</button><button type="button" className="button primary" disabled={busy} onClick={() => confirm('publish')}>Publicar formulario</button></> : form.status === 'published' ? <button type="button" className="button secondary" disabled={busy} onClick={() => confirm('close')}>Cerrar formulario</button> : null}
+          {editable || form.status !== 'draft' ? <button type="button" className="button secondary" disabled={busy} onClick={onEdit}>{editable ? 'Editar borrador' : 'Editar configuración'}</button> : null}
+          {editable ? <button type="button" className="button primary" disabled={busy} onClick={() => confirm('publish')}>Publicar formulario</button> : form.status === 'published' ? <button type="button" className="button secondary" disabled={busy} onClick={() => confirm('close')}>Cerrar formulario</button> : null}
         </>} />
       {notice ? <p className="of-message success" role="status">{notice}</p> : null}
       {form.status !== 'draft' ? (
@@ -557,7 +583,7 @@ function OnlineFormDetailView({ detail, groups, onEdit, onRefresh, refreshing }:
         </SectionCard>
       ) : <p className="of-message neutral">{hasAttempts ? 'Este formulario ya tiene intentos registrados y su configuración está protegida.' : 'Este borrador aún no está disponible para los alumnos. Revisa la configuración antes de publicarlo.'}</p>}
       <SectionCard>
-        <h2 className="of-section-title">Configuración</h2><p className="of-section-intro">{editable ? 'Podrás editar estos datos mientras el formulario sea un borrador.' : 'Las preguntas y la configuración se conservan con la versión aplicada.'}</p>
+        <h2 className="of-section-title">Configuración</h2><p className="of-section-intro">{editable ? 'Revisa las preguntas y las reglas de aplicación. Podrás ajustar las reglas después de publicar.' : 'Puedes editar la configuración de aplicación. Los intentos ya iniciados conservan su tiempo, navegación y retroalimentación.'}</p>
         <FormOverview form={{ ...form, sections }} group={group} />
         <details className="of-pool-preview">
           <summary>Revisar {form.pool_count} preguntas candidatas</summary>
@@ -599,10 +625,10 @@ function OnlineFormDetailView({ detail, groups, onEdit, onRefresh, refreshing }:
         ) : <EmptyState icon="grades" title="Todavía no hay intentos registrados" detail={form.status === 'draft' ? 'Los resultados aparecerán después de publicar el formulario y recibir respuestas.' : 'Cuando un alumno comience, podrás consultar su avance y su resultado. Usa Actualizar resultados para revisar nuevos envíos.'} />}
       </SectionCard>
       {confirmation ? <ActionDialog className="of-dialog" eyebrow="TEDVIO · FORMULARIOS" title={confirmation === 'publish' ? '¿Publicar este formulario?' : '¿Cerrar este formulario?'}
-        detail={confirmation === 'publish' ? 'Las preguntas y la configuración quedarán fijadas. El alumnado podrá responder según las fechas configuradas.' : 'Se cerrará el acceso y los intentos en curso se enviarán automáticamente con las respuestas guardadas. Los resultados se conservarán para su consulta y descarga.'}
+        detail={confirmation === 'publish' ? 'Las preguntas y el grupo quedarán fijados. Podrás editar después las reglas de aplicación para los nuevos intentos. El alumnado podrá responder según las fechas configuradas.' : 'Se cerrará el acceso y los intentos en curso se enviarán automáticamente con las respuestas guardadas. Los resultados se conservarán para su consulta y descarga.'}
         confirmLabel={confirmation === 'publish' ? 'Publicar y obtener enlace' : 'Cerrar formulario'} danger={confirmation === 'close'} busy={busy}
         error={statusMutation.isError ? onlineFormError(statusMutation.error) : undefined} onDismiss={() => setConfirmation(null)} onConfirm={() => statusMutation.mutate(confirmation)}>
-        {confirmation === 'publish' ? <dl className="of-overview"><div><dt>Preguntas por alumno</dt><dd>{form.question_count}</dd></div><div><dt>Intentos máximos</dt><dd>{form.max_attempts}</dd></div><div><dt>Tiempo</dt><dd>{form.time_limit_minutes ? `${form.time_limit_minutes} minutos` : 'Sin límite'}</dd></div><div><dt>Acceso</dt><dd>{form.group_id ? `Matrículas de ${groupLabel(group)}` : form.group_choices?.length ? `Por enlace, grupo declarado: ${form.group_choices.join(', ')}` : 'Por enlace, con nombre y matrícula'}</dd></div><div><dt>Apertura</dt><dd>{form.opens_at ? dateTime(form.opens_at) : 'Al publicar'}</dd></div><div><dt>Cierre</dt><dd>{form.closes_at ? dateTime(form.closes_at) : 'Manual'}</dd></div><div><dt>Retroalimentación</dt><dd>{feedbackLabels[form.feedback_mode]}</dd></div></dl> : null}
+        {confirmation === 'publish' ? <dl className="of-overview"><div><dt>Preguntas por alumno</dt><dd>{form.question_count}</dd></div><div><dt>Intentos máximos</dt><dd>{form.max_attempts}</dd></div><div><dt>Tiempo</dt><dd>{form.time_limit_minutes ? `${form.time_limit_minutes} minutos` : 'Sin límite'}</dd></div><div><dt>Acceso</dt><dd>{form.group_id ? `Matrículas de ${groupLabel(group)}` : form.group_choices?.length ? `Por enlace, grupo declarado: ${form.group_choices.join(', ')}` : 'Por enlace, con nombre y matrícula'}</dd></div><div><dt>Apertura</dt><dd>{form.opens_at ? dateTime(form.opens_at) : 'Al publicar'}</dd></div><div><dt>Cierre</dt><dd>{form.closes_at ? dateTime(form.closes_at) : 'Manual'}</dd></div><div><dt>Navegación entre preguntas</dt><dd>{navigationLabels[form.navigation_mode ?? 'free']}</dd></div><div><dt>Retroalimentación</dt><dd>{feedbackLabels[form.feedback_mode]}</dd></div></dl> : null}
       </ActionDialog> : null}
       {selectedAttempt ? <AttemptDialog attempt={selectedAttempt} detail={detail} onDismiss={() => setSelectedAttemptId(null)} /> : null}
     </div>
@@ -641,7 +667,8 @@ export function OnlineFormsPage({ create = false }: { create?: boolean }) {
   if (detail.isLoading) return <LoadingScreen label="Abriendo el formulario…" />;
   if (detail.isError && !detail.data) return <ErrorPanel title="No se pudo abrir el formulario" detail={onlineFormError(detail.error)} onRetry={() => void detail.refetch()} />;
   if (!detail.data) return <ErrorPanel title="Formulario no disponible" detail="No se encontró el formulario solicitado." />;
-  if (editing && detail.data.form.status === 'draft' && !(detail.data.form.attempt_count || 0) && !detail.data.attempts.length) return <OnlineFormEditor key={detail.data.form.id} workspace={{ ...workspace.data, questions: detail.data.candidates }} initialDraft={onlineFormDraftFromDetail(detail.data)} initialUpdatedAt={detail.data.form.updated_at} onCancel={() => setEditing(false)} />;
+  const draftEditable = detail.data.form.status === 'draft' && !(detail.data.form.attempt_count || 0) && !detail.data.attempts.length;
+  if (editing && (draftEditable || detail.data.form.status !== 'draft')) return <OnlineFormEditor key={`${detail.data.form.id}-${draftEditable ? 'draft' : 'settings'}`} workspace={{ ...workspace.data, questions: detail.data.candidates }} initialDraft={onlineFormDraftFromDetail(detail.data)} initialUpdatedAt={detail.data.form.updated_at} settingsForm={draftEditable ? undefined : detail.data.form} onCancel={() => setEditing(false)} />;
 
   return <>{detail.isError ? <ErrorPanel title="No se pudieron actualizar los resultados" detail={onlineFormError(detail.error)} onRetry={() => void detail.refetch()} /> : null}<OnlineFormDetailView key={formId} detail={detail.data} groups={workspace.data.groups} onEdit={() => setEditing(true)} onRefresh={() => void detail.refetch()} refreshing={detail.isFetching} /></>;
 }

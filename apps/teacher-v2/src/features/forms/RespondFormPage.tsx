@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useParams } from 'react-router-dom';
 import {
+  advanceOnlineForm,
   fetchOnlineFormMeta,
   fetchOnlineFormState,
   onlineFormError,
@@ -37,6 +38,7 @@ const rejectedIdentityMessages = new Set([
   'Ya utilizaste los intentos permitidos.',
   'Selecciona un grupo válido y actualiza la página si no aparece la lista.',
   'Este formulario no admite un grupo declarado.',
+  'Actualiza la página para iniciar este formulario con avance único.',
 ]);
 
 async function resumeStoredSession(code: string, session: StoredSession): Promise<OnlineFormState> {
@@ -156,6 +158,8 @@ function RespondForm({ code }: { code: string }) {
   const [submitError, setSubmitError] = useState('');
   const [uncertainSubmission, setUncertainSubmission] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [advanceConfirmOpen, setAdvanceConfirmOpen] = useState(false);
+  const [advancing, setAdvancing] = useState(false);
   const [lostChanges, setLostChanges] = useState(0);
   const [now, setNow] = useState(Date.now());
   const [online, setOnline] = useState(typeof navigator === 'undefined' || navigator.onLine);
@@ -170,6 +174,8 @@ function RespondForm({ code }: { code: string }) {
   const saveBusyRef = useRef(false);
   const startBusyRef = useRef(false);
   const submitBusyRef = useRef(false);
+  const advanceBusyRef = useRef(false);
+  const advanceItemRef = useRef<string | null>(null);
   const checkingRef = useRef(false);
   const uncertainRef = useRef(false);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -178,6 +184,7 @@ function RespondForm({ code }: { code: string }) {
   const retrySaveRef = useRef<() => Promise<void>>(async () => {});
   const refreshRef = useRef<() => Promise<void>>(async () => {});
   const confirmDialog = useRef<HTMLDialogElement>(null);
+  const advanceDialog = useRef<HTMLDialogElement>(null);
   const resultHeading = useRef<HTMLHeadingElement>(null);
   const questionCard = useRef<HTMLElement>(null);
 
@@ -227,9 +234,12 @@ function RespondForm({ code }: { code: string }) {
       const draft = pendingRef.current[item.id];
       if (typeof draft === 'string' && item.options.includes(draft) && confirmed[item.id] !== draft) remaining[item.id] = draft;
     }
-    // Start or resume at the first unanswered question; reconciliation of the
-    // same attempt must never move the student's current question.
-    if (attemptRef.current?.attempt_id !== value.attempt_id) {
+    // In one-way mode, only the server's current question may be displayed.
+    // Free navigation keeps the student's selected question during reconciliation.
+    if (value.navigation_mode === 'forward_only') {
+      setQuestionIndex(0);
+      if (attemptRef.current?.items[0]?.id !== value.items[0]?.id) setAdvanceConfirmOpen(false);
+    } else if (attemptRef.current?.attempt_id !== value.attempt_id) {
       const selected = { ...confirmed, ...remaining };
       const firstUnanswered = value.items.findIndex(item => typeof selected[item.id] !== 'string');
       setQuestionIndex(firstUnanswered < 0 ? Math.max(0, value.items.length - 1) : firstUnanswered);
@@ -239,19 +249,25 @@ function RespondForm({ code }: { code: string }) {
     setAttempt(value);
     setAccessError('');
     if (value.status === 'submitted') {
-      setLostChanges(Object.keys(remaining).length);
+      // Score-only results may hide every prompt. Reconcile pending changes
+      // against the receipt responses so a lost save acknowledgement is not
+      // reported as lost work, while genuinely unsaved changes stay visible.
+      const submittedAnswers = new Map((value.responses || []).map(response => [response.item_id, response.answer]));
+      setLostChanges(Object.entries(pendingRef.current).filter(([itemId, answer]) => submittedAnswers.get(itemId) !== answer).length);
       answersRef.current = confirmed;
       setAnswers(confirmed);
       replacePending({});
       setSaveError('');
       setSubmitError('');
       setConfirmOpen(false);
+      setAdvanceConfirmOpen(false);
       uncertainRef.current = false;
       setUncertainSubmission(false);
     } else {
       answersRef.current = { ...confirmed, ...remaining };
       setAnswers(answersRef.current);
       replacePending(remaining);
+      if (Object.keys(remaining).length === 0) setSaveError('');
       uncertainRef.current = false;
       setUncertainSubmission(false);
     }
@@ -279,7 +295,7 @@ function RespondForm({ code }: { code: string }) {
 
   async function restoreSession() {
     const session = sessionRef.current;
-    if (!session || checkingRef.current || startBusyRef.current || submitBusyRef.current || saveBusyRef.current) return;
+    if (!session || checkingRef.current || startBusyRef.current || submitBusyRef.current || advanceBusyRef.current || saveBusyRef.current) return;
     checkingRef.current = true;
     setRecovering(!attemptRef.current);
     setChecking(true);
@@ -308,7 +324,7 @@ function RespondForm({ code }: { code: string }) {
 
   async function drainAnswers() {
     const session = sessionRef.current;
-    if (!session || saveBusyRef.current || submitBusyRef.current || checkingRef.current || uncertainRef.current || attemptRef.current?.status !== 'in_progress' || hasExpired()) return;
+    if (!session || saveBusyRef.current || submitBusyRef.current || advanceBusyRef.current || checkingRef.current || uncertainRef.current || attemptRef.current?.status !== 'in_progress' || hasExpired()) return;
     saveBusyRef.current = true;
     setSaving(true);
     setSaveError('');
@@ -332,7 +348,11 @@ function RespondForm({ code }: { code: string }) {
         setLastSaved(receipt.server_now || new Date(serverTime()).toISOString());
       }
     } catch (error) {
-      if (mounted.current) setSaveError(onlineFormError(error));
+      const message = onlineFormError(error);
+      // Another tab may already have advanced. Reconcile with the server instead
+      // of retaining an obsolete draft that could never be saved.
+      if (message === 'Esta pregunta ya no admite cambios. Actualiza el intento para continuar.') mustRefresh = true;
+      if (mounted.current) setSaveError(message);
     } finally {
       saveBusyRef.current = false;
       if (mounted.current) setSaving(false);
@@ -342,7 +362,8 @@ function RespondForm({ code }: { code: string }) {
   retrySaveRef.current = drainAnswers;
 
   function chooseAnswer(itemId: string, answer: string) {
-    if (attemptRef.current?.status !== 'in_progress' || hasExpired() || submitBusyRef.current || uncertainRef.current || checkingRef.current) return;
+    if (attemptRef.current?.status !== 'in_progress' || hasExpired() || submitBusyRef.current || advanceBusyRef.current || uncertainRef.current || checkingRef.current) return;
+    if (attemptRef.current.navigation_mode === 'forward_only' && attemptRef.current.items[0]?.id !== itemId) return;
     answersRef.current = { ...answersRef.current, [itemId]: answer };
     setAnswers(answersRef.current);
     const next = { ...pendingRef.current, [itemId]: answer };
@@ -380,7 +401,8 @@ function RespondForm({ code }: { code: string }) {
 
   async function confirmSubmit() {
     const session = sessionRef.current;
-    if (!session || submitBusyRef.current || saveBusyRef.current || checkingRef.current || Object.keys(pendingRef.current).length > 0 || attemptRef.current?.status !== 'in_progress') return;
+    if (!session || submitBusyRef.current || advanceBusyRef.current || saveBusyRef.current || checkingRef.current || uncertainRef.current || Object.keys(pendingRef.current).length > 0 || attemptRef.current?.status !== 'in_progress') return;
+    if (attemptRef.current.navigation_mode === 'forward_only' && (attemptRef.current.current_position < attemptRef.current.question_count || !navigator.onLine)) return;
     if (hasExpired()) { setConfirmOpen(false); void restoreSession(); return; }
     submitBusyRef.current = true;
     setSubmitBusy(true);
@@ -400,6 +422,45 @@ function RespondForm({ code }: { code: string }) {
     } finally { submitBusyRef.current = false; if (mounted.current) setSubmitBusy(false); }
   }
 
+  function requestAdvance(itemId: string) {
+    const current = attemptRef.current;
+    if (current?.status !== 'in_progress' || current.navigation_mode !== 'forward_only' || current.items[0]?.id !== itemId
+      || hasExpired() || advanceBusyRef.current || submitBusyRef.current || checkingRef.current || uncertainRef.current
+      || saveBusyRef.current || Object.keys(pendingRef.current).length > 0 || !navigator.onLine) return;
+    advanceItemRef.current = itemId;
+    setAdvanceConfirmOpen(true);
+  }
+
+  async function confirmAdvance() {
+    const session = sessionRef.current;
+    const current = attemptRef.current;
+    const itemId = advanceItemRef.current;
+    if (!session || !itemId || current?.status !== 'in_progress' || current.navigation_mode !== 'forward_only'
+      || current.items[0]?.id !== itemId || current.current_position >= current.question_count
+      || advanceBusyRef.current || submitBusyRef.current || saveBusyRef.current || checkingRef.current
+      || uncertainRef.current || Object.keys(pendingRef.current).length > 0 || !navigator.onLine) return;
+    if (hasExpired()) { setAdvanceConfirmOpen(false); void restoreSession(); return; }
+    advanceBusyRef.current = true;
+    setAdvancing(true);
+    setSubmitError('');
+    try {
+      // The expected item makes a replay safe if the server advanced but the
+      // response was lost. It can never skip the following question.
+      const value = await advanceOnlineForm(session.token, itemId);
+      if (!mounted.current) return;
+      if (value.status === 'in_progress' && value.current_position <= current.current_position) throw new Error('El servidor todavía no confirmó el avance.');
+      applyState(value);
+      setAdvanceConfirmOpen(false);
+    } catch (error) {
+      if (mounted.current) {
+        uncertainRef.current = true;
+        setUncertainSubmission(true);
+        setAdvanceConfirmOpen(false);
+        setSubmitError(`No pudimos confirmar el avance. Consulta el estado para continuar en la pregunta registrada. ${onlineFormError(error)}`);
+      }
+    } finally { advanceBusyRef.current = false; if (mounted.current) setAdvancing(false); }
+  }
+
   function forgetCompletedSession() {
     if (attemptRef.current?.status !== 'submitted' || checkingRef.current || submitBusyRef.current) return;
     removeSession(code);
@@ -412,6 +473,8 @@ function RespondForm({ code }: { code: string }) {
     setHasSession(false);
     setAttempt(null);
     setQuestionIndex(0);
+    setAdvanceConfirmOpen(false);
+    advanceItemRef.current = null;
     setAnswers({});
     setPending({});
     setName('');
@@ -465,14 +528,15 @@ function RespondForm({ code }: { code: string }) {
   useEffect(() => {
     if (!expired) { expiredChecked.current = false; return; }
     setConfirmOpen(false);
-    if (saving || checking || submitBusy || expiredChecked.current) return;
+    setAdvanceConfirmOpen(false);
+    if (saving || checking || submitBusy || advancing || expiredChecked.current) return;
     expiredChecked.current = true;
     void refreshRef.current();
-  }, [expired, saving, checking, submitBusy]);
+  }, [expired, saving, checking, submitBusy, advancing]);
 
   useEffect(() => {
     const beforeUnload = (event: BeforeUnloadEvent) => {
-      if (Object.keys(pendingRef.current).length > 0 || saveBusyRef.current || submitBusyRef.current) { event.preventDefault(); event.returnValue = ''; }
+      if (Object.keys(pendingRef.current).length > 0 || saveBusyRef.current || submitBusyRef.current || advanceBusyRef.current) { event.preventDefault(); event.returnValue = ''; }
     };
     const onOnline = () => { setOnline(true); if (hasExpired() || uncertainRef.current) void refreshRef.current(); else void retrySaveRef.current(); };
     const onOffline = () => setOnline(false);
@@ -495,6 +559,12 @@ function RespondForm({ code }: { code: string }) {
     if (confirmOpen && !dialog.open) dialog.showModal();
     if (!confirmOpen && dialog.open) dialog.close();
   }, [confirmOpen]);
+  useEffect(() => {
+    const dialog = advanceDialog.current;
+    if (!dialog) return;
+    if (advanceConfirmOpen && !dialog.open) dialog.showModal();
+    if (!advanceConfirmOpen && dialog.open) dialog.close();
+  }, [advanceConfirmOpen]);
   useEffect(() => { if (attempt?.status === 'submitted') resultHeading.current?.focus(); }, [attempt?.status]);
 
   useEffect(() => {
@@ -504,24 +574,30 @@ function RespondForm({ code }: { code: string }) {
       card.focus({ preventScroll: true });
       card.scrollIntoView({ block: 'start', behavior: 'auto' });
     }
-  }, [questionIndex, attempt?.attempt_id, attempt?.status]);
+  }, [questionIndex, attempt?.attempt_id, attempt?.status, attempt?.current_position]);
 
   const items = attempt?.items || [];
+  const forwardOnly = attempt?.navigation_mode === 'forward_only';
   const currentIndex = Math.min(questionIndex, Math.max(0, items.length - 1));
-  const isLastQuestion = currentIndex === items.length - 1;
-  const answeredCount = items.filter(item => typeof answers[item.id] === 'string').length;
+  const currentItem = items[forwardOnly ? 0 : currentIndex];
+  const questionCount = attempt?.question_count || items.length;
+  const currentPosition = forwardOnly ? attempt.current_position : currentIndex + 1;
+  const isLastQuestion = currentPosition >= questionCount;
+  const confirmedCurrent = currentItem && attempt?.responses.some(response => response.item_id === currentItem.id && typeof response.answer === 'string') ? 1 : 0;
+  const answeredCount = forwardOnly ? Math.min(questionCount, Math.max(0, attempt.answered_count - confirmedCurrent + (currentItem && typeof answers[currentItem.id] === 'string' ? 1 : 0))) : items.filter(item => typeof answers[item.id] === 'string').length;
   const pendingCount = Object.keys(pending).length;
-  const savedCount = items.filter(item => typeof savedRef.current[item.id] === 'string').length;
-  const locked = expired || submitBusy || uncertainSubmission || checking;
-  const canSubmit = attempt?.status === 'in_progress' && !locked && !saving && pendingCount === 0;
-  const canNavigate = canSubmit && items.length > 0;
+  const savedCount = forwardOnly ? Math.min(questionCount, Math.max(0, attempt.answered_count - confirmedCurrent + (currentItem && typeof savedRef.current[currentItem.id] === 'string' ? 1 : 0))) : items.filter(item => typeof savedRef.current[item.id] === 'string').length;
+  const locked = expired || submitBusy || advancing || uncertainSubmission || checking;
+  const canContinue = attempt?.status === 'in_progress' && !locked && !saving && pendingCount === 0 && (!forwardOnly || online);
+  const canSubmit = canContinue && (!forwardOnly || isLastQuestion);
+  const canNavigate = canContinue && items.length > 0;
   const canStart = !!meta?.available && !hasSession && !metaLoading && !recovering;
   const title = attempt?.title || meta?.title || 'Formulario';
   const showUasCover = meta?.id === UAS_ANATOMOCLINICAL_FORM_ID && attempt?.status !== 'in_progress';
   const instructions = attempt?.instructions || meta?.instructions;
   const scoreVisible = attempt?.status === 'submitted' && attempt.released && typeof attempt.score === 'number';
 
-  return <main className={`respond-form-shell${attempt?.status === 'in_progress' ? ' is-answering' : ''}${attempt?.status === 'submitted' ? ' is-delivered' : ''}`}>
+  return <main className={`respond-form-shell${attempt?.status === 'in_progress' ? ' is-answering' : ''}${attempt?.status === 'submitted' ? ' is-delivered' : ''}${forwardOnly ? ' is-forward-only' : ''}`}>
     <a className="respond-form-skip" href="#respond-form-content" onClick={event => { event.preventDefault(); document.getElementById('respond-form-content')?.focus(); }}>Ir al formulario</a>
     <header className="respond-form-brand"><img src="/assets/tedvio_official_isotipo.svg" alt="TEDVIO" width="38" height="38" /><div><strong>TEDVIO</strong><span>Formularios</span></div><span className="respond-form-private"><span aria-hidden="true" className="respond-form-live-dot"/> Acceso de estudiantes</span></header>
     <div className="respond-form-wrap" id="respond-form-content" tabIndex={-1}>
@@ -557,6 +633,7 @@ function RespondForm({ code }: { code: string }) {
           <label htmlFor="respond-form-name">Nombre completo<input id="respond-form-name" name="name" autoComplete="name" required maxLength={160} value={name} disabled={starting} onChange={event => setName(event.target.value)} placeholder="Tu nombre y apellidos" /></label>
           <label htmlFor="respond-form-enrollment">Matrícula<input id="respond-form-enrollment" name="enrollment" autoComplete="off" autoCapitalize="none" spellCheck={false} required maxLength={100} value={enrollment} disabled={starting} onChange={event => setEnrollment(event.target.value)} placeholder="Tu matrícula" /></label>
           {meta.group_choices?.length ? <label htmlFor="respond-form-group">Grupo<select id="respond-form-group" name="group" aria-label="Grupo" required value={declaredGroup} disabled={starting} onChange={event => setDeclaredGroup(event.target.value)}><option value="" disabled>Selecciona tu grupo</option>{meta.group_choices.map(label => <option key={label} value={label}>{label}</option>)}</select></label> : null}
+          {meta.navigation_mode === 'forward_only' ? <aside className="respond-form-navigation-notice" aria-labelledby="respond-form-forward-title"><strong id="respond-form-forward-title">Este formulario es de avance único</strong><p>Revisa cada respuesta antes de avanzar. Al confirmar «Siguiente», esa pregunta quedará cerrada. Durante este intento no podrás volver a verla ni cambiarla. Si avanzas sin responder, se calificará con cero puntos.</p><p>Si cierras la página, continuarás en la pregunta registrada.</p></aside> : null}
           <p className="respond-form-entry-note">{meta.time_limit_minutes ? 'El tiempo empieza cuando inicias el intento. ' : ''}Podrás continuar desde este mismo navegador si cierras la página.</p>
           <button className="respond-form-button primary" type="submit" disabled={starting || !name.trim() || !enrollment.trim() || (!!meta.group_choices?.length && !meta.group_choices.includes(declaredGroup))}>{starting ? 'Preparando tu intento…' : 'Comenzar formulario'}<span aria-hidden="true">→</span></button>
         </form></> : null}
@@ -566,15 +643,16 @@ function RespondForm({ code }: { code: string }) {
       {attempt?.status === 'in_progress' ? <>
         <section className="respond-form-progress" aria-label="Estado del intento">
           <div className="respond-form-progress-heading"><div><strong>{attempt.display_name}</strong><span>{attempt.declared_group ? `Grupo ${attempt.declared_group} · ` : ''}Matrícula {attempt.enrollment} · Intento {attempt.attempt_no}</span></div>{remaining !== null ? <div className={`respond-form-timer${remaining < 120000 ? ' urgent' : ''}`} role="timer" aria-label={`Tiempo restante ${durationLabel(remaining)}`}><span>Tiempo restante</span><strong>{durationLabel(remaining)}</strong></div> : <span className="respond-form-open-label">En curso</span>}</div>
-          <div className="respond-form-progress-row"><span>{answeredCount} de {items.length} respondidas</span><span>{savedCount} guardadas</span></div><progress max={Math.max(1, items.length)} value={answeredCount} aria-label={`${answeredCount} de ${items.length} preguntas respondidas`} />
-          <p className={`respond-form-save-state${saveError ? ' error' : ''}`} aria-live="polite" aria-atomic="true">{saving ? 'Guardando respuestas…' : saveError ? 'Hay respuestas sin guardar.' : pendingCount > 0 ? `${pendingCount} ${pendingCount === 1 ? 'respuesta pendiente' : 'respuestas pendientes'} de guardar.` : savedCount > 0 ? `Respuestas guardadas${lastSaved ? ` · ${new Date(lastSaved).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}` : ''}` : 'Selecciona una opción. Cada respuesta se guarda automáticamente.'}</p>
+          <div className="respond-form-progress-row"><span>{answeredCount} de {questionCount} respondidas</span><span>{savedCount} guardadas</span></div><progress max={Math.max(1, questionCount)} value={answeredCount} aria-label={`${answeredCount} de ${questionCount} preguntas respondidas`} />
+          <p className={`respond-form-save-state${saveError ? ' error' : ''}`} aria-live="polite" aria-atomic="true">{advancing ? 'Confirmando avance…' : saving ? 'Guardando respuestas…' : saveError ? 'Hay respuestas sin guardar.' : pendingCount > 0 ? `${pendingCount} ${pendingCount === 1 ? 'respuesta pendiente' : 'respuestas pendientes'} de guardar.` : savedCount > 0 ? `Respuestas guardadas${lastSaved ? ` · ${new Date(lastSaved).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}` : ''}` : 'Selecciona una opción. Cada respuesta se guarda automáticamente.'}</p>
+          {forwardOnly ? <p className="respond-form-forward-status">Avance único · Las preguntas anteriores quedan cerradas.</p> : null}
         </section>
         {expired ? <section className="respond-form-alert warning" role="status"><h2>El tiempo terminó</h2><p>{checking ? 'Estamos consultando el cierre de tu intento.' : 'Consulta el estado para confirmar el cierre y las respuestas que quedaron registradas.'}</p>{pendingCount > 0 ? <p>{pendingCount} {pendingCount === 1 ? 'cambio no tiene' : 'cambios no tienen'} confirmación de guardado.</p> : null}<button type="button" className="respond-form-button secondary" onClick={() => void restoreSession()} disabled={checking || saving}>{checking ? 'Consultando…' : 'Consultar cierre'}</button></section> : null}
-        {saveError && !expired ? <div className="respond-form-alert error" role="alert"><p>{saveError}</p><p>Tus selecciones siguen visibles. Deben guardarse antes de enviar.</p><button type="button" className="respond-form-button secondary" disabled={saving || checking || submitBusy} onClick={() => void drainAnswers()}>Reintentar guardado</button></div> : null}
-        {submitError ? <div className="respond-form-alert error" role="alert"><p>{submitError}</p><button type="button" className="respond-form-button secondary" onClick={() => void restoreSession()} disabled={checking || saving || submitBusy}>{checking ? 'Consultando…' : 'Consultar estado de mi intento'}</button></div> : null}
+        {saveError && !expired ? <div className="respond-form-alert error" role="alert"><p>{saveError}</p><p>Tus selecciones siguen visibles. Deben guardarse antes de enviar.</p><button type="button" className="respond-form-button secondary" disabled={saving || checking || submitBusy || advancing || uncertainSubmission} onClick={() => void drainAnswers()}>Reintentar guardado</button></div> : null}
+        {submitError ? <div className="respond-form-alert error" role="alert"><p>{submitError}</p><button type="button" className="respond-form-button secondary" onClick={() => void restoreSession()} disabled={checking || saving || submitBusy || advancing}>{checking ? 'Consultando…' : 'Consultar estado de mi intento'}</button></div> : null}
         <div className="respond-form-questions">
-          {items.slice(currentIndex, currentIndex + 1).map(item => <section ref={questionCard} tabIndex={-1} className="respond-form-card respond-form-question" key={item.id} aria-labelledby={`question-${item.id}`}>
-            <div className="respond-form-question-top"><span>Pregunta {currentIndex + 1} de {items.length}{item.section_title ? ` · ${item.section_title}` : ''}</span><span>{item.points} {item.points === 1 ? 'punto' : 'puntos'}</span></div>
+          {(currentItem ? [currentItem] : []).map(item => <section ref={questionCard} tabIndex={-1} className="respond-form-card respond-form-question" key={item.id} aria-labelledby={`question-${item.id}`}>
+            <div className="respond-form-question-top"><span>Pregunta {currentPosition} de {questionCount}{item.section_title ? ` · ${item.section_title}` : ''}</span><span>{item.points} {item.points === 1 ? 'punto' : 'puntos'}</span></div>
             <fieldset disabled={locked}><legend id={`question-${item.id}`}>{item.prompt}</legend><ItemMedia item={item} /><div className="respond-form-options">
               {item.options.map((option, optionIndex) => <label className={`respond-form-option${answers[item.id] === option ? ' selected' : ''}`} key={`${item.id}-${optionIndex}`}><input type="radio" name={`question-${item.id}`} value={option} checked={answers[item.id] === option} onChange={() => chooseAnswer(item.id, option)} /><span className="respond-form-option-letter" aria-hidden="true">{String.fromCharCode(65 + optionIndex)}</span><span>{option}</span></label>)}
             </div></fieldset>
@@ -582,12 +660,12 @@ function RespondForm({ code }: { code: string }) {
           </section>)}
         </div>
         <nav className="respond-form-step-nav" aria-label="Navegación de preguntas">
-          <div className="respond-form-step-count" aria-live="polite">Pregunta {currentIndex + 1} de {items.length} · {answeredCount} respondidas</div>
-          <div className="respond-form-step-actions">
-            <button type="button" className="respond-form-button secondary" disabled={!canNavigate || currentIndex === 0} onClick={() => setQuestionIndex(index => Math.max(0, index - 1))}>Anterior</button>
-            {isLastQuestion ? <button type="button" className="respond-form-button primary" disabled={!canSubmit} onClick={() => setConfirmOpen(true)}>{submitBusy ? 'Enviando…' : 'Revisar y enviar'}</button> : <button type="button" className="respond-form-button primary" disabled={!canNavigate} onClick={() => setQuestionIndex(index => Math.min(items.length - 1, index + 1))}>Siguiente <span aria-hidden="true">→</span></button>}
+          <div className="respond-form-step-count" aria-live="polite">Pregunta {currentPosition} de {questionCount} · {answeredCount} respondidas</div>
+          <div className={`respond-form-step-actions${forwardOnly ? ' forward-only' : ''}`}>
+            {!forwardOnly ? <button type="button" className="respond-form-button secondary" disabled={!canNavigate || currentIndex === 0} onClick={() => setQuestionIndex(index => Math.max(0, index - 1))}>Anterior</button> : null}
+            {isLastQuestion ? <button type="button" className="respond-form-button primary" disabled={!canSubmit} onClick={() => setConfirmOpen(true)}>{submitBusy ? 'Enviando…' : forwardOnly ? 'Confirmar entrega' : 'Revisar y enviar'}</button> : <button type="button" className="respond-form-button primary" disabled={!canNavigate} onClick={() => { if (forwardOnly && currentItem) requestAdvance(currentItem.id); else setQuestionIndex(index => Math.min(items.length - 1, index + 1)); }}>{advancing ? 'Confirmando avance…' : 'Siguiente'} <span aria-hidden="true">→</span></button>}
           </div>
-          {pendingCount > 0 || saving ? <p className="respond-form-step-note" role="status">Confirma el guardado de tu respuesta para continuar.</p> : isLastQuestion ? <p className="respond-form-step-note">{answeredCount === items.length ? 'Has respondido todas las preguntas.' : `Quedan ${items.length - answeredCount} sin responder. Puedes regresar a revisarlas antes de entregar.`}</p> : <p className="respond-form-step-note">Puedes dejar una pregunta sin responder y regresar antes de entregar.</p>}
+          {pendingCount > 0 || saving ? <p className="respond-form-step-note" role="status">Confirma el guardado de tu respuesta para continuar.</p> : forwardOnly ? <p className="respond-form-step-note">{!online ? 'Necesitas conexión para confirmar el avance o la entrega.' : isLastQuestion ? 'Última pregunta. Revisa tu respuesta antes de confirmar la entrega.' : 'Revisa esta respuesta. Al avanzar, no podrás regresar a esta pregunta.'}</p> : isLastQuestion ? <p className="respond-form-step-note">{answeredCount === questionCount ? 'Has respondido todas las preguntas.' : `Quedan ${questionCount - answeredCount} sin responder. Puedes regresar a revisarlas antes de entregar.`}</p> : <p className="respond-form-step-note">Puedes dejar una pregunta sin responder y regresar antes de entregar.</p>}
         </nav>
       </> : null}
 
@@ -606,7 +684,12 @@ function RespondForm({ code }: { code: string }) {
       <footer className="respond-form-footer">TEDVIO · Tu aprendizaje, paso a paso.</footer>
     </div>
     <dialog ref={confirmDialog} className="respond-form-dialog" aria-labelledby="respond-form-confirm-title" onCancel={event => { if (submitBusy) event.preventDefault(); else setConfirmOpen(false); }} onClose={() => { if (!submitBusy) setConfirmOpen(false); }}>
-      <span className="respond-form-eyebrow">CONFIRMAR ENTREGA</span><h2 id="respond-form-confirm-title">¿Enviar tu formulario?</h2><p>Se enviarán {answeredCount} de {items.length} respuestas. Después de entregar no podrás modificarlas.</p>{answeredCount < items.length ? <p className="respond-form-alert warning">{items.length - answeredCount} {items.length - answeredCount === 1 ? 'pregunta quedará' : 'preguntas quedarán'} sin responder y se calificará{items.length - answeredCount === 1 ? '' : 'n'} con cero puntos.</p> : null}<div className="respond-form-dialog-actions"><button type="button" className="respond-form-button secondary" disabled={submitBusy} onClick={() => setConfirmOpen(false)}>Seguir revisando</button><button type="button" className="respond-form-button primary" disabled={submitBusy || saving || checking || pendingCount > 0 || expired} onClick={() => void confirmSubmit()}>{submitBusy ? 'Confirmando entrega…' : 'Sí, enviar formulario'}</button></div>
+      <span className="respond-form-eyebrow">CONFIRMAR ENTREGA</span><h2 id="respond-form-confirm-title">¿Enviar tu formulario?</h2><p>Se enviarán {answeredCount} de {questionCount} respuestas. Después de entregar no podrás modificarlas.</p>{answeredCount < questionCount ? <p className="respond-form-alert warning">{questionCount - answeredCount} {questionCount - answeredCount === 1 ? 'pregunta quedará' : 'preguntas quedarán'} sin responder y se calificará{questionCount - answeredCount === 1 ? '' : 'n'} con cero puntos.</p> : null}<div className="respond-form-dialog-actions"><button type="button" className="respond-form-button secondary" disabled={submitBusy} onClick={() => setConfirmOpen(false)}>{forwardOnly ? 'Continuar en esta pregunta' : 'Seguir revisando'}</button><button type="button" className="respond-form-button primary" disabled={!canSubmit} onClick={() => void confirmSubmit()}>{submitBusy ? 'Confirmando entrega…' : 'Sí, enviar formulario'}</button></div>
+    </dialog>
+    <dialog ref={advanceDialog} className="respond-form-dialog" aria-labelledby="respond-form-advance-title" onCancel={event => { if (advancing) event.preventDefault(); else setAdvanceConfirmOpen(false); }} onClose={() => { if (!advancing) setAdvanceConfirmOpen(false); }}>
+      <span className="respond-form-eyebrow">AVANCE ÚNICO</span><h2 id="respond-form-advance-title">¿Cerrar esta pregunta y avanzar?</h2><p>La pregunta {currentPosition} quedará cerrada. Durante este intento no podrás volver a verla ni modificar tu respuesta.</p>
+      {currentItem && typeof answers[currentItem.id] === 'string' ? <p className="respond-form-advance-answer"><strong>Respuesta que quedará registrada:</strong> {answers[currentItem.id]}</p> : <p className="respond-form-alert warning">Esta pregunta quedará sin responder y se calificará con cero puntos.</p>}
+      <div className="respond-form-dialog-actions"><button type="button" className="respond-form-button secondary" disabled={advancing} onClick={() => setAdvanceConfirmOpen(false)}>Seguir en esta pregunta</button><button type="button" className="respond-form-button primary" disabled={!canNavigate || isLastQuestion} onClick={() => void confirmAdvance()}>{advancing ? 'Confirmando avance…' : 'Sí, avanzar'}</button></div>
     </dialog>
   </main>;
 }
