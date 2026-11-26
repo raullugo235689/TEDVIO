@@ -1,0 +1,1 @@
+import{ProductWorkspacePage as e}from"./ProductWorkspacePage-DT7wblyT.js";import{l as t}from"./query-BhKHjmDb.js";var n=t();function r(){return(0,n.jsx)(e,{kind:`library`})}export{r as PreparePage};
